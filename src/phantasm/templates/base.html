@@ -177,12 +177,14 @@
                 <h1>Phantasm</h1>
                 <p>Local-only protected storage interface</p>
             </div>
+            {% if active != "lock" %}
             <nav class="nav" aria-label="Primary navigation">
                 <a href="/" class="{{ 'active' if active == 'home' else '' }}">Home</a>
                 <a href="/store" class="{{ 'active' if active == 'store' else '' }}">Store</a>
                 <a href="/retrieve" class="{{ 'active' if active == 'retrieve' else '' }}">Retrieve</a>
                 <a href="/maintenance" class="{{ 'active' if active == 'maintenance' else '' }}">Maintenance</a>
             </nav>
+            {% endif %}
         </header>
 
         {% block content %}{% endblock %}

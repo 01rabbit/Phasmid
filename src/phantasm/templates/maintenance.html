@@ -14,11 +14,15 @@
             {{ ui.status_card("Session Token", "tokenState", "Active") }}
             {{ ui.status_card("Audit Settings", "auditState", audit_enabled) }}
             {{ ui.status_card("State Directory", "statePath", state_path) }}
-            {{ ui.status_card("Operation Mode", "operationMode", "Local-only") }}
+            {{ ui.status_card("UI Lock", "uiLockState", "Enabled" if face_lock.enabled else "Disabled") }}
         </div>
         <div class="actions">
             <button type="button" data-action="rotate-token">Rotate token</button>
             <button type="button" class="secondary" data-action="reset-session">Reset session</button>
+            {% if face_lock.enabled %}
+            <button type="button" class="secondary" data-action="lock-ui">Lock UI</button>
+            <button type="button" class="secondary" data-action="enroll-face">Enroll face lock</button>
+            {% endif %}
             <a class="button secondary" href="/maintenance/entries">Entry management</a>
             <a class="button secondary" href="/maintenance/logs" id="exportLogs">Export logs</a>
         </div>
@@ -56,6 +60,25 @@
         const data = await res.json();
         toast(data.status || data.error || 'Session reset finished.');
     });
+
+    const lockButton = document.querySelector('[data-action="lock-ui"]');
+    if (lockButton) {
+        lockButton.addEventListener('click', async () => {
+            const res = await apiFetch('/face/lock', { method: 'POST', body: new URLSearchParams() });
+            const data = await res.json();
+            toast(data.status || data.error || 'UI lock action finished.');
+            if (data.status) window.location.href = '/ui-lock';
+        });
+    }
+
+    const enrollButton = document.querySelector('[data-action="enroll-face"]');
+    if (enrollButton) {
+        enrollButton.addEventListener('click', async () => {
+            const res = await apiFetch('/face/enroll', { method: 'POST', body: new URLSearchParams() });
+            const data = await res.json();
+            toast(data.status || data.error || 'Face enrollment finished.');
+        });
+    }
 
     document.getElementById('exportLogs').addEventListener('click', async (event) => {
         event.preventDefault();

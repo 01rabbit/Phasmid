@@ -89,6 +89,14 @@ Navigation:
 - `Maintenance`: diagnostics, token rotation, audit state, log export, and entry management.
 - `/emergency`: hidden route for destructive local actions with typed confirmation.
 
+Optional UI face lock:
+
+```bash
+PHANTASM_UI_FACE_LOCK=1 PYTHONPATH=src python3 -m phantasm.web_server
+```
+
+When enabled, the WebUI starts at `/ui-lock`. The face check only unlocks the local interface for a short session; it is not mixed into vault encryption or retrieval keys.
+
 The hidden Emergency page includes:
 
 - clear unmatched entry
@@ -123,6 +131,8 @@ PHANTASM_STATE_DIR=/path/to/state python3 main.py init
 | `PHANTASM_HARDWARE_SECRET_PROMPT=1` | Prompt for an external secret |
 | `PHANTASM_PURGE_CONFIRMATION=0` | Disable explicit purge confirmation for open-password retrieval |
 | `PHANTASM_DURESS_MODE=1` | Auto-purge Profile B after Profile A retrieval |
+| `PHANTASM_UI_FACE_LOCK=1` | Require local face check before using the WebUI |
+| `PHANTASM_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime |
 | `PHANTASM_AUDIT=1` | Enable audit logging |
 
 ## Test

@@ -36,6 +36,7 @@ Phantasm is a local secure-storage prototype. It protects payloads in `vault.bin
 - Reference keys are stored together in a single AES-GCM encrypted ORB state blob under the configured state directory, not as raw reference photos or semantic per-profile template filenames.
 - Image-key matching requires stable results across a short frame window rather than accepting a single-frame match.
 - Web mutation endpoints require `X-Phantasm-Token`, apply a simple per-client rate limit, and enforce upload size limits.
+- Optional UI face lock (`PHANTASM_UI_FACE_LOCK=1`) can gate normal WebUI routes with a short-lived local session. This is a UI access control only and is not used for vault encryption.
 - The Web server binds to `127.0.0.1` by default.
 - Panic triggers require the secret value from the state directory's signal key.
 - Audit logging is disabled by default. If `PHANTASM_AUDIT=1` is set, security-relevant operations append minimal JSONL records to the state directory's event log without recording passwords, payload bytes, or plaintext filenames. Filename hashes are only recorded when `PHANTASM_AUDIT_FILENAMES=hash`.
@@ -48,6 +49,7 @@ Phantasm is a local secure-storage prototype. It protects payloads in `vault.bin
 - Secure deletion is best-effort only. SSD wear leveling, backups, snapshots, and journaling filesystems may retain previous data.
 - The v3 format avoids a plaintext format marker, but fixed profile spans and the surrounding tool files can still reveal that a Phantasm-style container may be in use.
 - Dual password slots duplicate the encrypted payload within the selected profile span. This improves operational control but reduces the maximum payload size per profile.
+- UI face lock is not a cryptographic authenticator for vault data. It can be affected by lighting, camera angle, false rejects, false accepts, and presentation attacks using photos or screens.
 - The in-memory Web rate limiter resets on process restart and is not a substitute for a real access-control layer.
 - Legacy v1/v2 retrieval has been removed. Old containers must be migrated by retrieving with an older build and storing again with this build.
 
@@ -59,6 +61,7 @@ Phantasm is a local secure-storage prototype. It protects payloads in `vault.bin
 - Set `PHANTASM_STATE_SECRET` from removable media, a password manager, or a device secret if encrypted reference templates must survive project-directory disclosure.
 - Enable `PHANTASM_AUDIT=1` only when an audit trail is more important than minimizing local metadata.
 - Keep the configured state directory and `vault.bin` on encrypted local storage.
+- Treat UI face lock as a convenience barrier for local interface use, not as a substitute for passwords, object cues, or external secrets.
 - Use distinct high-entropy values for open and open+purge passwords. The open+purge password is intentionally destructive.
 - Keep `PHANTASM_PURGE_CONFIRMATION=1` unless the deployment explicitly accepts the data-loss risk of automatic purge.
 - Treat Profile A/Profile B as convenience separation, not a guarantee of plausible deniability.

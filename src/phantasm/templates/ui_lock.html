@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% import "_components.html" as ui %}
+{% block title %}Phantasm | UI Lock{% endblock %}
+
+{% block content %}
+<div class="grid">
+    {{ ui.camera_preview() }}
+    <section class="panel">
+        <div class="panel-head">
+            <h2>UI Lock</h2>
+            <span class="badge bad">Locked</span>
+        </div>
+        <p class="copy">
+            Face UI lock controls access to this local interface only. Vault retrieval still requires
+            the access password and bound object.
+        </p>
+        {% if face_lock.enrolled %}
+        <div class="actions">
+            <button type="button" id="verifyFace">Verify face</button>
+        </div>
+        {% else %}
+        <p class="copy">No face lock is enrolled. Use the current camera frame to create the local UI lock.</p>
+        <div class="actions">
+            <button type="button" id="enrollFace">Enroll face</button>
+        </div>
+        {% endif %}
+        <h3>Status</h3>
+        <pre id="faceOutput" class="codebox">{{ face_lock | tojson(indent=2) }}</pre>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const output = document.getElementById('faceOutput');
+
+    async function postFace(url) {
+        const res = await apiFetch(url, { method: 'POST', body: new URLSearchParams() });
+        const data = await res.json();
+        output.textContent = JSON.stringify(data, null, 2);
+        toast(data.status || data.error || 'Face lock action finished.');
+        if (data.status && url === '/face/verify') {
+            window.location.href = '/';
+        }
+        if (data.status && url === '/face/enroll') {
+            window.location.reload();
+        }
+    }
+
+    const verify = document.getElementById('verifyFace');
+    if (verify) verify.addEventListener('click', () => postFace('/face/verify'));
+
+    const enroll = document.getElementById('enrollFace');
+    if (enroll) enroll.addEventListener('click', () => postFace('/face/enroll'));
+</script>
+{% endblock %}

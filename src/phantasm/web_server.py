@@ -6,12 +6,13 @@ import time
 import urllib.parse
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
 from .ai_gate import gate, get_gesture_sequence
 from .audit import audit_event
-from .config import AUDIT_LOG_NAME, duress_mode_enabled, purge_confirmation_required, state_dir
+from .config import AUDIT_LOG_NAME, duress_mode_enabled, purge_confirmation_required, state_dir, ui_face_lock_enabled
+from .face_lock import face_lock
 from .gv_core import GhostVault
 
 app = FastAPI(title="Phantasm - Local Secure Interface")
@@ -21,6 +22,7 @@ WEB_TOKEN = os.environ.get("PHANTASM_WEB_TOKEN") or secrets.token_urlsafe(32)
 MAX_UPLOAD_BYTES = int(os.environ.get("PHANTASM_MAX_UPLOAD_BYTES", 25 * 1024 * 1024))
 RATE_LIMIT_WINDOW = 60
 RATE_LIMIT_MAX = 20
+FACE_SESSION_COOKIE = "phantasm_ui_session"
 _rate_limit = {}
 
 ENTRY_TO_MODE = {
@@ -60,6 +62,37 @@ def _plain_form_value(value, default=""):
     return value if isinstance(value, str) else default
 
 
+def _client_id(request):
+    return request.client.host if request.client else "unknown"
+
+
+def _face_session_token(request):
+    return request.cookies.get(FACE_SESSION_COOKIE, "")
+
+
+def _ui_unlocked(request):
+    if not ui_face_lock_enabled():
+        return True
+    return face_lock.session_valid(_client_id(request), _face_session_token(request))
+
+
+def _face_lock_status(request):
+    if not ui_face_lock_enabled():
+        return {"enabled": False, "enrolled": False, "unlocked": True, "failures": 0, "max_failures": 0}
+    return face_lock.status(_client_id(request), _face_session_token(request))
+
+
+def require_ui_unlock(request: Request):
+    if not _ui_unlocked(request):
+        raise HTTPException(status_code=423, detail="ui locked")
+
+
+def _guard_page(request):
+    if _ui_unlocked(request):
+        return None
+    return RedirectResponse(url="/ui-lock", status_code=303)
+
+
 def require_web_token(x_phantasm_token: str = Header(default="")):
     if not secrets.compare_digest(x_phantasm_token, WEB_TOKEN):
         raise HTTPException(status_code=403, detail="invalid web token")
@@ -91,6 +124,7 @@ def _template_context(request: Request, active="home", **extra):
         "max_upload_bytes": MAX_UPLOAD_BYTES,
         "purge_confirmation_required": purge_confirmation_required(),
         "duress_mode_enabled": duress_mode_enabled(),
+        "face_lock": _face_lock_status(request),
         "destructive_clear_phrase": DESTRUCTIVE_CLEAR_PHRASE,
         "initialize_container_phrase": INITIALIZE_CONTAINER_PHRASE,
         "emergency_brick_phrase": EMERGENCY_BRICK_PHRASE,
@@ -187,6 +221,9 @@ def _capture_entry_binding(mode):
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
+    guard = _guard_page(request)
+    if guard:
+        return guard
     return templates.TemplateResponse(
         request=request,
         name="home.html",
@@ -196,6 +233,9 @@ async def home(request: Request):
 
 @app.get("/store", response_class=HTMLResponse)
 async def store_page(request: Request):
+    guard = _guard_page(request)
+    if guard:
+        return guard
     return templates.TemplateResponse(
         request=request,
         name="store.html",
@@ -205,6 +245,9 @@ async def store_page(request: Request):
 
 @app.get("/retrieve", response_class=HTMLResponse)
 async def retrieve_page(request: Request):
+    guard = _guard_page(request)
+    if guard:
+        return guard
     return templates.TemplateResponse(
         request=request,
         name="retrieve.html",
@@ -214,6 +257,9 @@ async def retrieve_page(request: Request):
 
 @app.get("/maintenance", response_class=HTMLResponse)
 async def maintenance_page(request: Request):
+    guard = _guard_page(request)
+    if guard:
+        return guard
     return templates.TemplateResponse(
         request=request,
         name="maintenance.html",
@@ -228,6 +274,9 @@ async def maintenance_page(request: Request):
 
 @app.get("/maintenance/entries", response_class=HTMLResponse)
 async def entry_management_page(request: Request):
+    guard = _guard_page(request)
+    if guard:
+        return guard
     return templates.TemplateResponse(
         request=request,
         name="entry_management.html",
@@ -241,10 +290,22 @@ async def entry_management_page(request: Request):
 
 @app.get("/emergency", response_class=HTMLResponse)
 async def emergency_page(request: Request):
+    guard = _guard_page(request)
+    if guard:
+        return guard
     return templates.TemplateResponse(
         request=request,
         name="emergency.html",
         context=_template_context(request, active="maintenance"),
+    )
+
+
+@app.get("/ui-lock", response_class=HTMLResponse)
+async def ui_lock_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="ui_lock.html",
+        context=_template_context(request, active="lock"),
     )
 
 
@@ -257,17 +318,73 @@ async def video_feed():
 
 
 @app.get("/status")
-async def status():
-    return neutral_status()
+async def status(request: Request):
+    data = neutral_status()
+    face_status = _face_lock_status(request)
+    if face_status["enabled"] and not face_status["unlocked"]:
+        data["device_state"] = "locked"
+    data["ui_lock"] = face_status
+    return data
 
 
-@app.get("/maintenance/entry_status", dependencies=[Depends(require_web_token)])
+@app.post("/face/enroll", dependencies=[Depends(require_web_token)])
+async def face_enroll(request: Request):
+    enforce_rate_limit(request)
+    if not ui_face_lock_enabled():
+        return {"error": "Face UI lock is disabled."}
+    if face_lock.is_enrolled() and not _ui_unlocked(request):
+        return {"error": "UI must be unlocked before replacing the face lock."}
+    with gate.lock:
+        frame = None if gate.latest_frame is None else gate.latest_frame.copy()
+    success, message = face_lock.enroll_from_frame(frame)
+    if success:
+        audit_event("ui_face_lock_enrolled", source="web")
+        return {"status": message}
+    return {"error": message}
+
+
+@app.post("/face/verify", dependencies=[Depends(require_web_token)])
+async def face_verify(request: Request):
+    enforce_rate_limit(request)
+    if not ui_face_lock_enabled():
+        return {"error": "Face UI lock is disabled."}
+    with gate.lock:
+        frame = None if gate.latest_frame is None else gate.latest_frame.copy()
+    client_id = _client_id(request)
+    success, message = face_lock.verify_from_frame(frame, client_id)
+    if not success:
+        audit_event("ui_face_lock_failed", source="web")
+        return {"error": message, "face_lock": _face_lock_status(request)}
+
+    token = secrets.token_urlsafe(32)
+    face_lock.create_session(client_id, token)
+    audit_event("ui_face_lock_unlocked", source="web")
+    response = JSONResponse({"status": "UI unlocked."})
+    response.set_cookie(
+        FACE_SESSION_COOKIE,
+        token,
+        max_age=int(os.environ.get("PHANTASM_UI_FACE_SESSION_SECONDS", face_lock.SESSION_TTL_SECONDS)),
+        httponly=True,
+        samesite="strict",
+    )
+    return response
+
+
+@app.post("/face/lock", dependencies=[Depends(require_web_token)])
+async def face_lock_session(request: Request):
+    face_lock.clear_session(_face_session_token(request))
+    response = JSONResponse({"status": "UI locked."})
+    response.delete_cookie(FACE_SESSION_COOKIE)
+    return response
+
+
+@app.get("/maintenance/entry_status", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def entry_status(request: Request):
     enforce_rate_limit(request)
     return entry_management_status()
 
 
-@app.post("/register_key", dependencies=[Depends(require_web_token)])
+@app.post("/register_key", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def register_key(
     request: Request,
     entry_hint: str = Form(default=""),
@@ -293,7 +410,7 @@ async def register_key(
     return {"error": message}
 
 
-@app.post("/store", dependencies=[Depends(require_web_token)])
+@app.post("/store", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def store(
     request: Request,
     file: UploadFile = File(...),
@@ -351,7 +468,7 @@ async def store(
         return {"error": str(exc)}
 
 
-@app.post("/retrieve", dependencies=[Depends(require_web_token)])
+@app.post("/retrieve", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def retrieve(request: Request, password: str = Form(...)):
     enforce_rate_limit(request)
     auth_sequence = get_gesture_sequence(length=1)
@@ -386,7 +503,7 @@ async def retrieve(request: Request, password: str = Form(...)):
     return {"error": "No valid entry found."}
 
 
-@app.post("/purge_other", dependencies=[Depends(require_web_token)])
+@app.post("/purge_other", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def purge_other(
     request: Request,
     accessed_entry: str = Form(default=""),
@@ -407,7 +524,7 @@ async def purge_other(
     return {"status": "Unmatched local entry cleared."}
 
 
-@app.post("/emergency/brick", dependencies=[Depends(require_web_token)])
+@app.post("/emergency/brick", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def emergency_brick(request: Request, confirmation: str = Form(...)):
     enforce_rate_limit(request)
     if confirmation != EMERGENCY_BRICK_PHRASE:
@@ -417,7 +534,7 @@ async def emergency_brick(request: Request, confirmation: str = Form(...)):
     return {"status": "Emergency brick completed. Close this session."}
 
 
-@app.post("/emergency/initialize", dependencies=[Depends(require_web_token)])
+@app.post("/emergency/initialize", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def emergency_initialize(request: Request, confirmation: str = Form(...)):
     enforce_rate_limit(request)
     if confirmation != INITIALIZE_CONTAINER_PHRASE:
@@ -430,7 +547,7 @@ async def emergency_initialize(request: Request, confirmation: str = Form(...)):
     return {"status": "Local container initialized. Protected entries are empty."}
 
 
-@app.post("/maintenance/rotate_token", dependencies=[Depends(require_web_token)])
+@app.post("/maintenance/rotate_token", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def rotate_token(request: Request):
     enforce_rate_limit(request)
     global WEB_TOKEN
@@ -439,14 +556,14 @@ async def rotate_token(request: Request):
     return {"status": "Session token rotated.", "web_token": WEB_TOKEN}
 
 
-@app.post("/maintenance/reset_session", dependencies=[Depends(require_web_token)])
+@app.post("/maintenance/reset_session", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def reset_session(request: Request):
     enforce_rate_limit(request)
     _rate_limit.clear()
     return {"status": "Local session counters reset."}
 
 
-@app.get("/maintenance/diagnostics", dependencies=[Depends(require_web_token)])
+@app.get("/maintenance/diagnostics", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def diagnostics(request: Request):
     enforce_rate_limit(request)
     status_data = neutral_status()
@@ -461,7 +578,7 @@ async def diagnostics(request: Request):
     }
 
 
-@app.get("/maintenance/logs", dependencies=[Depends(require_web_token)])
+@app.get("/maintenance/logs", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def export_logs(request: Request):
     enforce_rate_limit(request)
     path = Path(state_dir()) / AUDIT_LOG_NAME

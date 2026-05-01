@@ -8,6 +8,7 @@ VAULT_KEY_NAME = "access.bin"
 PANIC_TOKEN_NAME = "signal.key"
 PANIC_TRIGGER_NAME = "signal.trigger"
 AUDIT_LOG_NAME = "events.log"
+FACE_TEMPLATE_NAME = "face.bin"
 
 
 def state_dir():
@@ -27,3 +28,7 @@ def purge_confirmation_required():
 
 def duress_mode_enabled():
     return env_flag("PHANTASM_DURESS_MODE", default=False)
+
+
+def ui_face_lock_enabled():
+    return env_flag("PHANTASM_UI_FACE_LOCK", default=False)

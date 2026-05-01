@@ -141,8 +141,12 @@ The Emergency view is available only by direct route and is not shown in normal 
 | `GET` | `/maintenance` | Maintenance screen |
 | `GET` | `/maintenance/entries` | Entry management screen |
 | `GET` | `/emergency` | Hidden emergency screen |
+| `GET` | `/ui-lock` | Optional UI face-lock screen |
 | `GET` | `/video_feed` | Camera stream |
 | `GET` | `/status` | Neutral device/object status |
+| `POST` | `/face/enroll` | Enroll or replace optional UI face lock |
+| `POST` | `/face/verify` | Unlock optional UI face session |
+| `POST` | `/face/lock` | Clear optional UI face session |
 | `POST` | `/register_key` | Bind or rebind a physical object |
 | `POST` | `/store` | Store a protected entry |
 | `POST` | `/retrieve` | Retrieve and download the matching entry |
@@ -166,6 +170,8 @@ Mutating endpoints require `X-Phantasm-Token`. The token is generated on process
 The normal UI must not display internal profile names, internal retrieval order, or alternate-entry state after retrieval.
 
 Emergency initialization overwrites `vault.bin` with a fresh empty container and clears local object bindings. It is a destructive reset for normal reuse, distinct from emergency brick, which destroys the local access path first.
+
+Optional UI face lock is enabled with `PHANTASM_UI_FACE_LOCK=1`. It gates access to normal WebUI routes with a short-lived local session cookie. Face templates are encrypted in the runtime state directory. This lock is not used in Argon2id input and does not participate in vault encryption or retrieval.
 
 ## 8. Cryptography
 
@@ -230,6 +236,8 @@ The physical key is an operational gate, not a high-entropy cryptographic factor
 | `PHANTASM_HOST` | Web bind host | `127.0.0.1` |
 | `PHANTASM_PORT` | Web bind port | `8000` |
 | `PHANTASM_MAX_UPLOAD_BYTES` | Web upload limit | `26214400` |
+| `PHANTASM_UI_FACE_LOCK` | Require local face check before WebUI use | `0` |
+| `PHANTASM_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime | `300` |
 | `PHANTASM_AUDIT` | Enable audit logging | `0` |
 | `PHANTASM_AUDIT_FILENAMES` | Record filename hashes | unset |
 
