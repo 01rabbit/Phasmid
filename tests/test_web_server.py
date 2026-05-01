@@ -92,6 +92,67 @@ class WebServerBoundaryTests(unittest.TestCase):
 
         asyncio.run(run())
 
+    def test_locked_status_hides_camera_and_object_state(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+            )
+            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
+                 mock.patch.object(web_server.face_lock, "session_valid", return_value=False), \
+                 mock.patch.object(web_server, "neutral_status", return_value={
+                     "camera_ready": True,
+                     "object_state": "matched",
+                     "device_state": "ready",
+                     "local_mode": True,
+                 }):
+                response = await web_server.status(request)
+            self.assertEqual(response["device_state"], "locked")
+            self.assertFalse(response["camera_ready"])
+            self.assertEqual(response["object_state"], "none")
+
+        asyncio.run(run())
+
+    def test_video_feed_requires_unlocked_ui(self):
+        route = next(route for route in web_server.app.routes if getattr(route, "path", None) == "/video_feed")
+        dependency_names = {item.call.__name__ for item in route.dependant.dependencies}
+        self.assertIn("require_ui_unlock", dependency_names)
+
+    def test_initial_face_enroll_requires_bootstrap_flag(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+                url=SimpleNamespace(path="/face/enroll"),
+            )
+            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
+                 mock.patch.object(web_server, "ui_face_enrollment_enabled", return_value=False), \
+                 mock.patch.object(web_server.face_lock, "is_enrolled", return_value=False), \
+                 mock.patch.object(web_server.face_lock, "enroll_from_frames") as enroll:
+                response = await web_server.face_enroll(request)
+            enroll.assert_not_called()
+            self.assertIn("disabled", response["error"])
+
+        asyncio.run(run())
+
+    def test_initial_face_enroll_accepts_bootstrap_flag(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+                url=SimpleNamespace(path="/face/enroll"),
+            )
+            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
+                 mock.patch.object(web_server, "ui_face_enrollment_enabled", return_value=True), \
+                 mock.patch.object(web_server, "_recent_camera_frames", return_value=[object()]), \
+                 mock.patch.object(web_server.face_lock, "is_enrolled", return_value=False), \
+                 mock.patch.object(web_server.face_lock, "enroll_from_frames", return_value=(True, "ok")) as enroll:
+                response = await web_server.face_enroll(request)
+            enroll.assert_called_once()
+            self.assertIn("status", response)
+
+        asyncio.run(run())
+
     def test_face_enroll_requires_unlock_when_replacing_existing_template(self):
         async def run():
             request = SimpleNamespace(

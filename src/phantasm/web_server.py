@@ -11,7 +11,14 @@ from fastapi.templating import Jinja2Templates
 
 from .ai_gate import gate, get_gesture_sequence
 from .audit import audit_event
-from .config import AUDIT_LOG_NAME, duress_mode_enabled, purge_confirmation_required, state_dir, ui_face_lock_enabled
+from .config import (
+    AUDIT_LOG_NAME,
+    duress_mode_enabled,
+    purge_confirmation_required,
+    state_dir,
+    ui_face_enrollment_enabled,
+    ui_face_lock_enabled,
+)
 from .face_lock import face_lock
 from .gv_core import GhostVault
 
@@ -137,6 +144,7 @@ def _template_context(request: Request, active="home", **extra):
         "max_upload_bytes": MAX_UPLOAD_BYTES,
         "purge_confirmation_required": purge_confirmation_required(),
         "duress_mode_enabled": duress_mode_enabled(),
+        "face_enrollment_enabled": ui_face_enrollment_enabled(),
         "face_lock": _face_lock_status(request),
         "destructive_clear_phrase": DESTRUCTIVE_CLEAR_PHRASE,
         "initialize_container_phrase": INITIALIZE_CONTAINER_PHRASE,
@@ -322,7 +330,7 @@ async def ui_lock_page(request: Request):
     )
 
 
-@app.get("/video_feed")
+@app.get("/video_feed", dependencies=[Depends(require_ui_unlock)])
 async def video_feed():
     return StreamingResponse(
         gate.generate_frames(),
@@ -336,6 +344,8 @@ async def status(request: Request):
     face_status = _face_lock_status(request)
     if face_status["enabled"] and not face_status["unlocked"]:
         data["device_state"] = "locked"
+        data["camera_ready"] = False
+        data["object_state"] = "none"
     data["ui_lock"] = face_status
     return data
 
@@ -345,6 +355,8 @@ async def face_enroll(request: Request):
     enforce_rate_limit(request)
     if not ui_face_lock_enabled():
         return {"error": "Face UI lock is disabled."}
+    if not face_lock.is_enrolled() and not ui_face_enrollment_enabled():
+        return {"error": "Face enrollment is disabled for this session."}
     if face_lock.is_enrolled() and not _ui_unlocked(request):
         return {"error": "UI must be unlocked before replacing the face lock."}
     success, message = face_lock.enroll_from_frames(_recent_camera_frames())

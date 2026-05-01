@@ -3,8 +3,7 @@
 {% block title %}Phantasm | UI Lock{% endblock %}
 
 {% block content %}
-<div class="grid">
-    {{ ui.camera_preview() }}
+<div class="grid-single">
     <section class="panel">
         <div class="panel-head">
             <h2>UI Lock</h2>
@@ -12,17 +11,24 @@
         </div>
         <p class="copy">
             Face UI lock controls access to this local interface only. Vault retrieval still requires
-            the access password and bound object.
+            the access password and bound object. Camera preview is withheld while the interface is locked.
         </p>
         {% if face_lock.enrolled %}
         <div class="actions">
             <button type="button" id="verifyFace">Verify face</button>
         </div>
         {% else %}
+        {% if face_enrollment_enabled %}
         <p class="copy">No face lock is enrolled. Use the current camera frame to create the local UI lock.</p>
         <div class="actions">
             <button type="button" id="enrollFace">Enroll face</button>
         </div>
+        {% else %}
+        <p class="copy">
+            No face lock is enrolled. Restart the WebUI with explicit enrollment enabled before creating
+            the first local UI lock.
+        </p>
+        {% endif %}
         {% endif %}
         <h3>Status</h3>
         <p id="faceStatus" class="copy">

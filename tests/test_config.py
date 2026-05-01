@@ -27,6 +27,14 @@ class ConfigTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=True):
             self.assertFalse(config.duress_mode_enabled())
 
+    def test_face_enrollment_defaults_to_disabled(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(config.ui_face_enrollment_enabled())
+
+    def test_face_enrollment_can_be_enabled(self):
+        with mock.patch.dict(os.environ, {"PHANTASM_UI_FACE_ENROLL": "1"}, clear=True):
+            self.assertTrue(config.ui_face_enrollment_enabled())
+
 
 if __name__ == "__main__":
     unittest.main()

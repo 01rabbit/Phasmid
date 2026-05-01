@@ -107,6 +107,14 @@ PHANTASM_UI_FACE_LOCK=1 PYTHONPATH=src python3 -m phantasm.web_server
 
 When enabled, the WebUI starts at `/ui-lock`. The face check only unlocks the local interface for a short session; it is not mixed into vault encryption or retrieval keys.
 
+First-time face enrollment is an explicit setup mode:
+
+```bash
+PHANTASM_UI_FACE_LOCK=1 PHANTASM_UI_FACE_ENROLL=1 PYTHONPATH=src python3 -m phantasm.web_server
+```
+
+Use setup mode only while provisioning the device. Normal locked sessions withhold the camera preview until the UI is unlocked. Deleting `face.bin` by itself is not a supported reset path; use the CLI reset so the vault and local object bindings are cleared together.
+
 Face-lock reset is intentionally CLI-only because it also resets the local container and object bindings.
 
 The hidden Emergency page includes:
@@ -145,6 +153,7 @@ PHANTASM_STATE_DIR=/path/to/state python3 main.py init
 | `PHANTASM_PURGE_CONFIRMATION=0` | Disable explicit purge confirmation for open-password retrieval |
 | `PHANTASM_DURESS_MODE=1` | Auto-purge Profile B after Profile A retrieval |
 | `PHANTASM_UI_FACE_LOCK=1` | Require local face check before using the WebUI |
+| `PHANTASM_UI_FACE_ENROLL=1` | Permit first-time WebUI face-lock enrollment during setup |
 | `PHANTASM_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime |
 | `PHANTASM_AUDIT=1` | Enable audit logging |
 

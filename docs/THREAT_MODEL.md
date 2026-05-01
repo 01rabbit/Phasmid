@@ -37,6 +37,7 @@ Phantasm is a local secure-storage prototype. It protects payloads in `vault.bin
 - Image-key matching requires stable results across a short frame window rather than accepting a single-frame match.
 - Web mutation endpoints require `X-Phantasm-Token`, apply a simple per-client rate limit, and enforce upload size limits.
 - Optional UI face lock (`PHANTASM_UI_FACE_LOCK=1`) can gate normal WebUI routes with a short-lived local session. This is a UI access control only and is not used for vault encryption.
+- When UI face lock is enabled, camera preview and object-match state are withheld until the UI is unlocked. First-time WebUI face enrollment requires explicit setup mode with `PHANTASM_UI_FACE_ENROLL=1`.
 - UI face-lock reset is CLI-only and requires a typed confirmation phrase. It clears the face template, rotates the local access key, initializes the vault container, and clears physical-object bindings so a changed UI user starts from an empty local state.
 - The Web server binds to `127.0.0.1` by default.
 - Panic triggers require the secret value from the state directory's signal key.
@@ -63,6 +64,7 @@ Phantasm is a local secure-storage prototype. It protects payloads in `vault.bin
 - Enable `PHANTASM_AUDIT=1` only when an audit trail is more important than minimizing local metadata.
 - Keep the configured state directory and `vault.bin` on encrypted local storage.
 - Treat UI face lock as a convenience barrier for local interface use, not as a substitute for passwords, object cues, or external secrets.
+- Use `PHANTASM_UI_FACE_ENROLL=1` only during controlled provisioning. Do not treat deletion of `.state/face.bin` alone as a reset path.
 - Use `python3 main.py reset-face-lock` when the authorized local UI user changes. This intentionally rotates the local access key, clears stored vault data, and clears object bindings as part of the reset.
 - Use distinct high-entropy values for open and open+purge passwords. The open+purge password is intentionally destructive.
 - Keep `PHANTASM_PURGE_CONFIRMATION=1` unless the deployment explicitly accepts the data-loss risk of automatic purge.

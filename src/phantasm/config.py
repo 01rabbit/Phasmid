@@ -32,3 +32,7 @@ def duress_mode_enabled():
 
 def ui_face_lock_enabled():
     return env_flag("PHANTASM_UI_FACE_LOCK", default=False)
+
+
+def ui_face_enrollment_enabled():
+    return env_flag("PHANTASM_UI_FACE_ENROLL", default=False)

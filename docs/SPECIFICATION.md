@@ -151,7 +151,7 @@ The Emergency view is available only by direct route and is not shown in normal 
 | `GET` | `/maintenance/entries` | Entry management screen |
 | `GET` | `/emergency` | Hidden emergency screen |
 | `GET` | `/ui-lock` | Optional UI face-lock screen |
-| `GET` | `/video_feed` | Camera stream |
+| `GET` | `/video_feed` | Camera stream for unlocked UI sessions |
 | `GET` | `/status` | Neutral device/object status |
 | `POST` | `/face/enroll` | Enroll or replace optional UI face lock |
 | `POST` | `/face/verify` | Unlock optional UI face session |
@@ -181,6 +181,8 @@ The normal UI must not display internal profile names, internal retrieval order,
 Emergency initialization rotates the local access key, overwrites `vault.bin` with a fresh empty container, and clears local object bindings. It is a destructive reset for normal reuse, distinct from emergency brick, which destroys the local access path first.
 
 Optional UI face lock is enabled with `PHANTASM_UI_FACE_LOCK=1`. It gates access to normal WebUI routes with a short-lived local session cookie. Face templates are encrypted in the runtime state directory. This lock is not used in Argon2id input and does not participate in vault encryption or retrieval.
+
+First-time face enrollment is disabled unless the WebUI process is started with `PHANTASM_UI_FACE_ENROLL=1`. This setup flag is intended for device provisioning only. When the UI is locked, `/status` returns a locked state without object-match details and `/video_feed` requires an unlocked UI session.
 
 Face-lock reset is intentionally available only through the CLI. The WebUI can enroll, verify, and clear the current session, but it does not expose a route that resets the face template and container together.
 
@@ -248,6 +250,7 @@ The physical key is an operational gate, not a high-entropy cryptographic factor
 | `PHANTASM_PORT` | Web bind port | `8000` |
 | `PHANTASM_MAX_UPLOAD_BYTES` | Web upload limit | `26214400` |
 | `PHANTASM_UI_FACE_LOCK` | Require local face check before WebUI use | `0` |
+| `PHANTASM_UI_FACE_ENROLL` | Permit first-time face-lock enrollment during setup | `0` |
 | `PHANTASM_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime | `300` |
 | `PHANTASM_AUDIT` | Enable audit logging | `0` |
 | `PHANTASM_AUDIT_FILENAMES` | Record filename hashes | unset |
