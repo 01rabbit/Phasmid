@@ -171,11 +171,11 @@ class GhostVault:
         gesture_sequence,
         filename="payload.bin",
         mode="dummy",
-        purge_password=None,
+        restricted_recovery_password=None,
     ):
         self._require_container()
-        if purge_password is not None and purge_password == password:
-            raise ValueError("open and purge passwords must be different")
+        if restricted_recovery_password is not None and restricted_recovery_password == password:
+            raise ValueError("open and restricted recovery passwords must be different")
 
         self._write_slot(
             password,
@@ -186,9 +186,9 @@ class GhostVault:
             password_role=self.OPEN_ROLE,
         )
 
-        if purge_password:
+        if restricted_recovery_password:
             self._write_slot(
-                purge_password,
+                restricted_recovery_password,
                 data,
                 gesture_sequence,
                 filename=filename,

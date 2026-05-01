@@ -46,7 +46,7 @@
             if (headerFilename) pendingFilename = decodeURIComponent(headerFilename);
             document.getElementById('downloadName').textContent = `Access granted: ${pendingFilename}`;
             document.getElementById('downloadPanel').style.display = 'block';
-            toast(res.headers.get('X-Local-State-Updated') === '1' ? 'Access granted. Local state updated.' : 'Access granted.');
+            toast('Access granted.');
             return;
         }
         const data = await res.json();

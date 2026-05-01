@@ -270,11 +270,38 @@ class WebServerBoundaryTests(unittest.TestCase):
         self.assertEqual(ctx.exception.status_code, 403)
 
     def test_sensitive_routes_require_restricted_confirmation_dependency(self):
-        sensitive_paths = {"/purge_other", "/emergency/brick", "/emergency/initialize"}
+        sensitive_paths = {"/purge_other", "/emergency/brick", "/emergency/initialize", "/maintenance/entry_status"}
         for path in sensitive_paths:
             route = next(route for route in web_server.app.routes if getattr(route, "path", None) == path)
             dependency_names = {item.call.__name__ for item in route.dependant.dependencies}
             self.assertIn("require_restricted_confirmation", dependency_names)
+
+    def test_emergency_page_hides_actions_before_restricted_confirmation(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+            )
+            with mock.patch.object(web_server, "_guard_page", return_value=None), \
+                 mock.patch.object(web_server, "_restricted_session_valid", return_value=False):
+                response = await web_server.emergency_page(request)
+            self.assertFalse(response.context["restricted_confirmed"])
+
+        asyncio.run(run())
+
+    def test_entry_management_page_hides_status_before_restricted_confirmation(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+            )
+            with mock.patch.object(web_server, "_guard_page", return_value=None), \
+                 mock.patch.object(web_server, "_restricted_session_valid", return_value=False):
+                response = await web_server.entry_management_page(request)
+            self.assertFalse(response.context["restricted_confirmed"])
+            self.assertNotIn("entry_status", response.context)
+
+        asyncio.run(run())
 
     def test_hidden_clear_requires_explicit_phrase(self):
         async def run():
@@ -374,7 +401,7 @@ class WebServerBoundaryTests(unittest.TestCase):
             self.assertFalse(web_server._maybe_auto_purge("secret", source="test"))
         purge.assert_not_called()
 
-    def test_purge_password_role_purges_alternate_profile(self):
+    def test_restricted_recovery_password_role_purges_alternate_profile(self):
         with mock.patch.object(web_server.vault, "purge_other_mode") as purge:
             self.assertTrue(
                 web_server._purge_for_password_role(
@@ -396,10 +423,10 @@ class WebServerBoundaryTests(unittest.TestCase):
             )
         purge.assert_not_called()
 
-    def test_download_response_uses_neutral_filename_and_state_header(self):
+    def test_download_response_uses_neutral_filename_without_state_change_header(self):
         response = web_server.create_file_response(b"payload", "source-name.txt", purge_applied=True)
         self.assertIn("retrieved_payload.bin", response.headers["content-disposition"])
-        self.assertEqual(response.headers["x-local-state-updated"], "1")
+        self.assertNotIn("x-local-state-updated", response.headers)
         self.assertNotIn("source-name", str(response.headers).lower())
 
 

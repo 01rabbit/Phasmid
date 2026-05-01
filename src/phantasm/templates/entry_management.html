@@ -19,6 +19,7 @@
             </label>
             <button type="button" class="secondary small" id="confirmRestricted">Confirm local control</button>
         </details>
+        {% if restricted_confirmed %}
         <label class="field">
             <span>Entry label</span>
             <select id="entrySelect">
@@ -34,7 +35,10 @@
             <button type="button" class="secondary" id="clearTemplateButton">Clear local object template</button>
         </div>
         <h3>Binding Status</h3>
-        <pre id="entryOutput" class="codebox">{{ entry_status | tojson(indent=2) }}</pre>
+        <p id="entryOutput" class="copy">Select an entry and test matching to view local status.</p>
+        {% else %}
+        <p class="copy">Local entry maintenance requires confirmation.</p>
+        {% endif %}
     </section>
 </div>
 {% endblock %}
@@ -42,12 +46,20 @@
 {% block scripts %}
 <script>
     async function refreshEntryStatus() {
-        const res = await apiFetch('/maintenance/entry_status');
+        const entry = document.getElementById('entrySelect').value;
+        const res = await apiFetch(`/maintenance/entry_status?entry_id=${encodeURIComponent(entry)}`);
         const data = await res.json();
-        document.getElementById('entryOutput').textContent = JSON.stringify(data, null, 2);
+        if (data.error) {
+            document.getElementById('entryOutput').textContent = data.error;
+            return;
+        }
+        const state = data.bound ? 'Object cue present' : 'No object cue';
+        const match = data.matched ? 'Stable match' : 'No stable match';
+        document.getElementById('entryOutput').textContent = `${data.label}: ${state}. ${match}.`;
     }
 
-    document.getElementById('rebindButton').addEventListener('click', async () => {
+    const rebindButton = document.getElementById('rebindButton');
+    if (rebindButton) rebindButton.addEventListener('click', async () => {
         const confirmed = await confirmRestrictedAction(document.getElementById('restrictedConfirmation').value);
         if (!confirmed) return;
         const entry = document.getElementById('entrySelect').value;
@@ -59,15 +71,20 @@
     });
 
     document.getElementById('confirmRestricted').addEventListener('click', async () => {
-        await confirmRestrictedAction(document.getElementById('restrictedConfirmation').value);
+        if (await confirmRestrictedAction(document.getElementById('restrictedConfirmation').value)) {
+            window.location.reload();
+        }
     });
 
-    document.getElementById('testButton').addEventListener('click', refreshEntryStatus);
-    document.getElementById('renameButton').addEventListener('click', () => {
+    const testButton = document.getElementById('testButton');
+    if (testButton) testButton.addEventListener('click', refreshEntryStatus);
+    const renameButton = document.getElementById('renameButton');
+    if (renameButton) renameButton.addEventListener('click', () => {
         toast('Local label rename is reserved for a future persistent label store.');
     });
-    document.getElementById('clearTemplateButton').addEventListener('click', () => {
-        toast('Use the hidden restricted route for local data-loss actions.');
+    const clearTemplateButton = document.getElementById('clearTemplateButton');
+    if (clearTemplateButton) clearTemplateButton.addEventListener('click', () => {
+        toast('Use restricted actions for local data-loss operations.');
     });
 </script>
 {% endblock %}

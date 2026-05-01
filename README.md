@@ -101,7 +101,7 @@ Navigation:
 - `Maintenance`: diagnostics, token rotation, audit state, log export, and entry management.
 - `/emergency`: hidden route for restricted local actions with typed confirmation.
 
-Restricted actions are not shown in normal navigation. Hidden routes are UX concealment only, so restricted actions also require the Web mutation token, an unlocked UI session when face lock is enabled, a fresh restricted confirmation, and a typed action phrase.
+Restricted actions are not shown in normal navigation. Hidden routes are UX concealment only, so restricted actions also require the Web mutation token, an unlocked UI session when face lock is enabled, a fresh restricted confirmation, and a typed action phrase. The hidden restricted route initially renders only a confirmation screen.
 
 Optional UI face lock:
 
@@ -165,6 +165,8 @@ PHANTASM_STATE_DIR=/path/to/state python3 main.py init
 
 Phantasm is intended for localhost or USB Ethernet gadget access. It should not be exposed to an untrusted network and should not be deployed as an Internet-facing service. Remote management, telemetry, cloud unlock, and analytics are intentionally out of scope.
 
+Restricted local data-loss behavior should be understood primarily as key-material destruction and local access-path invalidation. Best-effort overwrite may be attempted, but SD card behavior means overwrite must not be treated as guaranteed secure deletion.
+
 ## Test
 
 ```bash
@@ -181,6 +183,7 @@ python3 scripts/bench_kdf.py
 
 - [Specification](docs/SPECIFICATION.md)
 - [Threat Model](docs/THREAT_MODEL.md)
+- [Raspberry Pi Zero 2 W Deployment Profile](docs/RPI_ZERO_DEPLOYMENT.md)
 
 ## Security Notes
 

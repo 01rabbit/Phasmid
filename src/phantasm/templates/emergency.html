@@ -21,6 +21,7 @@
         </details>
     </section>
 
+    {% if restricted_confirmed %}
     <section class="panel">
         <h2>Clear Unmatched Entry</h2>
         <p class="copy">Clear the local entry that is not selected below. This operation is irreversible in normal use.</p>
@@ -67,6 +68,12 @@
             <button type="submit" class="danger">Clear local access path</button>
         </form>
     </section>
+    {% else %}
+    <section class="panel">
+        <h2>Confirmation Required</h2>
+        <p class="copy">Restricted local actions are withheld until local control is confirmed.</p>
+    </section>
+    {% endif %}
 </div>
 {% endblock %}
 
@@ -76,9 +83,14 @@
         return confirmRestrictedAction(document.getElementById('restrictedConfirmation').value);
     }
 
-    document.getElementById('confirmRestricted').addEventListener('click', ensureRestrictedConfirmation);
+    document.getElementById('confirmRestricted').addEventListener('click', async () => {
+        if (await ensureRestrictedConfirmation()) {
+            window.location.reload();
+        }
+    });
 
-    document.getElementById('clearForm').addEventListener('submit', async (event) => {
+    const clearForm = document.getElementById('clearForm');
+    if (clearForm) clearForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!await ensureRestrictedConfirmation()) return;
         const res = await apiFetch('/purge_other', { method: 'POST', body: new FormData(event.currentTarget) });
@@ -86,7 +98,8 @@
         toast(data.status || data.error || 'Clear action finished.');
     });
 
-    document.getElementById('initializeForm').addEventListener('submit', async (event) => {
+    const initializeForm = document.getElementById('initializeForm');
+    if (initializeForm) initializeForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!await ensureRestrictedConfirmation()) return;
         const res = await apiFetch('/emergency/initialize', { method: 'POST', body: new FormData(event.currentTarget) });
@@ -94,7 +107,8 @@
         toast(data.status || data.error || 'Initialize action finished.');
     });
 
-    document.getElementById('brickForm').addEventListener('submit', async (event) => {
+    const brickForm = document.getElementById('brickForm');
+    if (brickForm) brickForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!await ensureRestrictedConfirmation()) return;
         const res = await apiFetch('/emergency/brick', { method: 'POST', body: new FormData(event.currentTarget) });

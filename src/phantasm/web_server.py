@@ -38,8 +38,8 @@ _rate_limit = {}
 _restricted_sessions = {}
 
 ENTRY_TO_MODE = {
-    "entry_1": "dummy",
-    "entry_2": "secret",
+    "entry_1": gate.MODES[0],
+    "entry_2": gate.MODES[1],
 }
 LEGACY_PROFILE_TO_ENTRY = {
     "profile_a": "entry_1",
@@ -342,13 +342,14 @@ async def entry_management_page(request: Request):
     guard = _guard_page(request)
     if guard:
         return guard
+    restricted_confirmed = _restricted_session_valid(request)
     return templates.TemplateResponse(
         request=request,
         name="entry_management.html",
         context=_template_context(
             request,
             active="maintenance",
-            entry_status=entry_management_status(),
+            restricted_confirmed=restricted_confirmed,
         ),
     )
 
@@ -358,10 +359,11 @@ async def emergency_page(request: Request):
     guard = _guard_page(request)
     if guard:
         return guard
+    restricted_confirmed = _restricted_session_valid(request)
     return templates.TemplateResponse(
         request=request,
         name="emergency.html",
-        context=_template_context(request, active="maintenance"),
+        context=_template_context(request, active="maintenance", restricted_confirmed=restricted_confirmed),
     )
 
 
@@ -457,10 +459,21 @@ async def face_lock_session(request: Request):
     return response
 
 
-@app.get("/maintenance/entry_status", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
-async def entry_status(request: Request):
+@app.get(
+    "/maintenance/entry_status",
+    dependencies=[Depends(require_web_token), Depends(require_ui_unlock), Depends(require_restricted_confirmation)],
+)
+async def entry_status(request: Request, entry_id: str = "entry_1"):
     enforce_rate_limit(request)
-    return entry_management_status()
+    if entry_id not in ENTRY_TO_MODE:
+        return {"error": "Unknown local entry."}
+    status_data = entry_management_status()
+    selected = next(item for item in status_data["entries"] if item["id"] == entry_id)
+    return {
+        "label": selected["label"],
+        "bound": selected["bound"],
+        "matched": selected["matched"],
+    }
 
 
 @app.post("/restricted/confirm", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
@@ -517,7 +530,7 @@ async def store(
     request: Request,
     file: UploadFile = File(...),
     password: str = Form(...),
-    purge_password: str = Form(default=""),
+    restricted_recovery_password: str = Form(default=""),
     local_note_label: str = Form(default=""),
     entry_hint: str = Form(default=""),
     overwrite: bool = Form(False),
@@ -530,7 +543,7 @@ async def store(
     try:
         if not password:
             return {"error": "Access password must not be empty."}
-        if purge_password and password == purge_password:
+        if restricted_recovery_password and password == restricted_recovery_password:
             return {"error": "Access and restricted recovery passwords must be different."}
         if overwrite and overwrite_confirmation != OVERWRITE_CONFIRMATION_PHRASE:
             return {"error": "Replacement confirmation required."}
@@ -560,7 +573,7 @@ async def store(
             gate.sequence_for_mode(mode),
             filename=orig_filename,
             mode=mode,
-            purge_password=purge_password or None,
+            restricted_recovery_password=restricted_recovery_password or None,
         )
         audit_event(
             "payload_stored",
@@ -585,7 +598,7 @@ async def retrieve(request: Request, password: str = Form(...)):
     if auth_sequence[0] == gate.MATCH_NONE:
         return {"error": "No valid entry found."}
 
-    for mode in ("dummy", "secret"):
+    for mode in gate.MODES:
         result, filename, password_role = vault.retrieve_with_policy(password, auth_sequence, mode=mode)
         if result is None:
             continue
@@ -628,7 +641,7 @@ async def purge_other(
         return {"error": f"Confirmation required: {DESTRUCTIVE_CLEAR_PHRASE}"}
 
     vault.purge_other_mode(mode)
-    audit_event("alternate_entry_cleared", accessed_entry="local_entry", source="web")
+    audit_event("restricted_local_update", accessed_entry="local_entry", source="web")
     return {"status": "Unmatched local entry cleared."}
 
 
@@ -638,7 +651,7 @@ async def emergency_brick(request: Request, confirmation: str = Form(...)):
     if confirmation != EMERGENCY_BRICK_PHRASE:
         return {"error": f"Confirmation required: {EMERGENCY_BRICK_PHRASE}"}
     vault.silent_brick()
-    audit_event("container_bricked", source="web")
+    audit_event("access_path_cleared", source="web")
     return {"status": "Local access path cleared. Close this session."}
 
 
@@ -651,7 +664,7 @@ async def emergency_initialize(request: Request, confirmation: str = Form(...)):
     success, message = gate.clear_references()
     if not success:
         return {"error": message}
-    audit_event("container_initialized", source="web")
+    audit_event("container_reinitialized", source="web")
     return {"status": "Local container initialized. Protected entries are empty."}
 
 
@@ -704,8 +717,8 @@ async def export_logs(request: Request):
 
 def _maybe_auto_purge(accessed_mode, source):
     reason = None
-    if duress_mode_enabled() and accessed_mode == "dummy":
-        reason = "duress_dummy_access"
+    if duress_mode_enabled() and accessed_mode == gate.MODES[0]:
+        reason = "duress_access"
     elif not purge_confirmation_required():
         reason = "confirmation_disabled"
 
@@ -714,7 +727,7 @@ def _maybe_auto_purge(accessed_mode, source):
 
     vault.purge_other_mode(accessed_mode)
     audit_event(
-        "alternate_entry_cleared",
+        "restricted_local_update",
         accessed_entry="local_entry",
         source=source,
         reason=reason,
@@ -727,7 +740,7 @@ def _purge_for_password_role(accessed_mode, password_role, source):
         return False
     vault.purge_other_mode(accessed_mode)
     audit_event(
-        "alternate_entry_cleared",
+        "restricted_local_update",
         accessed_entry="local_entry",
         source=source,
         reason="restricted_recovery",
@@ -743,7 +756,6 @@ def create_file_response(content, filename, purge_applied=False):
         headers={
             "Content-Disposition": f"attachment; filename*=UTF-8''{safe_filename}",
             "X-Result-Filename": safe_filename,
-            "X-Local-State-Updated": "1" if purge_applied else "0",
         },
     )
 

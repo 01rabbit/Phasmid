@@ -11,9 +11,16 @@ USER_FACING_FILES = [
     "README.md",
     "docs/SPECIFICATION.md",
     "docs/THREAT_MODEL.md",
+    "docs/RPI_ZERO_DEPLOYMENT.md",
 ]
 
 TEMPLATE_DIR = os.path.join(ROOT, "src", "phantasm", "templates")
+PYTHON_BOUNDARY_FILES = [
+    "src/phantasm/web_server.py",
+    "src/phantasm/cli.py",
+    "src/phantasm/audit.py",
+    "src/phantasm/emergency_daemon.py",
+]
 
 FORBIDDEN_PATTERNS = [
     r"\bProfile A\b",
@@ -31,6 +38,17 @@ FORBIDDEN_PATTERNS = [
     r"\bself-destruct\b",
     r"\bkill profile\b",
     r"\berase truth\b",
+    r"\bpurge_password\b",
+    r"\bX-Local-State-Updated\b",
+    r"\bX-Purge-Applied\b",
+    r"\bX-Filename\b",
+    r"\bLocal state updated\b",
+    r"\balternate_entry_cleared\b",
+    r"\bprofile_purged\b",
+    r"\bsecret_removed\b",
+    r"\bdecoy_opened\b",
+    r"\bdestructive password\b",
+    r"\bemergency brick\b",
 ]
 
 
@@ -56,6 +74,11 @@ class TerminologyAuditTests(unittest.TestCase):
 
         self.assertEqual([], violations)
 
+    def test_python_boundary_strings_do_not_expose_forbidden_terms(self):
+        paths = [os.path.join(ROOT, path) for path in PYTHON_BOUNDARY_FILES]
+        violations = _scan_paths(paths)
+        self.assertEqual([], violations)
+
     def test_normal_navigation_does_not_link_restricted_route(self):
         with open(os.path.join(TEMPLATE_DIR, "base.html"), "r", encoding="utf-8") as handle:
             base = handle.read()
@@ -64,8 +87,26 @@ class TerminologyAuditTests(unittest.TestCase):
         self.assertNotIn("/emergency", nav_match.group(0))
 
 
+def _scan_paths(paths):
+    violations = []
+    for path in paths:
+        with open(path, "r", encoding="utf-8") as handle:
+            for lineno, line in enumerate(handle, start=1):
+                if _line_is_allowed(line):
+                    continue
+                for pattern in FORBIDDEN_PATTERNS:
+                    if re.search(pattern, line, flags=re.IGNORECASE):
+                        rel = os.path.relpath(path, ROOT)
+                        violations.append(f"{rel}:{lineno}: {line.strip()}")
+    return violations
+
+
 def _line_is_allowed(line):
-    return bool(re.search(r"PHANTASM_[A-Z_]*SECRET", line))
+    return bool(
+        re.search(r"PHANTASM_[A-Z_]*SECRET", line)
+        or re.search(r"import secrets|secrets\.", line)
+        or re.search(r"argparse\.SUPPRESS", line)
+    )
 
 
 if __name__ == "__main__":

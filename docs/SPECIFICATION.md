@@ -108,7 +108,7 @@ These settings and passwords can cause data loss:
 python3 main.py brick
 ```
 
-This flow destroys `.state/access.bin` first, then performs a best-effort overwrite of `vault.bin`. Flash media, snapshots, backups, and journaling filesystems may retain old data.
+This flow destroys `.state/access.bin` first, then performs a best-effort overwrite of `vault.bin`. Flash media, snapshots, backups, and journaling filesystems may retain old data. Recovery resistance depends primarily on destruction, rotation, or removal of required key material, not on overwrite guarantees.
 
 ### Reset UI Face Lock
 
@@ -137,7 +137,7 @@ Normal navigation:
 - Retrieve
 - Maintenance
 
-The restricted action view is available only by direct route and is not shown in normal navigation.
+The restricted action view is available only by direct route and is not shown in normal navigation. A direct `GET /emergency` renders only a restricted confirmation screen until the browser has a fresh restricted confirmation session. Hidden route concealment is not a security boundary.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
@@ -165,7 +165,7 @@ The restricted action view is available only by direct route and is not shown in
 | `POST` | `/maintenance/reset_session` | Reset local session counters |
 | `GET` | `/maintenance/logs` | Export optional local audit log |
 
-Mutating endpoints require `X-Phantasm-Token`. Sensitive endpoints also require a short-lived restricted confirmation session and typed action confirmation where applicable.
+Mutating endpoints require `X-Phantasm-Token`. Sensitive endpoints also require a short-lived restricted confirmation session and typed action confirmation where applicable. Entry Management withholds binding details until restricted confirmation is active and returns only selected-entry neutral status.
 
 `/status` intentionally returns only neutral fields:
 

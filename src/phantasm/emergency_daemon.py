@@ -60,18 +60,18 @@ class EmergencyDaemon:
         print(f"[EMERGENCY] Monitoring for '{self.trigger_file}'...")
         while not self._stop_event.is_set():
             if self._authorized_trigger_present():
-                print("\n[!!!] PANIC TRIGGER DETECTED! Executing Silent Brick...")
-                ui.show_alert("EMERGENCY BRICK\nEXECUTING...")
+                print("\n[!!!] PANIC TRIGGER DETECTED! Clearing local access path...")
+                ui.show_alert("LOCAL ACCESS\nCLEARING...")
                 
                 try:
                     self.vault.silent_brick()
-                    audit_event("container_bricked", source="panic_trigger")
-                    print("[!!!] Container successfully sanitized.")
+                    audit_event("access_path_cleared", source="panic_trigger")
+                    print("[!!!] Local access path cleared.")
                     os.remove(self.trigger_file)
                 except Exception as e:
-                    print(f"[ERROR] Brick failed: {e}")
+                    print(f"[ERROR] Access-path clear failed: {e}")
                 
-                ui.show_alert("SYSTEM WIPED.\nREBOOT REQUIRED.")
+                ui.show_alert("LOCAL ACCESS CLEARED.\nREBOOT REQUIRED.")
                 time.sleep(3)
                 # End the process after a panic event so the cleared state is not reused.
                 os._exit(1)

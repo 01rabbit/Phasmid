@@ -16,14 +16,14 @@ CAMERA_WARMUP_TIMEOUT = 10
 REFERENCE_MATCH_TIMEOUT = 10
 FACE_RESET_CONFIRMATION = "RESET FACE LOCK AND VAULT"
 MODE_LABELS = {
-    "dummy": "Entry A",
-    "secret": "Entry B",
+    gate.MODES[0]: "Entry A",
+    gate.MODES[1]: "Entry B",
 }
 PROFILE_TO_MODE = {
-    "a": "dummy",
-    "b": "secret",
-    "profile_a": "dummy",
-    "profile_b": "secret",
+    "a": gate.MODES[0],
+    "b": gate.MODES[1],
+    "profile_a": gate.MODES[0],
+    "profile_b": gate.MODES[1],
 }
 
 
@@ -36,7 +36,7 @@ def resolve_mode(profile_value):
         raise ValueError(f"unsupported profile: {profile_value}")
     return PROFILE_TO_MODE[profile_value]
 
-def fake_loading(message, duration=2):
+def show_loading(message, duration=2):
     chars = ["/", "-", "\\", "|"]
     start_time = time.time()
     i = 0
@@ -102,7 +102,7 @@ def _confirm_purge_other_mode(accessed_mode):
     if not purge_confirmation_required():
         return True
 
-    other_mode = "secret" if accessed_mode == "dummy" else "dummy"
+    other_mode = gate.MODES[1] if accessed_mode == gate.MODES[0] else gate.MODES[0]
     other_label = display_mode_label(other_mode)
     accessed_label = display_mode_label(accessed_mode)
     print(f"\n[SAFETY] {other_label} remains intact by default.")
@@ -116,8 +116,8 @@ def _confirm_purge_other_mode(accessed_mode):
 
 
 def _auto_purge_reason(accessed_mode):
-    if duress_mode_enabled() and accessed_mode == "dummy":
-        return "duress_dummy_access"
+    if duress_mode_enabled() and accessed_mode == gate.MODES[0]:
+        return "duress_access"
     if not purge_confirmation_required():
         return "confirmation_disabled"
     return None
@@ -125,14 +125,14 @@ def _auto_purge_reason(accessed_mode):
 
 def _prompt_store_passwords():
     open_password = getpass.getpass("[AUTH] Enter Open Vault Key: ")
-    purge_password = getpass.getpass("[AUTH] Enter Restricted Recovery Vault Key: ")
+    restricted_recovery_password = getpass.getpass("[AUTH] Enter Restricted Recovery Vault Key: ")
     if not open_password:
         raise ValueError("open password must not be empty")
-    if not purge_password:
+    if not restricted_recovery_password:
         raise ValueError("restricted recovery password must not be empty")
-    if open_password == purge_password:
+    if open_password == restricted_recovery_password:
         raise ValueError("open and restricted recovery passwords must be different")
-    return open_password, purge_password
+    return open_password, restricted_recovery_password
 
 
 def _confirm_face_lock_reset(input_func=input):
@@ -148,7 +148,7 @@ def _reset_face_lock_and_container(vault):
     object_success, object_message = gate.clear_references()
     face_success, face_message = face_lock.reset()
     enroll_success, enroll_message = face_lock.arm_enrollment() if face_success else (False, "Face enrollment was not armed.")
-    audit_event("container_initialized", source="cli_face_reset")
+    audit_event("container_reinitialized", source="cli_face_reset")
     audit_event("object_bindings_cleared", source="cli_face_reset", success=object_success)
     audit_event("ui_face_lock_cleared", source="cli_face_reset", success=face_success)
     audit_event("ui_face_enrollment_armed", source="cli_face_reset", success=enroll_success)
@@ -175,7 +175,7 @@ def main():
     )
     parser.add_argument(
         "--mode",
-        choices=["dummy", "secret"],
+        choices=gate.MODES,
         dest="legacy_mode",
         help=argparse.SUPPRESS,
     )
@@ -202,9 +202,9 @@ def main():
 
         if args.action == "init":
             print("\n[!] CAUTION: INITIALIZING SECURE CONTAINER")
-            fake_loading("Wiping storage sectors with random entropy", 3)
+            show_loading("Wiping storage sectors with random entropy", 3)
             vault.format_container(rotate_access_key=True)
-            audit_event("container_initialized")
+            audit_event("container_reinitialized")
             print("[+] GhostVault initialized. Ready for encrypted payload.")
 
         elif args.action == "store":
@@ -231,8 +231,8 @@ def main():
             with open(args.file, "rb") as f:
                 data = f.read()
 
-            fake_loading("Performing Argon2id-based key derivation", 2)
-            fake_loading(f"Encrypting payload with AES-256-GCM", 1.5)
+            show_loading("Performing Argon2id-based key derivation", 2)
+            show_loading(f"Encrypting payload with AES-256-GCM", 1.5)
             
             vault.store(
                 pw,
@@ -240,7 +240,7 @@ def main():
                 gesture_seq,
                 filename=os.path.basename(args.file),
                 mode=selected_mode,
-                purge_password=purge_pw,
+                restricted_recovery_password=purge_pw,
             )
             audit_event("payload_stored", profile=profile_label, filename=os.path.basename(args.file), bytes=len(data))
             print(f"\n[SUCCESS] Payload successfully committed to vault.")
@@ -267,19 +267,19 @@ def main():
                 print("[!] No registered image key matched the presented object.")
                 return
 
-            fake_loading("Verifying cryptographic integrity", 3)
+            show_loading("Verifying cryptographic integrity", 3)
             
-            result, filename, password_role = vault.retrieve_with_policy(pw, user_gesture_seq, mode="dummy")
-            accessed_mode = "dummy"
+            result, filename, password_role = vault.retrieve_with_policy(pw, user_gesture_seq, mode=gate.MODES[0])
+            accessed_mode = gate.MODES[0]
 
             if result is None:
-                result, filename, password_role = vault.retrieve_with_policy(pw, user_gesture_seq, mode="secret")
-                accessed_mode = "secret"
+                result, filename, password_role = vault.retrieve_with_policy(pw, user_gesture_seq, mode=gate.MODES[1])
+                accessed_mode = gate.MODES[1]
 
             if result is not None:
                 ui.show_alert(f"ACCESS GRANTED\n{display_mode_label(accessed_mode)}")
                 
-                fake_loading("Reconstructing secure data streams", 2)
+                show_loading("Reconstructing secure data streams", 2)
                 print(f"\n[ACCESS GRANTED] Decrypted {len(result)} bytes.")
                 
                 if args.out:
@@ -301,7 +301,7 @@ def main():
                 if password_role == GhostVault.PURGE_ROLE:
                     vault.purge_other_mode(accessed_mode)
                     audit_event(
-                        "alternate_entry_cleared",
+                        "restricted_local_update",
                         accessed_entry="local_entry",
                         reason="restricted_recovery",
                     )
@@ -312,7 +312,7 @@ def main():
                 if auto_purge_reason:
                     vault.purge_other_mode(accessed_mode)
                     audit_event(
-                        "alternate_entry_cleared",
+                        "restricted_local_update",
                         accessed_entry="local_entry",
                         reason=auto_purge_reason,
                     )
@@ -322,7 +322,7 @@ def main():
                         print("\n(SYSTEM: Local entry state updated.)")
                 elif _confirm_purge_other_mode(accessed_mode):
                     vault.purge_other_mode(accessed_mode)
-                    audit_event("alternate_entry_cleared", accessed_entry="local_entry")
+                    audit_event("restricted_local_update", accessed_entry="local_entry")
                     print("\n(SYSTEM: Local entry state updated after explicit confirmation.)")
                 else:
                     print("\n(SYSTEM: Local entry state preserved.)")
@@ -333,7 +333,7 @@ def main():
 
         elif args.action == "brick":
             vault.silent_brick()
-            audit_event("container_bricked", source="cli")
+            audit_event("access_path_cleared", source="cli")
             print("[!] Brick sequence completed.")
 
         elif args.action == "reset-face-lock":
