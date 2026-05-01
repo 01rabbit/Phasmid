@@ -113,6 +113,40 @@ class WebServerBoundaryTests(unittest.TestCase):
 
         asyncio.run(run())
 
+    def test_emergency_initialize_requires_confirmation_phrase(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                url=SimpleNamespace(path="/emergency/initialize"),
+            )
+            with mock.patch.object(web_server.vault, "format_container") as init:
+                response = await web_server.emergency_initialize(
+                    request,
+                    confirmation="INITIALIZE",
+                )
+            init.assert_not_called()
+            self.assertIn("Confirmation required", response["error"])
+
+        asyncio.run(run())
+
+    def test_emergency_initialize_resets_container_and_bindings(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                url=SimpleNamespace(path="/emergency/initialize"),
+            )
+            with mock.patch.object(web_server.vault, "format_container") as init, \
+                 mock.patch.object(web_server.gate, "clear_references", return_value=(True, "ok")) as clear:
+                response = await web_server.emergency_initialize(
+                    request,
+                    confirmation=web_server.INITIALIZE_CONTAINER_PHRASE,
+                )
+            init.assert_called_once_with()
+            clear.assert_called_once_with()
+            self.assertIn("initialized", response["status"])
+
+        asyncio.run(run())
+
     def test_duress_mode_auto_purges_dummy_access(self):
         with mock.patch.object(web_server, "duress_mode_enabled", return_value=True), \
              mock.patch.object(web_server, "purge_confirmation_required", return_value=True), \

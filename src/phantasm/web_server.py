@@ -37,6 +37,7 @@ ENTRY_LABELS = {
     "entry_2": "Entry 2",
 }
 DESTRUCTIVE_CLEAR_PHRASE = "CLEAR LOCAL ENTRY"
+INITIALIZE_CONTAINER_PHRASE = "INITIALIZE LOCAL CONTAINER"
 EMERGENCY_BRICK_PHRASE = "BRICK LOCAL STATE"
 
 
@@ -91,6 +92,7 @@ def _template_context(request: Request, active="home", **extra):
         "purge_confirmation_required": purge_confirmation_required(),
         "duress_mode_enabled": duress_mode_enabled(),
         "destructive_clear_phrase": DESTRUCTIVE_CLEAR_PHRASE,
+        "initialize_container_phrase": INITIALIZE_CONTAINER_PHRASE,
         "emergency_brick_phrase": EMERGENCY_BRICK_PHRASE,
         "entries": [
             {"id": entry_id, "label": label}
@@ -413,6 +415,19 @@ async def emergency_brick(request: Request, confirmation: str = Form(...)):
     vault.silent_brick()
     audit_event("container_bricked", source="web")
     return {"status": "Emergency brick completed. Close this session."}
+
+
+@app.post("/emergency/initialize", dependencies=[Depends(require_web_token)])
+async def emergency_initialize(request: Request, confirmation: str = Form(...)):
+    enforce_rate_limit(request)
+    if confirmation != INITIALIZE_CONTAINER_PHRASE:
+        return {"error": f"Confirmation required: {INITIALIZE_CONTAINER_PHRASE}"}
+    vault.format_container()
+    success, message = gate.clear_references()
+    if not success:
+        return {"error": message}
+    audit_event("container_initialized", source="web")
+    return {"status": "Local container initialized. Protected entries are empty."}
 
 
 @app.post("/maintenance/rotate_token", dependencies=[Depends(require_web_token)])

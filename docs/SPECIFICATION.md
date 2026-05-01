@@ -147,6 +147,7 @@ The Emergency view is available only by direct route and is not shown in normal 
 | `POST` | `/store` | Store a protected entry |
 | `POST` | `/retrieve` | Retrieve and download the matching entry |
 | `POST` | `/purge_other` | Hidden emergency clear action |
+| `POST` | `/emergency/initialize` | Hidden emergency container initialization |
 | `POST` | `/emergency/brick` | Hidden emergency brick action |
 | `GET` | `/maintenance/diagnostics` | Local diagnostics |
 | `POST` | `/maintenance/rotate_token` | Rotate Web mutation token |
@@ -163,6 +164,8 @@ Mutating endpoints require `X-Phantasm-Token`. The token is generated on process
 - `local_mode`
 
 The normal UI must not display internal profile names, internal retrieval order, or alternate-entry state after retrieval.
+
+Emergency initialization overwrites `vault.bin` with a fresh empty container and clears local object bindings. It is a destructive reset for normal reuse, distinct from emergency brick, which destroys the local access path first.
 
 ## 8. Cryptography
 

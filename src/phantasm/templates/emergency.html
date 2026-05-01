@@ -34,6 +34,21 @@
     </section>
 
     <section class="panel">
+        <h2>Initialize Local Container</h2>
+        <p class="copy">
+            Reset the local container and clear object bindings. This creates a fresh empty vault for new entries.
+        </p>
+        {{ ui.destructive_warning() }}
+        <form id="initializeForm">
+            <label class="field">
+                <span>Confirmation phrase</span>
+                <input type="text" name="confirmation" placeholder="{{ initialize_container_phrase }}" required>
+            </label>
+            <button type="submit" class="danger">Initialize local container</button>
+        </form>
+    </section>
+
+    <section class="panel">
         <h2>Trigger Emergency Brick</h2>
         {{ ui.destructive_warning() }}
         <form id="brickForm">
@@ -54,6 +69,13 @@
         const res = await apiFetch('/purge_other', { method: 'POST', body: new FormData(event.currentTarget) });
         const data = await res.json();
         toast(data.status || data.error || 'Clear action finished.');
+    });
+
+    document.getElementById('initializeForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const res = await apiFetch('/emergency/initialize', { method: 'POST', body: new FormData(event.currentTarget) });
+        const data = await res.json();
+        toast(data.status || data.error || 'Initialize action finished.');
     });
 
     document.getElementById('brickForm').addEventListener('submit', async (event) => {

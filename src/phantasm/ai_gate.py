@@ -385,6 +385,22 @@ class AIGate:
             },
         }
 
+    def clear_references(self):
+        empty = {mode: self._empty_reference() for mode in self.MODES}
+        try:
+            self._write_reference_blob(empty)
+        except OSError:
+            return False, "Failed to clear object bindings."
+
+        with self.lock:
+            self.reference_data = empty
+            self.last_match_mode = self.MATCH_NONE
+            self.object_detected = False
+            self.match_states = {mode: False for mode in self.MODES}
+            self.match_history = []
+
+        return True, "Object bindings cleared."
+
     def _draw_match_status(self, image):
         h, w, _ = image.shape
         cv2.rectangle(image, (0, 0), (w, 50), (0, 0, 0), -1)

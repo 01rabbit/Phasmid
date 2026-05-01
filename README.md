@@ -89,6 +89,14 @@ Navigation:
 - `Maintenance`: diagnostics, token rotation, audit state, log export, and entry management.
 - `/emergency`: hidden route for destructive local actions with typed confirmation.
 
+The hidden Emergency page includes:
+
+- clear unmatched entry
+- initialize local container
+- emergency brick
+
+`Initialize local container` resets `vault.bin` and clears object bindings so both protected entries are empty and ready for new registration.
+
 ## Runtime State
 
 By default, Phantasm writes runtime state to `.state/`:
