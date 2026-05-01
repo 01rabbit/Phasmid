@@ -91,6 +91,10 @@ def _face_lock_status(request):
     return face_lock.status(_client_id(request), _face_session_token(request))
 
 
+def _face_enrollment_allowed():
+    return ui_face_enrollment_enabled() or face_lock.enrollment_pending()
+
+
 def require_ui_unlock(request: Request):
     if not _ui_unlocked(request):
         raise HTTPException(status_code=423, detail="ui locked")
@@ -144,7 +148,7 @@ def _template_context(request: Request, active="home", **extra):
         "max_upload_bytes": MAX_UPLOAD_BYTES,
         "purge_confirmation_required": purge_confirmation_required(),
         "duress_mode_enabled": duress_mode_enabled(),
-        "face_enrollment_enabled": ui_face_enrollment_enabled(),
+        "face_enrollment_enabled": _face_enrollment_allowed(),
         "face_lock": _face_lock_status(request),
         "destructive_clear_phrase": DESTRUCTIVE_CLEAR_PHRASE,
         "initialize_container_phrase": INITIALIZE_CONTAINER_PHRASE,
@@ -355,12 +359,13 @@ async def face_enroll(request: Request):
     enforce_rate_limit(request)
     if not ui_face_lock_enabled():
         return {"error": "Face UI lock is disabled."}
-    if not face_lock.is_enrolled() and not ui_face_enrollment_enabled():
+    if not face_lock.is_enrolled() and not _face_enrollment_allowed():
         return {"error": "Face enrollment is disabled for this session."}
     if face_lock.is_enrolled() and not _ui_unlocked(request):
         return {"error": "UI must be unlocked before replacing the face lock."}
     success, message = face_lock.enroll_from_frames(_recent_camera_frames())
     if success:
+        face_lock.clear_enrollment_request()
         audit_event("ui_face_lock_enrolled", source="web")
         return {"status": message}
     return {"error": message}

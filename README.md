@@ -81,6 +81,8 @@ python3 main.py reset-face-lock
 
 This operation has no WebUI route. It requires the confirmation phrase `RESET FACE LOCK AND VAULT`, clears the enrolled face-lock template, rotates the local access key, initializes `vault.bin`, and clears physical-object bindings. Use it when the local UI user changes and the stored vault data must be treated as no longer valid.
 
+After a successful reset, Phantasm creates a short-lived local enrollment request. If the WebUI is already running, reload `/ui-lock` to register the new face lock. The request is cleared after enrollment.
+
 ## Web UI
 
 ```bash
@@ -113,7 +115,7 @@ First-time face enrollment is an explicit setup mode:
 PHANTASM_UI_FACE_LOCK=1 PHANTASM_UI_FACE_ENROLL=1 PYTHONPATH=src python3 -m phantasm.web_server
 ```
 
-Use setup mode only while provisioning the device. Normal locked sessions withhold the camera preview until the UI is unlocked. Deleting `face.bin` by itself is not a supported reset path; use the CLI reset so the vault and local object bindings are cleared together.
+Use setup mode only while provisioning the device. Normal locked sessions withhold the camera preview until the UI is unlocked. Deleting `face.bin` by itself is not a supported reset path; use the CLI reset so the vault and local object bindings are cleared together. A successful CLI reset also permits one short-lived enrollment without restarting the WebUI.
 
 Face-lock reset is intentionally CLI-only because it also resets the local container and object bindings.
 
@@ -135,6 +137,7 @@ By default, Phantasm writes runtime state to `.state/`:
 - `signal.key` / `signal.trigger`: panic trigger files
 - `events.log`: optional audit log
 - `face.bin`: optional encrypted WebUI face-lock template
+- `face.enroll`: short-lived first-time face enrollment request
 
 Override the state location with:
 
@@ -154,6 +157,7 @@ PHANTASM_STATE_DIR=/path/to/state python3 main.py init
 | `PHANTASM_DURESS_MODE=1` | Auto-purge Profile B after Profile A retrieval |
 | `PHANTASM_UI_FACE_LOCK=1` | Require local face check before using the WebUI |
 | `PHANTASM_UI_FACE_ENROLL=1` | Permit first-time WebUI face-lock enrollment during setup |
+| `PHANTASM_UI_FACE_ENROLL_SECONDS` | Face enrollment request lifetime |
 | `PHANTASM_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime |
 | `PHANTASM_AUDIT=1` | Enable audit logging |
 

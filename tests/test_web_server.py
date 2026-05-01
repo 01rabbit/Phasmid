@@ -146,9 +146,32 @@ class WebServerBoundaryTests(unittest.TestCase):
                  mock.patch.object(web_server, "ui_face_enrollment_enabled", return_value=True), \
                  mock.patch.object(web_server, "_recent_camera_frames", return_value=[object()]), \
                  mock.patch.object(web_server.face_lock, "is_enrolled", return_value=False), \
-                 mock.patch.object(web_server.face_lock, "enroll_from_frames", return_value=(True, "ok")) as enroll:
+                 mock.patch.object(web_server.face_lock, "enroll_from_frames", return_value=(True, "ok")) as enroll, \
+                 mock.patch.object(web_server.face_lock, "clear_enrollment_request") as clear:
                 response = await web_server.face_enroll(request)
             enroll.assert_called_once()
+            clear.assert_called_once_with()
+            self.assertIn("status", response)
+
+        asyncio.run(run())
+
+    def test_initial_face_enroll_accepts_reset_flag(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+                url=SimpleNamespace(path="/face/enroll"),
+            )
+            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
+                 mock.patch.object(web_server, "ui_face_enrollment_enabled", return_value=False), \
+                 mock.patch.object(web_server.face_lock, "enrollment_pending", return_value=True), \
+                 mock.patch.object(web_server, "_recent_camera_frames", return_value=[object()]), \
+                 mock.patch.object(web_server.face_lock, "is_enrolled", return_value=False), \
+                 mock.patch.object(web_server.face_lock, "enroll_from_frames", return_value=(True, "ok")) as enroll, \
+                 mock.patch.object(web_server.face_lock, "clear_enrollment_request") as clear:
+                response = await web_server.face_enroll(request)
+            enroll.assert_called_once()
+            clear.assert_called_once_with()
             self.assertIn("status", response)
 
         asyncio.run(run())

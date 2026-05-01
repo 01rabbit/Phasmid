@@ -47,6 +47,7 @@ The project is intended for local use, including USB gadget mode or localhost ac
 | `.state/signal.trigger` | Panic trigger file |
 | `.state/events.log` | Optional audit log |
 | `.state/face.bin` | Optional encrypted WebUI face-lock template |
+| `.state/face.enroll` | Short-lived first-time face enrollment request |
 
 The default state directory is `.state/` and can be changed with `PHANTASM_STATE_DIR`. The directory is intended to be mode `0700`; secret files are intended to be mode `0600`. Neutral filenames reduce obvious metadata, but they do not provide deniability.
 
@@ -119,7 +120,7 @@ The brick flow destroys `.state/access.bin` first, then performs a best-effort o
 python3 main.py reset-face-lock
 ```
 
-This CLI-only flow resets the optional WebUI face lock. It requires the typed confirmation phrase `RESET FACE LOCK AND VAULT`, removes the encrypted face-lock template, rotates the local access key, initializes `vault.bin`, clears physical-object bindings, and clears active face-lock sessions. This is destructive because changing the UI user invalidates the local trust boundary for the stored entries.
+This CLI-only flow resets the optional WebUI face lock. It requires the typed confirmation phrase `RESET FACE LOCK AND VAULT`, removes the encrypted face-lock template, rotates the local access key, initializes `vault.bin`, clears physical-object bindings, clears active face-lock sessions, and creates a short-lived local enrollment request. This is destructive because changing the UI user invalidates the local trust boundary for the stored entries.
 
 ## 7. WebUI v2
 
@@ -182,7 +183,7 @@ Emergency initialization rotates the local access key, overwrites `vault.bin` wi
 
 Optional UI face lock is enabled with `PHANTASM_UI_FACE_LOCK=1`. It gates access to normal WebUI routes with a short-lived local session cookie. Face templates are encrypted in the runtime state directory. This lock is not used in Argon2id input and does not participate in vault encryption or retrieval.
 
-First-time face enrollment is disabled unless the WebUI process is started with `PHANTASM_UI_FACE_ENROLL=1`. This setup flag is intended for device provisioning only. When the UI is locked, `/status` returns a locked state without object-match details and `/video_feed` requires an unlocked UI session.
+First-time face enrollment is disabled unless the WebUI process is started with `PHANTASM_UI_FACE_ENROLL=1` or a valid `.state/face.enroll` request exists. The setup flag is intended for device provisioning only. The enrollment request is created by `python3 main.py reset-face-lock`, is checked when `/ui-lock` is reloaded, and is removed after successful enrollment. When the UI is locked, `/status` returns a locked state without object-match details and `/video_feed` requires an unlocked UI session.
 
 Face-lock reset is intentionally available only through the CLI. The WebUI can enroll, verify, and clear the current session, but it does not expose a route that resets the face template and container together.
 
@@ -251,6 +252,7 @@ The physical key is an operational gate, not a high-entropy cryptographic factor
 | `PHANTASM_MAX_UPLOAD_BYTES` | Web upload limit | `26214400` |
 | `PHANTASM_UI_FACE_LOCK` | Require local face check before WebUI use | `0` |
 | `PHANTASM_UI_FACE_ENROLL` | Permit first-time face-lock enrollment during setup | `0` |
+| `PHANTASM_UI_FACE_ENROLL_SECONDS` | Face enrollment request lifetime | `600` |
 | `PHANTASM_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime | `300` |
 | `PHANTASM_AUDIT` | Enable audit logging | `0` |
 | `PHANTASM_AUDIT_FILENAMES` | Record filename hashes | unset |

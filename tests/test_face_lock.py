@@ -1,6 +1,7 @@
 import os
 import sys
 import tempfile
+import time
 import unittest
 
 import numpy as np
@@ -59,6 +60,26 @@ class FaceUILockTests(unittest.TestCase):
             self.assertFalse(os.path.exists(lock.template_path))
             self.assertEqual(lock.sessions, {})
             self.assertEqual(lock.failures, {})
+
+    def test_enrollment_request_expires_and_clears(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lock = self.make_lock(tmp)
+            lock.ENROLLMENT_TTL_SECONDS = 1
+
+            ok, message = lock.arm_enrollment()
+            self.assertTrue(ok)
+            self.assertIn("armed", message)
+            self.assertTrue(lock.enrollment_pending())
+
+            old_time = int(time.time()) - 10
+            os.utime(lock.enrollment_path, (old_time, old_time))
+            self.assertFalse(lock.enrollment_pending())
+            self.assertFalse(os.path.exists(lock.enrollment_path))
+
+    def test_clear_enrollment_request_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lock = self.make_lock(tmp)
+            self.assertTrue(lock.clear_enrollment_request()[0])
 
 
 if __name__ == "__main__":

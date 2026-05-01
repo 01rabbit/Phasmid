@@ -149,10 +149,12 @@ def _reset_face_lock_and_container(vault):
     vault.format_container(rotate_access_key=True)
     object_success, object_message = gate.clear_references()
     face_success, face_message = face_lock.reset()
+    enroll_success, enroll_message = face_lock.arm_enrollment() if face_success else (False, "Face enrollment was not armed.")
     audit_event("container_initialized", source="cli_face_reset")
     audit_event("object_bindings_cleared", source="cli_face_reset", success=object_success)
     audit_event("ui_face_lock_cleared", source="cli_face_reset", success=face_success)
-    return object_success and face_success, object_message, face_message
+    audit_event("ui_face_enrollment_armed", source="cli_face_reset", success=enroll_success)
+    return object_success and face_success and enroll_success, object_message, face_message, enroll_message
 
 def main():
     parser = argparse.ArgumentParser(description="GhostVault Phantasm - Local Secure Storage v3")
@@ -333,12 +335,13 @@ def main():
             if not _confirm_face_lock_reset():
                 print("[ABORTED] Face UI lock reset cancelled.")
                 return
-            success, object_message, face_message = _reset_face_lock_and_container(vault)
+            success, object_message, face_message, enroll_message = _reset_face_lock_and_container(vault)
             print(f"[+] Container initialized: vault.bin is empty.")
             print(f"[+] Object bindings: {object_message}")
             print(f"[+] Face UI lock: {face_message}")
+            print(f"[+] Face enrollment: {enroll_message}")
             if success:
-                print("[+] Reset complete. Register a new face lock and new entries before use.")
+                print("[+] Reset complete. Reload /ui-lock in the WebUI to register a new face lock.")
             else:
                 print("[!] Reset completed with warnings. Review the messages above.")
     finally:

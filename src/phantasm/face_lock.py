@@ -8,7 +8,7 @@ import numpy as np
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-from .config import FACE_TEMPLATE_NAME, STATE_KEY_NAME, state_dir
+from .config import FACE_ENROLL_FLAG_NAME, FACE_TEMPLATE_NAME, STATE_KEY_NAME, state_dir
 
 
 class FaceUILock:
@@ -20,6 +20,7 @@ class FaceUILock:
     MSE_THRESHOLD = 7200.0
     CORRELATION_THRESHOLD = 0.32
     HIST_THRESHOLD = 0.62
+    ENROLLMENT_TTL_SECONDS = 600
 
     def __init__(self, state_path=None):
         self.state_dir = state_path or state_dir()
@@ -29,6 +30,7 @@ class FaceUILock:
         except OSError:
             pass
         self.template_path = os.path.join(self.state_dir, FACE_TEMPLATE_NAME)
+        self.enrollment_path = os.path.join(self.state_dir, FACE_ENROLL_FLAG_NAME)
         self.state_key_path = os.path.join(self.state_dir, STATE_KEY_NAME)
         cascade_path = os.path.join(cv2.data.haarcascades, "haarcascade_frontalface_default.xml")
         self.detector = cv2.CascadeClassifier(cascade_path)
@@ -116,6 +118,38 @@ class FaceUILock:
         except OSError:
             return False, "Failed to clear face UI lock."
         return True, "Face UI lock cleared."
+
+    def arm_enrollment(self):
+        try:
+            os.makedirs(self.state_dir, mode=0o700, exist_ok=True)
+            with open(self.enrollment_path, "w", encoding="utf-8") as handle:
+                handle.write(str(int(time.time())))
+            os.chmod(self.enrollment_path, 0o600)
+        except OSError:
+            return False, "Failed to arm face enrollment."
+        return True, "Face enrollment armed for the next UI lock session."
+
+    def enrollment_pending(self, now=None):
+        if not os.path.exists(self.enrollment_path):
+            return False
+        now = time.time() if now is None else now
+        try:
+            created_at = os.path.getmtime(self.enrollment_path)
+        except OSError:
+            return False
+        if now - created_at > int(os.environ.get("PHANTASM_UI_FACE_ENROLL_SECONDS", self.ENROLLMENT_TTL_SECONDS)):
+            self.clear_enrollment_request()
+            return False
+        return True
+
+    def clear_enrollment_request(self):
+        try:
+            os.remove(self.enrollment_path)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            return False, "Failed to clear face enrollment request."
+        return True, "Face enrollment request cleared."
 
     def status(self, client_id=None, token=None):
         return {

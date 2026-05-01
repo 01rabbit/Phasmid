@@ -9,6 +9,7 @@ PANIC_TOKEN_NAME = "signal.key"
 PANIC_TRIGGER_NAME = "signal.trigger"
 AUDIT_LOG_NAME = "events.log"
 FACE_TEMPLATE_NAME = "face.bin"
+FACE_ENROLL_FLAG_NAME = "face.enroll"
 
 
 def state_dir():

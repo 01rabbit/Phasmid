@@ -18,6 +18,8 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.PANIC_TOKEN_NAME, "signal.key")
         self.assertEqual(config.PANIC_TRIGGER_NAME, "signal.trigger")
         self.assertEqual(config.AUDIT_LOG_NAME, "events.log")
+        self.assertEqual(config.FACE_TEMPLATE_NAME, "face.bin")
+        self.assertEqual(config.FACE_ENROLL_FLAG_NAME, "face.enroll")
 
     def test_purge_confirmation_defaults_to_required(self):
         with mock.patch.dict(os.environ, {}, clear=True):
