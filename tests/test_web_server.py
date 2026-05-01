@@ -357,6 +357,21 @@ class WebServerBoundaryTests(unittest.TestCase):
 
         asyncio.run(run())
 
+    def test_field_mode_rejects_session_reset_without_restricted_confirmation(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+                url=SimpleNamespace(path="/maintenance/reset_session"),
+            )
+            with mock.patch.object(web_server, "field_mode_enabled", return_value=True), \
+                 mock.patch.object(web_server, "_restricted_session_valid", return_value=False):
+                with self.assertRaises(HTTPException) as ctx:
+                    await web_server.reset_session(request)
+            self.assertEqual(ctx.exception.status_code, 403)
+
+        asyncio.run(run())
+
     def test_hidden_clear_requires_explicit_phrase(self):
         async def run():
             request = SimpleNamespace(

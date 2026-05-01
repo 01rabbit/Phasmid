@@ -721,6 +721,7 @@ async def rotate_token(request: Request):
 @app.post("/maintenance/reset_session", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def reset_session(request: Request):
     enforce_rate_limit(request)
+    _require_restricted_when_field_mode(request)
     _rate_limit.clear()
     _restricted_sessions.pop(_restricted_session_token(request), None)
     return {"status": "Local session counters reset."}

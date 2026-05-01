@@ -22,23 +22,29 @@
             <button type="button" class="secondary small" data-action="confirm-restricted">Confirm local control</button>
         </details>
         <div class="status-grid">
-            {% if not field_mode or restricted_confirmed %}
+            {% if field_mode and not restricted_confirmed %}
+            {{ ui.status_card("Device Health", "deviceState", "Ready") }}
+            {{ ui.status_card("Camera", "cameraState", "Unavailable") }}
+            {{ ui.status_card("Mode", "operationMode", "Local-only") }}
+            {% else %}
             {{ ui.status_card("Session Token", "tokenState", "Active") }}
             {{ ui.status_card("Audit Settings", "auditState", audit_enabled) }}
             {{ ui.status_card("State Directory", "statePath", state_path) }}
-            {% endif %}
             {{ ui.status_card("UI Lock", "uiLockState", "Enabled" if face_lock.enabled else "Disabled") }}
+            {% endif %}
         </div>
         <div class="actions">
             {% if not field_mode or restricted_confirmed %}
             <button type="button" data-action="rotate-token">Rotate token</button>
-            {% endif %}
             <button type="button" class="secondary" data-action="reset-session">Reset session</button>
-            {% if face_lock.enabled %}
+            {% endif %}
+            {% if face_lock.enabled and (not field_mode or restricted_confirmed) %}
             <button type="button" class="secondary" data-action="lock-ui">Lock UI</button>
             <button type="button" class="secondary" data-action="enroll-face">Enroll face lock</button>
             {% endif %}
+            {% if not field_mode or restricted_confirmed %}
             <a class="button secondary" href="/maintenance/entries">Entry management</a>
+            {% endif %}
             {% if not field_mode or restricted_confirmed %}
             <a class="button secondary" href="/maintenance/logs" id="exportLogs">Export logs</a>
             {% endif %}

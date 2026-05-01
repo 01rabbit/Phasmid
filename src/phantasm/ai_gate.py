@@ -67,7 +67,7 @@ class AIGate:
 
     def _validate_mode(self, mode):
         if mode not in self.MODES:
-            raise ValueError(f"unsupported mode: {mode}")
+            raise ValueError("unsupported local entry")
 
     def _reference_state_from_image(self, image):
         if image is None:
@@ -267,9 +267,9 @@ class AIGate:
             raise ValueError("reference template authentication failed") from exc
 
     def _state_encryption_key(self):
-        secret = os.environ.get("PHANTASM_STATE_SECRET")
-        if secret:
-            return hashlib.sha256(secret.encode("utf-8")).digest()
+        external_value = os.environ.get("PHANTASM_STATE_SECRET")
+        if external_value:
+            return hashlib.sha256(external_value.encode("utf-8")).digest()
         return self._load_or_create_local_state_key()
 
     def _load_or_create_local_state_key(self):
@@ -342,7 +342,7 @@ class AIGate:
             return False, "Image too simple. Use a textured object."
 
         if self._references_too_similar(mode, candidate_state):
-            return False, "This key is too similar to the other mode. Use a different physical object."
+            return False, "This object is too similar to an existing access cue. Use a different physical object."
 
         try:
             updated_references = dict(self.reference_data)
@@ -359,7 +359,7 @@ class AIGate:
             self.match_states = {ref_mode: False for ref_mode in self.MODES}
             self.match_history = []
 
-        return True, f"{mode} key registered."
+        return True, "Object access cue registered."
 
     def _best_reference_state_from_recent_frames(self):
         candidates = []
@@ -412,7 +412,7 @@ class AIGate:
             cv2.rectangle(image, (5, 55), (w - 5, h - 5), (0, 255, 0), 3)
             cv2.putText(
                 image,
-                "[IMAGE KEY] Reference matched",
+                "Object cue matched",
                 (15, 75),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.7,
@@ -421,7 +421,7 @@ class AIGate:
             )
             cv2.putText(
                 image,
-                "Registered object detected in frame",
+                "Bound object detected in frame",
                 (15, 100),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.5,
@@ -436,7 +436,7 @@ class AIGate:
             cv2.rectangle(image, (5, 55), (w - 5, h - 5), (0, 165, 255), 3)
             cv2.putText(
                 image,
-                "[IMAGE KEY] Ambiguous match",
+                "Ambiguous object cue",
                 (15, 75),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.7,
@@ -445,7 +445,7 @@ class AIGate:
             )
             cv2.putText(
                 image,
-                "Registered keys are too similar",
+                "Access cues are too similar",
                 (15, 100),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.5,
@@ -456,7 +456,7 @@ class AIGate:
 
         cv2.putText(
             image,
-            "[IMAGE KEY] No reference match",
+            "No object cue match",
             (15, 75),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
@@ -465,7 +465,7 @@ class AIGate:
         )
         cv2.putText(
             image,
-            "Show a registered object to continue",
+            "Show a bound object to continue",
             (15, 100),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.5,

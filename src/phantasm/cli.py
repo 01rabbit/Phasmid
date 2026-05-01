@@ -79,9 +79,9 @@ def _register_reference_key(mode):
 
     print(f"[LOCAL] {display_mode_label(mode)} object cue captured. Validating match quality...")
     if not _wait_for_reference_match(expected_mode=mode):
-        return False, f"Reference captured, but no stable match was detected for {display_mode_label(mode)}."
+        return False, f"Object cue captured, but no stable match was detected for {display_mode_label(mode)}."
 
-    return True, "Reference key registered."
+    return True, "Object access cue registered."
 
 
 def _collect_auth_sequence():

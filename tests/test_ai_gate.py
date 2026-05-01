@@ -1,7 +1,9 @@
 import os
+import inspect
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 import numpy as np
 
@@ -12,6 +14,34 @@ from phantasm.ai_gate import AIGate
 
 
 class AIGateTemplateTests(unittest.TestCase):
+    def test_capture_similarity_message_is_neutral(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            gate.latest_frame = np.zeros((480, 640, 3), dtype=np.uint8)
+            candidate = {
+                "kp": [object()] * gate.MIN_REFERENCE_KEYPOINTS,
+                "des": np.ones((gate.MIN_REFERENCE_KEYPOINTS, 32), dtype=np.uint8),
+                "shape": (480, 640),
+                "pts": np.zeros((4, 1, 2), dtype=np.float32),
+                "path": None,
+            }
+            with mock.patch.object(gate, "_best_reference_state_from_recent_frames", return_value=candidate), \
+                 mock.patch.object(gate, "_references_too_similar", return_value=True):
+                success, message = gate.capture_reference(gate.MODES[0])
+
+            self.assertFalse(success)
+            self.assertIn("existing access cue", message)
+            self.assertNotRegex(message.lower(), r"\b(key|mode|dummy|secret)\b")
+
+    def test_camera_overlay_text_is_neutral(self):
+        source = inspect.getsource(AIGate._draw_match_status)
+        self.assertIn("Object cue matched", source)
+        self.assertIn("Ambiguous object cue", source)
+        self.assertIn("No object cue match", source)
+        self.assertNotIn("IMAGE KEY", source)
+        self.assertNotIn("Registered keys", source)
+        self.assertNotIn("No reference match", source)
+
     def test_reference_template_is_encrypted_at_rest(self):
         with tempfile.TemporaryDirectory() as tmp:
             gate = AIGate(reference_dir=tmp)
