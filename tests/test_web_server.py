@@ -82,9 +82,8 @@ class WebServerBoundaryTests(unittest.TestCase):
                 url=SimpleNamespace(path="/face/verify"),
             )
             with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
-                 mock.patch.object(web_server.gate, "lock"), \
-                 mock.patch.object(web_server.gate, "latest_frame", mock.Mock(copy=mock.Mock(return_value=object()))), \
-                 mock.patch.object(web_server.face_lock, "verify_from_frame", return_value=(True, "ok")) as verify, \
+                 mock.patch.object(web_server, "_recent_camera_frames", return_value=[object()]), \
+                 mock.patch.object(web_server.face_lock, "verify_from_frames", return_value=(True, "ok")) as verify, \
                  mock.patch.object(web_server.face_lock, "create_session") as create:
                 response = await web_server.face_verify(request)
             verify.assert_called_once()
@@ -103,7 +102,7 @@ class WebServerBoundaryTests(unittest.TestCase):
             with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
                  mock.patch.object(web_server.face_lock, "is_enrolled", return_value=True), \
                  mock.patch.object(web_server, "_ui_unlocked", return_value=False), \
-                 mock.patch.object(web_server.face_lock, "enroll_from_frame") as enroll:
+                 mock.patch.object(web_server.face_lock, "enroll_from_frames") as enroll:
                 response = await web_server.face_enroll(request)
             enroll.assert_not_called()
             self.assertIn("unlocked", response["error"])

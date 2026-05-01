@@ -23,6 +23,8 @@ MAX_UPLOAD_BYTES = int(os.environ.get("PHANTASM_MAX_UPLOAD_BYTES", 25 * 1024 * 1
 RATE_LIMIT_WINDOW = 60
 RATE_LIMIT_MAX = 20
 FACE_SESSION_COOKIE = "phantasm_ui_session"
+FACE_FRAME_SAMPLES = 8
+FACE_FRAME_DELAY_SECONDS = 0.10
 _rate_limit = {}
 
 ENTRY_TO_MODE = {
@@ -91,6 +93,17 @@ def _guard_page(request):
     if _ui_unlocked(request):
         return None
     return RedirectResponse(url="/ui-lock", status_code=303)
+
+
+def _recent_camera_frames(count=FACE_FRAME_SAMPLES, delay=FACE_FRAME_DELAY_SECONDS):
+    frames = []
+    for _ in range(count):
+        with gate.lock:
+            frame = None if gate.latest_frame is None else gate.latest_frame.copy()
+        if frame is not None:
+            frames.append(frame)
+        time.sleep(delay)
+    return frames
 
 
 def require_web_token(x_phantasm_token: str = Header(default="")):
@@ -334,9 +347,7 @@ async def face_enroll(request: Request):
         return {"error": "Face UI lock is disabled."}
     if face_lock.is_enrolled() and not _ui_unlocked(request):
         return {"error": "UI must be unlocked before replacing the face lock."}
-    with gate.lock:
-        frame = None if gate.latest_frame is None else gate.latest_frame.copy()
-    success, message = face_lock.enroll_from_frame(frame)
+    success, message = face_lock.enroll_from_frames(_recent_camera_frames())
     if success:
         audit_event("ui_face_lock_enrolled", source="web")
         return {"status": message}
@@ -348,10 +359,8 @@ async def face_verify(request: Request):
     enforce_rate_limit(request)
     if not ui_face_lock_enabled():
         return {"error": "Face UI lock is disabled."}
-    with gate.lock:
-        frame = None if gate.latest_frame is None else gate.latest_frame.copy()
     client_id = _client_id(request)
-    success, message = face_lock.verify_from_frame(frame, client_id)
+    success, message = face_lock.verify_from_frames(_recent_camera_frames(), client_id)
     if not success:
         audit_event("ui_face_lock_failed", source="web")
         return {"error": message}
