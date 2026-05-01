@@ -42,11 +42,11 @@
         if (res.ok && res.headers.get('content-type') === 'application/octet-stream') {
             pendingDownload = await res.blob();
             pendingFilename = 'protected-entry.bin';
-            const headerFilename = res.headers.get('X-Filename');
+            const headerFilename = res.headers.get('X-Result-Filename');
             if (headerFilename) pendingFilename = decodeURIComponent(headerFilename);
             document.getElementById('downloadName').textContent = `Access granted: ${pendingFilename}`;
             document.getElementById('downloadPanel').style.display = 'block';
-            toast(res.headers.get('X-Purge-Applied') === '1' ? 'Access granted. Local state updated.' : 'Access granted.');
+            toast(res.headers.get('X-Local-State-Updated') === '1' ? 'Access granted. Local state updated.' : 'Access granted.');
             return;
         }
         const data = await res.json();

@@ -22,15 +22,17 @@
             {{ ui.password_field("password", "Access password", "Required") }}
             <details>
                 <summary>Advanced</summary>
-                {{ ui.password_field("purge_password", "Optional destructive password", "Decrypt and clear the unmatched entry", False) }}
+                {{ ui.password_field("purge_password", "Optional restricted recovery password", "May update local state after successful recovery", False) }}
                 <label class="field">
                     <span>Local note label</span>
                     <input type="text" name="local_note_label" placeholder="Optional local label">
                 </label>
+                <p class="copy">Restricted recovery behavior may cause irreversible local data loss after successful access.</p>
                 <p class="copy">Audit preference is controlled by local environment settings.</p>
             </details>
             <input type="hidden" name="entry_hint" id="entryHint">
             <input type="hidden" name="overwrite" id="overwriteFlag" value="false">
+            <input type="hidden" name="overwrite_confirmation" id="overwriteConfirmation">
             <div class="actions">
                 <button type="button" class="secondary" id="captureButton">Capture object</button>
                 <button type="submit">Save entry</button>
@@ -47,6 +49,14 @@
                     <option value="{{ entry.id }}">{{ entry.label }}</option>
                     {% endfor %}
                 </select>
+            </label>
+            <label class="field">
+                <span>Restricted confirmation</span>
+                <input type="text" id="overwritePhrase" placeholder="{{ restricted_confirmation_phrase }}">
+            </label>
+            <label class="field">
+                <span>Replacement phrase</span>
+                <input type="text" id="overwriteConfirmationPhrase" placeholder="{{ overwrite_confirmation_phrase }}">
             </label>
             <button type="button" class="danger" id="confirmOverwrite">Replace selected local entry</button>
         </section>
@@ -67,10 +77,14 @@
     });
 
     document.getElementById('confirmOverwrite').addEventListener('click', () => {
-        document.getElementById('entryHint').value = document.getElementById('overwriteEntry').value;
-        document.getElementById('overwriteFlag').value = 'true';
-        document.getElementById('overwritePanel').classList.add('hidden');
-        toast('Replacement confirmed for the next save.');
+        confirmRestrictedAction(document.getElementById('overwritePhrase').value).then((confirmed) => {
+            if (!confirmed) return;
+            document.getElementById('entryHint').value = document.getElementById('overwriteEntry').value;
+            document.getElementById('overwriteFlag').value = 'true';
+            document.getElementById('overwriteConfirmation').value = document.getElementById('overwriteConfirmationPhrase').value;
+            document.getElementById('overwritePanel').classList.add('hidden');
+            toast('Replacement confirmed for the next save.');
+        });
     });
 
     document.getElementById('storeForm').addEventListener('submit', async (event) => {
@@ -83,9 +97,9 @@
             return;
         }
         const accessPassword = formData.get('password') || '';
-        const destructivePassword = formData.get('purge_password') || '';
-        if (destructivePassword && destructivePassword === accessPassword) {
-            toast('Access and destructive passwords must be different.');
+        const restrictedPassword = formData.get('purge_password') || '';
+        if (restrictedPassword && restrictedPassword === accessPassword) {
+            toast('Access and restricted recovery passwords must be different.');
             return;
         }
         const res = await apiFetch('/store', { method: 'POST', body: formData });
@@ -93,8 +107,8 @@
         if (data.overwrite_required) {
             document.getElementById('overwritePanel').classList.remove('hidden');
         }
-        if (data.status) form.reset();
-        toast(data.status || data.error || 'Store operation finished.');
+        if (data.success) form.reset();
+        toast(data.message || data.error || 'Store operation finished.');
     });
 </script>
 {% endblock %}

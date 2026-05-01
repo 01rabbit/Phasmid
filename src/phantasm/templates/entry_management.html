@@ -11,6 +11,14 @@
             <span class="badge">Maintenance</span>
         </div>
         <p class="copy">Rebind a physical object, test matching, or rename a local label outside the normal flow.</p>
+        <details>
+            <summary>Restricted confirmation</summary>
+            <label class="field">
+                <span>Confirmation phrase</span>
+                <input type="text" id="restrictedConfirmation" placeholder="{{ restricted_confirmation_phrase }}">
+            </label>
+            <button type="button" class="secondary small" id="confirmRestricted">Confirm local control</button>
+        </details>
         <label class="field">
             <span>Entry label</span>
             <select id="entrySelect">
@@ -40,6 +48,8 @@
     }
 
     document.getElementById('rebindButton').addEventListener('click', async () => {
+        const confirmed = await confirmRestrictedAction(document.getElementById('restrictedConfirmation').value);
+        if (!confirmed) return;
         const entry = document.getElementById('entrySelect').value;
         const body = new URLSearchParams({ entry_hint: entry, replace: 'true' });
         const res = await apiFetch('/register_key', { method: 'POST', body });
@@ -48,12 +58,16 @@
         refreshEntryStatus();
     });
 
+    document.getElementById('confirmRestricted').addEventListener('click', async () => {
+        await confirmRestrictedAction(document.getElementById('restrictedConfirmation').value);
+    });
+
     document.getElementById('testButton').addEventListener('click', refreshEntryStatus);
     document.getElementById('renameButton').addEventListener('click', () => {
         toast('Local label rename is reserved for a future persistent label store.');
     });
     document.getElementById('clearTemplateButton').addEventListener('click', () => {
-        toast('Use the hidden emergency route for destructive local actions.');
+        toast('Use the hidden restricted route for local data-loss actions.');
     });
 </script>
 {% endblock %}

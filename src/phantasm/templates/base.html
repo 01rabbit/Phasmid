@@ -208,6 +208,14 @@
             return fetch(url, { ...options, headers });
         }
 
+        async function confirmRestrictedAction(confirmation) {
+            const body = new URLSearchParams({ confirmation });
+            const res = await apiFetch('/restricted/confirm', { method: 'POST', body });
+            const data = await res.json();
+            toast(data.status || data.error || 'Restricted confirmation finished.');
+            return Boolean(data.status);
+        }
+
         function stateText(value) {
             return {
                 none: 'No object detected',

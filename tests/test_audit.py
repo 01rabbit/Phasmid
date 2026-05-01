@@ -35,7 +35,8 @@ class AuditTests(unittest.TestCase):
 
             self.assertEqual(record["event"], "payload_stored")
             self.assertEqual(record["bytes"], 10)
-            self.assertEqual(record["profile"], "Profile A")
+            self.assertEqual(record["entry"], "local_entry")
+            self.assertNotIn("profile", record)
             self.assertTrue(record["filename_present"])
             self.assertIn("filename_hash", record)
             self.assertNotIn("filename", record)

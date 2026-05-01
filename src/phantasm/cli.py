@@ -16,8 +16,8 @@ CAMERA_WARMUP_TIMEOUT = 10
 REFERENCE_MATCH_TIMEOUT = 10
 FACE_RESET_CONFIRMATION = "RESET FACE LOCK AND VAULT"
 MODE_LABELS = {
-    "dummy": "Profile A",
-    "secret": "Profile B",
+    "dummy": "Entry A",
+    "secret": "Entry B",
 }
 PROFILE_TO_MODE = {
     "a": "dummy",
@@ -28,7 +28,7 @@ PROFILE_TO_MODE = {
 
 
 def display_mode_label(mode):
-    return MODE_LABELS.get(mode, "Profile")
+    return MODE_LABELS.get(mode, "Entry")
 
 
 def resolve_mode(profile_value):
@@ -106,12 +106,10 @@ def _confirm_purge_other_mode(accessed_mode):
     other_label = display_mode_label(other_mode)
     accessed_label = display_mode_label(accessed_mode)
     print(f"\n[SAFETY] {other_label} remains intact by default.")
-    if accessed_mode == "secret":
-        print("[SAFETY] Profile A may be needed as a decoy profile. Do not purge it unless you intend to.")
 
     confirmation = f"DELETE {other_label.upper()}"
     answer = input(
-        f'[PURGE] Delete alternate profile ({other_label}) after accessing {accessed_label}? '
+        f'[LOCAL STATE] Clear unmatched local entry ({other_label}) after accessing {accessed_label}? '
         f'Type "{confirmation}" to confirm: '
     ).strip()
     return answer == confirmation
@@ -127,13 +125,13 @@ def _auto_purge_reason(accessed_mode):
 
 def _prompt_store_passwords():
     open_password = getpass.getpass("[AUTH] Enter Open Vault Key: ")
-    purge_password = getpass.getpass("[AUTH] Enter Open+Purge Vault Key: ")
+    purge_password = getpass.getpass("[AUTH] Enter Restricted Recovery Vault Key: ")
     if not open_password:
         raise ValueError("open password must not be empty")
     if not purge_password:
-        raise ValueError("open+purge password must not be empty")
+        raise ValueError("restricted recovery password must not be empty")
     if open_password == purge_password:
-        raise ValueError("open and open+purge passwords must be different")
+        raise ValueError("open and restricted recovery passwords must be different")
     return open_password, purge_password
 
 
@@ -164,10 +162,16 @@ def main():
         help="operation to run",
     )
     parser.add_argument(
-        "--profile",
+        "--entry",
         choices=["a", "b"],
         default="a",
-        help="profile to use",
+        help="entry selector to use",
+    )
+    parser.add_argument(
+        "--profile",
+        choices=["a", "b"],
+        dest="legacy_profile",
+        help=argparse.SUPPRESS,
     )
     parser.add_argument(
         "--mode",
@@ -178,7 +182,8 @@ def main():
     parser.add_argument("--file", help="path to the input file")
     parser.add_argument("--out", help="path where decrypted output will be written")
     args = parser.parse_args()
-    selected_mode = args.legacy_mode if args.legacy_mode else resolve_mode(args.profile)
+    selected_value = args.legacy_profile if args.legacy_profile else args.entry
+    selected_mode = args.legacy_mode if args.legacy_mode else resolve_mode(selected_value)
 
     panic_monitor = EmergencyDaemon("vault.bin")
     gate_started = False
@@ -216,7 +221,7 @@ def main():
                 return
             
             print(f"\n[AI GATE] Calibrating image key for {profile_label}...")
-            print("[INFO] The captured object will be stored as a dedicated reference image for this profile.")
+            print("[INFO] The captured object will be stored as a dedicated reference image for this entry.")
             success, msg = _register_reference_key(selected_mode)
             if not success:
                 print(f"[!] Error: {msg}")
@@ -296,31 +301,31 @@ def main():
                 if password_role == GhostVault.PURGE_ROLE:
                     vault.purge_other_mode(accessed_mode)
                     audit_event(
-                        "alternate_profile_purged",
-                        accessed_profile=display_mode_label(accessed_mode),
-                        reason="purge_password",
+                        "alternate_entry_cleared",
+                        accessed_entry="local_entry",
+                        reason="restricted_recovery",
                     )
-                    print("\n(SYSTEM: Alternate profile state updated.)")
+                    print("\n(SYSTEM: Local entry state updated.)")
                     return
 
                 auto_purge_reason = _auto_purge_reason(accessed_mode)
                 if auto_purge_reason:
                     vault.purge_other_mode(accessed_mode)
                     audit_event(
-                        "alternate_profile_purged",
-                        accessed_profile=display_mode_label(accessed_mode),
+                        "alternate_entry_cleared",
+                        accessed_entry="local_entry",
                         reason=auto_purge_reason,
                     )
                     if auto_purge_reason == "confirmation_disabled":
-                        print("\n(SYSTEM: Alternate profile disabled by configuration.)")
+                        print("\n(SYSTEM: Local entry state updated by configuration.)")
                     else:
-                        print("\n(SYSTEM: Alternate profile state updated.)")
+                        print("\n(SYSTEM: Local entry state updated.)")
                 elif _confirm_purge_other_mode(accessed_mode):
                     vault.purge_other_mode(accessed_mode)
-                    audit_event("alternate_profile_purged", accessed_profile=display_mode_label(accessed_mode))
-                    print("\n(SYSTEM: Alternate profile disabled after explicit confirmation.)")
+                    audit_event("alternate_entry_cleared", accessed_entry="local_entry")
+                    print("\n(SYSTEM: Local entry state updated after explicit confirmation.)")
                 else:
-                    print("\n(SYSTEM: Alternate profile preserved.)")
+                    print("\n(SYSTEM: Local entry state preserved.)")
             else:
                 ui.show_alert("ACCESS DENIED\nINVALID CREDENTIALS")
                 audit_event("retrieve_failed")

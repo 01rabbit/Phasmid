@@ -37,6 +37,9 @@ def audit_event(event, **fields):
 def _sanitize_fields(fields):
     sanitized = {}
     for key, value in fields.items():
+        if "profile" in key:
+            sanitized["entry"] = "local_entry"
+            continue
         if key == "filename":
             if value:
                 sanitized["filename_present"] = True

@@ -10,6 +10,14 @@
             <span class="badge">Local State</span>
         </div>
         <p class="copy">Review runtime state and operational settings. Destructive local actions are isolated from this view.</p>
+        <details>
+            <summary>Restricted confirmation</summary>
+            <label class="field">
+                <span>Confirmation phrase</span>
+                <input type="text" id="restrictedConfirmation" placeholder="{{ restricted_confirmation_phrase }}">
+            </label>
+            <button type="button" class="secondary small" data-action="confirm-restricted">Confirm local control</button>
+        </details>
         <div class="status-grid">
             {{ ui.status_card("Session Token", "tokenState", "Active") }}
             {{ ui.status_card("Audit Settings", "auditState", audit_enabled) }}
@@ -48,6 +56,10 @@
 
     document.querySelector('[data-action="diagnostics"]').addEventListener('click', runDiagnostics);
 
+    document.querySelector('[data-action="confirm-restricted"]').addEventListener('click', async () => {
+        await confirmRestrictedAction(document.getElementById('restrictedConfirmation').value);
+    });
+
     document.querySelector('[data-action="rotate-token"]').addEventListener('click', async () => {
         const res = await apiFetch('/maintenance/rotate_token', { method: 'POST', body: new URLSearchParams() });
         const data = await res.json();
@@ -74,6 +86,8 @@
     const enrollButton = document.querySelector('[data-action="enroll-face"]');
     if (enrollButton) {
         enrollButton.addEventListener('click', async () => {
+            const confirmed = await confirmRestrictedAction(document.getElementById('restrictedConfirmation').value);
+            if (!confirmed) return;
             const res = await apiFetch('/face/enroll', { method: 'POST', body: new URLSearchParams() });
             const data = await res.json();
             toast(data.status || data.error || 'Face enrollment finished.');

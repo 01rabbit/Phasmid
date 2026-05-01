@@ -1,19 +1,21 @@
 # Phantasm
 
-Phantasm is a local secure-storage prototype that combines an encrypted container, a password, and a camera-recognized physical object profile. It is designed for local operation, including USB gadget mode or localhost access.
+Phantasm is a local-only, coercion-aware secure-storage prototype. It explores how visible disclosure and protected local state can diverge when device seizure and compelled access are practical risks.
 
-Phantasm is research software. It is not a replacement for full-disk encryption, a hardware security module, or an audited secrets-management system.
+Phantasm is research software. It is not a replacement for full-disk encryption, hardware-backed key storage, an audited classified-data handling system, or a complete solution to compelled disclosure.
 
 ## What It Does
 
 - Creates an encrypted `vault.bin` container.
-- Stores separate Profile A and Profile B payloads.
-- Uses a camera-based physical key as an additional operational gate.
+- Stores protected entries in an internal two-slot container model.
+- Uses object-image matching with ORB as an operational access cue.
 - Encrypts payloads with AES-GCM and Argon2id-derived keys.
-- Uses a local access key so `vault.bin` alone is not enough to decrypt data.
-- Supports separate open and open+purge passwords for the same physical-key profile.
-- Provides a CLI and local WebUI v2.
-- Supports an emergency brick flow that destroys the local access key first.
+- Mixes a local access key into recovery so `vault.bin` alone is not enough.
+- Supports normal access and restricted recovery behavior.
+- Provides a CLI and a local WebUI v2.
+- Provides owner-controlled restricted actions that can clear local state.
+
+Phantasm does not promise perfect deniability. It reduces operational damage in some compelled-access scenarios by separating access conditions, local state, physical-object cues, and restricted recovery behavior.
 
 ## Repository Layout
 
@@ -50,16 +52,14 @@ Initialize a container:
 python3 main.py init
 ```
 
-Initialization rotates the local access key and clears the container for new entries.
-
 Store a file:
 
 ```bash
-python3 main.py store --profile a --file path/to/file
-python3 main.py store --profile b --file path/to/file
+python3 main.py store --entry a --file path/to/file
+python3 main.py store --entry b --file path/to/file
 ```
 
-The store flow asks for two different passwords. The open password decrypts the selected profile and leaves the alternate profile intact. The open+purge password decrypts the selected profile and silently purges the alternate profile after successful retrieval. Both passwords use the same registered physical object for that profile.
+The CLI keeps a compact entry selector for compatibility. The WebUI uses neutral entry-based language and does not expose the internal storage model during normal operation.
 
 Retrieve a file:
 
@@ -67,7 +67,7 @@ Retrieve a file:
 python3 main.py retrieve --out output.bin
 ```
 
-Brick the local access path:
+Clear the local access path:
 
 ```bash
 python3 main.py brick
@@ -79,11 +79,11 @@ Reset the optional UI face lock from the CLI:
 python3 main.py reset-face-lock
 ```
 
-This operation has no WebUI route. It requires the confirmation phrase `RESET FACE LOCK AND VAULT`, clears the enrolled face-lock template, rotates the local access key, initializes `vault.bin`, and clears physical-object bindings. Use it when the local UI user changes and the stored vault data must be treated as no longer valid.
+This operation has no WebUI route. It requires the confirmation phrase `RESET FACE LOCK AND VAULT`, clears the enrolled face-lock template, rotates the local access key, initializes `vault.bin`, and clears physical-object bindings. Use it when the local UI user changes and stored data must be treated as no longer valid.
 
-After a successful reset, Phantasm creates a short-lived local enrollment request. If the WebUI is already running, reload `/ui-lock` to register the new face lock. The request is cleared after enrollment.
+After a successful reset, Phantasm creates a short-lived local enrollment request. If the WebUI is already running, reload `/ui-lock` to register the new face lock.
 
-## Web UI
+## WebUI v2
 
 ```bash
 PYTHONPATH=src python3 -m phantasm.web_server
@@ -91,15 +91,17 @@ PYTHONPATH=src python3 -m phantasm.web_server
 
 Open `http://127.0.0.1:8000`.
 
-WebUI v2 uses neutral entry-based terminology during normal operation. The internal two-profile model remains, but the UI does not expose profile names or retrieval order.
+WebUI v2 uses neutral entry-based terminology. Normal screens do not show internal storage labels, retrieval order, or restricted local-state behavior.
 
 Navigation:
 
 - `Home`: local device state, camera state, object state, and primary actions.
 - `Store`: create or update a protected entry by selecting a file, entering an access password, and binding an object.
-- `Retrieve`: unlock the matching local entry without choosing an internal profile.
+- `Retrieve`: unlock the matching local entry without choosing an internal slot.
 - `Maintenance`: diagnostics, token rotation, audit state, log export, and entry management.
-- `/emergency`: hidden route for destructive local actions with typed confirmation.
+- `/emergency`: hidden route for restricted local actions with typed confirmation.
+
+Restricted actions are not shown in normal navigation. Hidden routes are UX concealment only, so restricted actions also require the Web mutation token, an unlocked UI session when face lock is enabled, a fresh restricted confirmation, and a typed action phrase.
 
 Optional UI face lock:
 
@@ -115,23 +117,19 @@ First-time face enrollment is an explicit setup mode:
 PHANTASM_UI_FACE_LOCK=1 PHANTASM_UI_FACE_ENROLL=1 PYTHONPATH=src python3 -m phantasm.web_server
 ```
 
-Use setup mode only while provisioning the device. Normal locked sessions withhold the main object-matching preview until the UI is unlocked. The lock screen shows a local camera preview for enrollment and verification alignment without exposing the normal object-matching UI. Deleting `face.bin` by itself is not a supported reset path; use the CLI reset so the vault and local object bindings are cleared together. A successful CLI reset also permits one short-lived enrollment without restarting the WebUI.
+Use setup mode only while provisioning the device. Normal locked sessions withhold the main object-matching preview until the UI is unlocked. The lock screen shows a local camera preview for enrollment and verification alignment without exposing the normal object-matching UI.
 
-Face-lock reset is intentionally CLI-only because it also resets the local container and object bindings.
+## Object Matching
 
-The hidden Emergency page includes:
+Object-image matching is an operational access cue layered on top of password-based cryptographic recovery. It is not high-entropy cryptographic key material and is not a substitute for strong passwords, key management, or secure operational procedure.
 
-- clear unmatched entry
-- initialize local container
-- emergency brick
-
-`Initialize local container` rotates the local access key, resets `vault.bin`, and clears object bindings so both protected entries are empty and ready for new registration.
+Matching can fail because of lighting, camera quality, object orientation, motion blur, or ambiguous objects. Failure messages are intentionally neutral.
 
 ## Runtime State
 
 By default, Phantasm writes runtime state to `.state/`:
 
-- `store.bin`: encrypted physical-key state blob
+- `store.bin`: encrypted object-cue state blob
 - `lock.bin`: state encryption key
 - `access.bin`: local access key required for vault retrieval
 - `signal.key` / `signal.trigger`: panic trigger files
@@ -150,16 +148,22 @@ PHANTASM_STATE_DIR=/path/to/state python3 main.py init
 | Variable | Purpose |
 | --- | --- |
 | `PHANTASM_STATE_DIR` | Runtime state directory |
-| `PHANTASM_STATE_SECRET` | External secret for physical-key state encryption |
-| `PHANTASM_HARDWARE_SECRET_FILE` | External secret file mixed into Argon2id |
-| `PHANTASM_HARDWARE_SECRET_PROMPT=1` | Prompt for an external secret |
-| `PHANTASM_PURGE_CONFIRMATION=0` | Disable explicit purge confirmation for open-password retrieval |
-| `PHANTASM_DURESS_MODE=1` | Auto-purge Profile B after Profile A retrieval |
+| `PHANTASM_STATE_SECRET` | External value for object-cue state encryption |
+| `PHANTASM_HARDWARE_SECRET_FILE` | External value file mixed into Argon2id |
+| `PHANTASM_HARDWARE_SECRET_PROMPT=1` | Prompt for an external value |
+| `PHANTASM_PURGE_CONFIRMATION=0` | Disable explicit confirmation for configured recovery behavior |
+| `PHANTASM_DURESS_MODE=1` | Enable opt-in access-triggered local-state update |
+| `PHANTASM_WEB_TOKEN` | Web mutation token |
 | `PHANTASM_UI_FACE_LOCK=1` | Require local face check before using the WebUI |
 | `PHANTASM_UI_FACE_ENROLL=1` | Permit first-time WebUI face-lock enrollment during setup |
 | `PHANTASM_UI_FACE_ENROLL_SECONDS` | Face enrollment request lifetime |
 | `PHANTASM_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime |
+| `PHANTASM_RESTRICTED_SESSION_SECONDS` | Restricted confirmation lifetime |
 | `PHANTASM_AUDIT=1` | Enable audit logging |
+
+## Local-Only Trust Boundary
+
+Phantasm is intended for localhost or USB Ethernet gadget access. It should not be exposed to an untrusted network and should not be deployed as an Internet-facing service. Remote management, telemetry, cloud unlock, and analytics are intentionally out of scope.
 
 ## Test
 
@@ -180,4 +184,6 @@ python3 scripts/bench_kdf.py
 
 ## Security Notes
 
-Phantasm does not guarantee protection against a compromised host, live memory capture, keylogging, camera observation, forced disclosure, complete secure deletion, or unsafe network exposure. Read the threat model before relying on it for sensitive work.
+Phantasm does not guarantee protection against a compromised host, live memory capture, keylogging, camera observation, shoulder surfing, active surveillance, forced disclosure, forensic analysis of the entire device, complete secure deletion, or unsafe network exposure.
+
+It is not a replacement for audited full-disk encryption, hardware-backed key storage, or formal classified-data handling systems.

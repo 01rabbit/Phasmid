@@ -16,6 +16,7 @@ from phantasm import web_server
 class WebServerBoundaryTests(unittest.TestCase):
     def tearDown(self):
         web_server._rate_limit.clear()
+        web_server._restricted_sessions.clear()
 
     def test_require_web_token_rejects_invalid_token(self):
         with self.assertRaises(HTTPException) as ctx:
@@ -24,6 +25,9 @@ class WebServerBoundaryTests(unittest.TestCase):
 
     def test_require_web_token_accepts_current_token(self):
         self.assertIsNone(web_server.require_web_token(web_server.WEB_TOKEN))
+
+    def test_fastapi_debug_is_disabled_by_default(self):
+        self.assertFalse(web_server.app.debug)
 
     def test_rate_limit_blocks_after_configured_limit(self):
         request = SimpleNamespace(
@@ -110,6 +114,10 @@ class WebServerBoundaryTests(unittest.TestCase):
             self.assertEqual(response["device_state"], "locked")
             self.assertFalse(response["camera_ready"])
             self.assertEqual(response["object_state"], "none")
+            self.assertEqual(
+                set(response.keys()),
+                {"camera_ready", "object_state", "device_state", "local_mode"},
+            )
 
         asyncio.run(run())
 
@@ -219,6 +227,54 @@ class WebServerBoundaryTests(unittest.TestCase):
             self.assertIn("unlocked", response["error"])
 
         asyncio.run(run())
+
+    def test_face_enroll_requires_restricted_confirmation_when_replacing_template(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+                url=SimpleNamespace(path="/face/enroll"),
+            )
+            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
+                 mock.patch.object(web_server.face_lock, "is_enrolled", return_value=True), \
+                 mock.patch.object(web_server, "_ui_unlocked", return_value=True), \
+                 mock.patch.object(web_server.face_lock, "enroll_from_frames") as enroll:
+                response = await web_server.face_enroll(request)
+            enroll.assert_not_called()
+            self.assertIn("Restricted confirmation required", response["error"])
+
+        asyncio.run(run())
+
+    def test_restricted_confirmation_sets_short_lived_cookie(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+                url=SimpleNamespace(path="/restricted/confirm"),
+            )
+            response = await web_server.restricted_confirm(
+                request,
+                confirmation=web_server.RESTRICTED_CONFIRMATION_PHRASE,
+            )
+            self.assertIn(web_server.RESTRICTED_SESSION_COOKIE, response.headers.get("set-cookie", ""))
+
+        asyncio.run(run())
+
+    def test_restricted_confirmation_rejects_missing_or_stale_session(self):
+        request = SimpleNamespace(
+            client=SimpleNamespace(host="127.0.0.1"),
+            cookies={},
+        )
+        with self.assertRaises(HTTPException) as ctx:
+            web_server.require_restricted_confirmation(request)
+        self.assertEqual(ctx.exception.status_code, 403)
+
+    def test_sensitive_routes_require_restricted_confirmation_dependency(self):
+        sensitive_paths = {"/purge_other", "/emergency/brick", "/emergency/initialize"}
+        for path in sensitive_paths:
+            route = next(route for route in web_server.app.routes if getattr(route, "path", None) == path)
+            dependency_names = {item.call.__name__ for item in route.dependant.dependencies}
+            self.assertIn("require_restricted_confirmation", dependency_names)
 
     def test_hidden_clear_requires_explicit_phrase(self):
         async def run():
@@ -339,6 +395,12 @@ class WebServerBoundaryTests(unittest.TestCase):
                 )
             )
         purge.assert_not_called()
+
+    def test_download_response_uses_neutral_filename_and_state_header(self):
+        response = web_server.create_file_response(b"payload", "source-name.txt", purge_applied=True)
+        self.assertIn("retrieved_payload.bin", response.headers["content-disposition"])
+        self.assertEqual(response.headers["x-local-state-updated"], "1")
+        self.assertNotIn("source-name", str(response.headers).lower())
 
 
 class _BytesFile:

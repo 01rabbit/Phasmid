@@ -1,16 +1,24 @@
 {% extends "base.html" %}
 {% import "_components.html" as ui %}
-{% block title %}Phantasm | Emergency{% endblock %}
+{% block title %}Phantasm | Restricted Actions{% endblock %}
 
 {% block content %}
 <div class="grid-single">
     <section class="panel">
         <div class="panel-head">
-            <h2>Emergency</h2>
-            <span class="badge bad">Destructive Action</span>
+            <h2>Restricted Actions</h2>
+            <span class="badge bad">Local data risk</span>
         </div>
         {{ ui.destructive_warning() }}
-        <p class="copy">This hidden route is separated from normal navigation. Use it only for destructive local actions.</p>
+        <p class="copy">This hidden route is separated from normal navigation. It still requires server-side confirmation.</p>
+        <details open>
+            <summary>Restricted confirmation</summary>
+            <label class="field">
+                <span>Confirmation phrase</span>
+                <input type="text" id="restrictedConfirmation" placeholder="{{ restricted_confirmation_phrase }}">
+            </label>
+            <button type="button" class="secondary small" id="confirmRestricted">Confirm local control</button>
+        </details>
     </section>
 
     <section class="panel">
@@ -49,14 +57,14 @@
     </section>
 
     <section class="panel">
-        <h2>Trigger Emergency Brick</h2>
+        <h2>Clear Local Access Path</h2>
         {{ ui.destructive_warning() }}
         <form id="brickForm">
             <label class="field">
                 <span>Confirmation phrase</span>
                 <input type="text" name="confirmation" placeholder="{{ emergency_brick_phrase }}" required>
             </label>
-            <button type="submit" class="danger">Trigger emergency brick</button>
+            <button type="submit" class="danger">Clear local access path</button>
         </form>
     </section>
 </div>
@@ -64,8 +72,15 @@
 
 {% block scripts %}
 <script>
+    async function ensureRestrictedConfirmation() {
+        return confirmRestrictedAction(document.getElementById('restrictedConfirmation').value);
+    }
+
+    document.getElementById('confirmRestricted').addEventListener('click', ensureRestrictedConfirmation);
+
     document.getElementById('clearForm').addEventListener('submit', async (event) => {
         event.preventDefault();
+        if (!await ensureRestrictedConfirmation()) return;
         const res = await apiFetch('/purge_other', { method: 'POST', body: new FormData(event.currentTarget) });
         const data = await res.json();
         toast(data.status || data.error || 'Clear action finished.');
@@ -73,6 +88,7 @@
 
     document.getElementById('initializeForm').addEventListener('submit', async (event) => {
         event.preventDefault();
+        if (!await ensureRestrictedConfirmation()) return;
         const res = await apiFetch('/emergency/initialize', { method: 'POST', body: new FormData(event.currentTarget) });
         const data = await res.json();
         toast(data.status || data.error || 'Initialize action finished.');
@@ -80,9 +96,10 @@
 
     document.getElementById('brickForm').addEventListener('submit', async (event) => {
         event.preventDefault();
+        if (!await ensureRestrictedConfirmation()) return;
         const res = await apiFetch('/emergency/brick', { method: 'POST', body: new FormData(event.currentTarget) });
         const data = await res.json();
-        toast(data.status || data.error || 'Emergency action finished.');
+        toast(data.status || data.error || 'Restricted action finished.');
         if (data.status) document.body.classList.add('locked');
     });
 </script>

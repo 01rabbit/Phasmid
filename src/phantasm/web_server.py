@@ -30,9 +30,12 @@ MAX_UPLOAD_BYTES = int(os.environ.get("PHANTASM_MAX_UPLOAD_BYTES", 25 * 1024 * 1
 RATE_LIMIT_WINDOW = 60
 RATE_LIMIT_MAX = 20
 FACE_SESSION_COOKIE = "phantasm_ui_session"
+RESTRICTED_SESSION_COOKIE = "phantasm_restricted_session"
 FACE_FRAME_SAMPLES = 8
 FACE_FRAME_DELAY_SECONDS = 0.10
+RESTRICTED_SESSION_TTL_SECONDS = int(os.environ.get("PHANTASM_RESTRICTED_SESSION_SECONDS", 120))
 _rate_limit = {}
+_restricted_sessions = {}
 
 ENTRY_TO_MODE = {
     "entry_1": "dummy",
@@ -49,7 +52,9 @@ ENTRY_LABELS = {
 }
 DESTRUCTIVE_CLEAR_PHRASE = "CLEAR LOCAL ENTRY"
 INITIALIZE_CONTAINER_PHRASE = "INITIALIZE LOCAL CONTAINER"
-EMERGENCY_BRICK_PHRASE = "BRICK LOCAL STATE"
+EMERGENCY_BRICK_PHRASE = "CLEAR LOCAL ACCESS PATH"
+RESTRICTED_CONFIRMATION_PHRASE = "CONFIRM LOCAL CONTROL"
+OVERWRITE_CONFIRMATION_PHRASE = "REPLACE LOCAL ENTRY"
 
 
 def display_entry_label(entry_id):
@@ -79,6 +84,10 @@ def _face_session_token(request):
     return request.cookies.get(FACE_SESSION_COOKIE, "")
 
 
+def _restricted_session_token(request):
+    return request.cookies.get(RESTRICTED_SESSION_COOKIE, "")
+
+
 def _ui_unlocked(request):
     if not ui_face_lock_enabled():
         return True
@@ -98,6 +107,35 @@ def _face_enrollment_allowed():
 def require_ui_unlock(request: Request):
     if not _ui_unlocked(request):
         raise HTTPException(status_code=423, detail="ui locked")
+
+
+def _create_restricted_session(client_id):
+    token = secrets.token_urlsafe(32)
+    _restricted_sessions[token] = {
+        "client_id": client_id,
+        "expires_at": time.time() + RESTRICTED_SESSION_TTL_SECONDS,
+    }
+    return token
+
+
+def _restricted_session_valid(request):
+    token = _restricted_session_token(request)
+    if not token:
+        return False
+    session = _restricted_sessions.get(token)
+    if not session:
+        return False
+    if session["client_id"] != _client_id(request):
+        return False
+    if session["expires_at"] <= time.time():
+        _restricted_sessions.pop(token, None)
+        return False
+    return True
+
+
+def require_restricted_confirmation(request: Request):
+    if not _restricted_session_valid(request):
+        raise HTTPException(status_code=403, detail="restricted confirmation required")
 
 
 def _guard_page(request):
@@ -153,6 +191,8 @@ def _template_context(request: Request, active="home", **extra):
         "destructive_clear_phrase": DESTRUCTIVE_CLEAR_PHRASE,
         "initialize_container_phrase": INITIALIZE_CONTAINER_PHRASE,
         "emergency_brick_phrase": EMERGENCY_BRICK_PHRASE,
+        "restricted_confirmation_phrase": RESTRICTED_CONFIRMATION_PHRASE,
+        "overwrite_confirmation_phrase": OVERWRITE_CONFIRMATION_PHRASE,
         "entries": [
             {"id": entry_id, "label": label}
             for entry_id, label in ENTRY_LABELS.items()
@@ -360,7 +400,6 @@ async def status(request: Request):
         data["device_state"] = "locked"
         data["camera_ready"] = False
         data["object_state"] = "none"
-    data["ui_lock"] = face_status
     return data
 
 
@@ -373,6 +412,8 @@ async def face_enroll(request: Request):
         return {"error": "Face enrollment is disabled for this session."}
     if face_lock.is_enrolled() and not _ui_unlocked(request):
         return {"error": "UI must be unlocked before replacing the face lock."}
+    if face_lock.is_enrolled() and not _restricted_session_valid(request):
+        return {"error": "Restricted confirmation required. Please confirm local control and retry."}
     success, message = face_lock.enroll_from_frames(_recent_camera_frames())
     if success:
         face_lock.clear_enrollment_request()
@@ -409,8 +450,10 @@ async def face_verify(request: Request):
 @app.post("/face/lock", dependencies=[Depends(require_web_token)])
 async def face_lock_session(request: Request):
     face_lock.clear_session(_face_session_token(request))
+    _restricted_sessions.pop(_restricted_session_token(request), None)
     response = JSONResponse({"status": "UI locked."})
     response.delete_cookie(FACE_SESSION_COOKIE)
+    response.delete_cookie(RESTRICTED_SESSION_COOKIE)
     return response
 
 
@@ -420,6 +463,27 @@ async def entry_status(request: Request):
     return entry_management_status()
 
 
+@app.post("/restricted/confirm", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+async def restricted_confirm(request: Request, confirmation: str = Form(...)):
+    enforce_rate_limit(request)
+    if confirmation != RESTRICTED_CONFIRMATION_PHRASE:
+        return {"error": "Confirmation rejected."}
+    token = _create_restricted_session(_client_id(request))
+    response = JSONResponse({
+        "status": "Restricted confirmation accepted.",
+        "expires_in": RESTRICTED_SESSION_TTL_SECONDS,
+    })
+    response.set_cookie(
+        RESTRICTED_SESSION_COOKIE,
+        token,
+        max_age=RESTRICTED_SESSION_TTL_SECONDS,
+        httponly=True,
+        samesite="strict",
+    )
+    audit_event("restricted_confirmation_accepted", source="web")
+    return response
+
+
 @app.post("/register_key", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def register_key(
     request: Request,
@@ -427,6 +491,8 @@ async def register_key(
     replace: bool = Form(False),
 ):
     enforce_rate_limit(request)
+    if replace and not _restricted_session_valid(request):
+        return {"error": "Restricted confirmation required. Please confirm local control and retry."}
     entry_id = entry_hint if entry_hint in ENTRY_TO_MODE else _matched_entry() or _first_unbound_entry()
     if entry_id is None:
         return {
@@ -441,8 +507,8 @@ async def register_key(
 
     success, message = _capture_entry_binding(mode)
     if success:
-        audit_event("image_key_registered", entry=display_entry_label(entry_id), source="web")
-        return {"status": "Object bound to protected entry.", "entry_label": display_entry_label(entry_id)}
+        audit_event("image_key_registered", entry="local_entry", source="web")
+        return {"status": "Object bound to protected entry.", "entry_state": "updated" if replace else "created"}
     return {"error": message}
 
 
@@ -455,6 +521,7 @@ async def store(
     local_note_label: str = Form(default=""),
     entry_hint: str = Form(default=""),
     overwrite: bool = Form(False),
+    overwrite_confirmation: str = Form(default=""),
 ):
     enforce_rate_limit(request)
     data = await read_limited_upload(file)
@@ -464,7 +531,11 @@ async def store(
         if not password:
             return {"error": "Access password must not be empty."}
         if purge_password and password == purge_password:
-            return {"error": "Access and destructive passwords must be different."}
+            return {"error": "Access and restricted recovery passwords must be different."}
+        if overwrite and overwrite_confirmation != OVERWRITE_CONFIRMATION_PHRASE:
+            return {"error": "Replacement confirmation required."}
+        if overwrite and not _restricted_session_valid(request):
+            return {"error": "Restricted confirmation required. Please confirm local control and retry."}
 
         entry_id, needs_capture = _select_entry_for_store(entry_hint=entry_hint, overwrite=overwrite)
         if entry_id is None:
@@ -493,15 +564,16 @@ async def store(
         )
         audit_event(
             "payload_stored",
-            entry=display_entry_label(entry_id),
+            entry="local_entry",
             filename=orig_filename,
             bytes=len(data),
             label_present=bool(local_note_label),
             source="web",
         )
-        return {"status": "Protected entry saved.", "entry_label": display_entry_label(entry_id)}
-    except Exception as exc:
-        return {"error": str(exc)}
+        entry_state = "replaced" if overwrite else "created" if needs_capture else "updated"
+        return {"success": True, "message": "Protected entry saved.", "entry_state": entry_state}
+    except Exception:
+        return {"error": "Store operation failed."}
 
 
 @app.post("/retrieve", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
@@ -521,7 +593,7 @@ async def retrieve(request: Request, password: str = Form(...)):
         entry_id = mode_to_entry(mode)
         audit_event(
             "payload_retrieved",
-            entry=display_entry_label(entry_id),
+            entry="local_entry",
             filename=filename,
             bytes=len(result),
             source="web",
@@ -539,7 +611,7 @@ async def retrieve(request: Request, password: str = Form(...)):
     return {"error": "No valid entry found."}
 
 
-@app.post("/purge_other", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+@app.post("/purge_other", dependencies=[Depends(require_web_token), Depends(require_ui_unlock), Depends(require_restricted_confirmation)])
 async def purge_other(
     request: Request,
     accessed_entry: str = Form(default=""),
@@ -556,21 +628,21 @@ async def purge_other(
         return {"error": f"Confirmation required: {DESTRUCTIVE_CLEAR_PHRASE}"}
 
     vault.purge_other_mode(mode)
-    audit_event("alternate_entry_cleared", accessed_entry=display_entry_label(entry_id), source="web")
+    audit_event("alternate_entry_cleared", accessed_entry="local_entry", source="web")
     return {"status": "Unmatched local entry cleared."}
 
 
-@app.post("/emergency/brick", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+@app.post("/emergency/brick", dependencies=[Depends(require_web_token), Depends(require_ui_unlock), Depends(require_restricted_confirmation)])
 async def emergency_brick(request: Request, confirmation: str = Form(...)):
     enforce_rate_limit(request)
     if confirmation != EMERGENCY_BRICK_PHRASE:
         return {"error": f"Confirmation required: {EMERGENCY_BRICK_PHRASE}"}
     vault.silent_brick()
     audit_event("container_bricked", source="web")
-    return {"status": "Emergency brick completed. Close this session."}
+    return {"status": "Local access path cleared. Close this session."}
 
 
-@app.post("/emergency/initialize", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+@app.post("/emergency/initialize", dependencies=[Depends(require_web_token), Depends(require_ui_unlock), Depends(require_restricted_confirmation)])
 async def emergency_initialize(request: Request, confirmation: str = Form(...)):
     enforce_rate_limit(request)
     if confirmation != INITIALIZE_CONTAINER_PHRASE:
@@ -596,6 +668,7 @@ async def rotate_token(request: Request):
 async def reset_session(request: Request):
     enforce_rate_limit(request)
     _rate_limit.clear()
+    _restricted_sessions.pop(_restricted_session_token(request), None)
     return {"status": "Local session counters reset."}
 
 
@@ -611,6 +684,7 @@ async def diagnostics(request: Request):
         "state_directory": state_dir(),
         "audit_enabled": os.environ.get("PHANTASM_AUDIT", "0").lower() not in {"0", "false", "off", "no"},
         "upload_limit_bytes": MAX_UPLOAD_BYTES,
+        "restricted_confirmation_active": _restricted_session_valid(request),
     }
 
 
@@ -641,7 +715,7 @@ def _maybe_auto_purge(accessed_mode, source):
     vault.purge_other_mode(accessed_mode)
     audit_event(
         "alternate_entry_cleared",
-        accessed_entry=display_entry_label(mode_to_entry(accessed_mode)),
+        accessed_entry="local_entry",
         source=source,
         reason=reason,
     )
@@ -654,22 +728,22 @@ def _purge_for_password_role(accessed_mode, password_role, source):
     vault.purge_other_mode(accessed_mode)
     audit_event(
         "alternate_entry_cleared",
-        accessed_entry=display_entry_label(mode_to_entry(accessed_mode)),
+        accessed_entry="local_entry",
         source=source,
-        reason="destructive_password",
+        reason="restricted_recovery",
     )
     return True
 
 
 def create_file_response(content, filename, purge_applied=False):
-    safe_filename = urllib.parse.quote(filename)
+    safe_filename = urllib.parse.quote("retrieved_payload.bin")
     return StreamingResponse(
         io.BytesIO(content),
         media_type="application/octet-stream",
         headers={
             "Content-Disposition": f"attachment; filename*=UTF-8''{safe_filename}",
-            "X-Filename": safe_filename,
-            "X-Purge-Applied": "1" if purge_applied else "0",
+            "X-Result-Filename": safe_filename,
+            "X-Local-State-Updated": "1" if purge_applied else "0",
         },
     )
 
