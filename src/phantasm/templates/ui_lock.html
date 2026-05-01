@@ -11,17 +11,19 @@
         </div>
         <p class="copy">
             Face UI lock controls access to this local interface only. Vault retrieval still requires
-            the access password and bound object. Camera preview is withheld while the interface is locked.
+            the access password and bound object. Camera preview is available only during a short local check.
         </p>
         {% if face_lock.enrolled %}
         <div class="actions">
-            <button type="button" id="verifyFace">Verify face</button>
+            <button type="button" id="startFacePreview" class="secondary">Start local check</button>
+            <button type="button" id="verifyFace" disabled>Verify</button>
         </div>
         {% else %}
         {% if face_enrollment_enabled %}
         <p class="copy">No face lock is enrolled. Use the current camera frame to create the local UI lock.</p>
         <div class="actions">
-            <button type="button" id="enrollFace">Enroll face</button>
+            <button type="button" id="startFacePreview" class="secondary">Start local check</button>
+            <button type="button" id="enrollFace" disabled>Enroll</button>
         </div>
         {% else %}
         <p class="copy">
@@ -39,14 +41,72 @@
             {% endif %}
         </p>
     </section>
+    <section id="facePreviewPanel" class="panel hidden">
+        <div class="panel-head">
+            <h2>Local Check</h2>
+            <span id="facePreviewTimer" class="badge warn">Standby</span>
+        </div>
+        <img id="facePreview" class="camera-feed" alt="Local camera preview">
+        <p class="copy">
+            Align yourself in the frame, then continue. The preview closes automatically after a short window.
+        </p>
+    </section>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
     const statusLine = document.getElementById('faceStatus');
+    const previewPanel = document.getElementById('facePreviewPanel');
+    const previewImage = document.getElementById('facePreview');
+    const previewTimer = document.getElementById('facePreviewTimer');
+    const startPreview = document.getElementById('startFacePreview');
+    let previewDeadline = 0;
+    let previewCountdown = null;
+
+    function setActionEnabled(enabled) {
+        const verify = document.getElementById('verifyFace');
+        const enroll = document.getElementById('enrollFace');
+        if (verify) verify.disabled = !enabled;
+        if (enroll) enroll.disabled = !enabled;
+    }
+
+    function stopPreview(message = 'Expired') {
+        previewDeadline = 0;
+        if (previewCountdown) window.clearInterval(previewCountdown);
+        previewCountdown = null;
+        previewImage.removeAttribute('src');
+        previewTimer.textContent = message;
+        setActionEnabled(false);
+    }
+
+    async function openPreview() {
+        const res = await apiFetch('/ui-lock/preview', { method: 'POST', body: new URLSearchParams() });
+        const data = await res.json();
+        statusLine.textContent = data.status || data.error || 'Preview request finished.';
+        toast(data.status || data.error || 'Preview request finished.');
+        if (!data.status) return;
+
+        const seconds = Number(data.seconds || 30);
+        previewDeadline = Date.now() + seconds * 1000;
+        previewPanel.classList.remove('hidden');
+        previewImage.src = `/ui-lock/video_feed?t=${Date.now()}`;
+        setActionEnabled(true);
+
+        if (previewCountdown) window.clearInterval(previewCountdown);
+        previewCountdown = window.setInterval(() => {
+            const remaining = Math.max(0, Math.ceil((previewDeadline - Date.now()) / 1000));
+            previewTimer.textContent = `${remaining}s`;
+            if (remaining <= 0) stopPreview();
+        }, 250);
+    }
 
     async function postFace(url) {
+        if (!previewDeadline || Date.now() >= previewDeadline) {
+            statusLine.textContent = 'Start a local check before continuing.';
+            toast('Start a local check before continuing.');
+            return;
+        }
         const res = await apiFetch(url, { method: 'POST', body: new URLSearchParams() });
         const data = await res.json();
         statusLine.textContent = data.status || data.error || 'Face lock action finished.';
@@ -58,6 +118,8 @@
             window.location.reload();
         }
     }
+
+    if (startPreview) startPreview.addEventListener('click', openPreview);
 
     const verify = document.getElementById('verifyFace');
     if (verify) verify.addEventListener('click', () => postFace('/face/verify'));

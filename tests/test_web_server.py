@@ -16,6 +16,7 @@ from phantasm import web_server
 class WebServerBoundaryTests(unittest.TestCase):
     def tearDown(self):
         web_server._rate_limit.clear()
+        web_server._face_preview_sessions.clear()
 
     def test_require_web_token_rejects_invalid_token(self):
         with self.assertRaises(HTTPException) as ctx:
@@ -118,6 +119,52 @@ class WebServerBoundaryTests(unittest.TestCase):
         dependency_names = {item.call.__name__ for item in route.dependant.dependencies}
         self.assertIn("require_ui_unlock", dependency_names)
 
+    def test_ui_lock_preview_start_sets_short_lived_cookie(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+                url=SimpleNamespace(path="/ui-lock/preview"),
+            )
+            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
+                 mock.patch.object(web_server.face_lock, "is_enrolled", return_value=True):
+                response = await web_server.ui_lock_preview(request)
+            self.assertIn("status", response.body.decode())
+            self.assertIn(web_server.FACE_PREVIEW_COOKIE, response.headers.get("set-cookie", ""))
+
+        asyncio.run(run())
+
+    def test_ui_lock_video_feed_requires_preview_session(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+            )
+            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True):
+                with self.assertRaises(HTTPException) as ctx:
+                    await web_server.ui_lock_video_feed(request)
+            self.assertEqual(ctx.exception.status_code, 423)
+
+        asyncio.run(run())
+
+    def test_ui_lock_video_feed_accepts_preview_session(self):
+        async def run():
+            token = "preview-token"
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={web_server.FACE_PREVIEW_COOKIE: token},
+            )
+            web_server._face_preview_sessions[token] = {
+                "client_id": "127.0.0.1",
+                "expires_at": web_server.time.time() + 30,
+            }
+            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
+                 mock.patch.object(web_server, "_generate_limited_face_preview", return_value=iter([b"frame"])):
+                response = await web_server.ui_lock_video_feed(request)
+            self.assertEqual(response.media_type, "multipart/x-mixed-replace; boundary=frame")
+
+        asyncio.run(run())
+
     def test_initial_face_enroll_requires_bootstrap_flag(self):
         async def run():
             request = SimpleNamespace(
@@ -127,6 +174,7 @@ class WebServerBoundaryTests(unittest.TestCase):
             )
             with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
                  mock.patch.object(web_server, "ui_face_enrollment_enabled", return_value=False), \
+                 mock.patch.object(web_server.face_lock, "enrollment_pending", return_value=False), \
                  mock.patch.object(web_server.face_lock, "is_enrolled", return_value=False), \
                  mock.patch.object(web_server.face_lock, "enroll_from_frames") as enroll:
                 response = await web_server.face_enroll(request)
