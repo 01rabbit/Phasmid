@@ -37,7 +37,7 @@ Phantasm is a local secure-storage prototype. It protects payloads in `vault.bin
 - Image-key matching requires stable results across a short frame window rather than accepting a single-frame match.
 - Web mutation endpoints require `X-Phantasm-Token`, apply a simple per-client rate limit, and enforce upload size limits.
 - Optional UI face lock (`PHANTASM_UI_FACE_LOCK=1`) can gate normal WebUI routes with a short-lived local session. This is a UI access control only and is not used for vault encryption.
-- When UI face lock is enabled, the normal camera preview and object-match state are withheld until the UI is unlocked. The lock screen may open a separate short-lived camera preview for enrollment or verification alignment. First-time WebUI face enrollment requires explicit setup mode with `PHANTASM_UI_FACE_ENROLL=1` or a short-lived enrollment request created by the CLI reset flow.
+- When UI face lock is enabled, the normal object-matching preview and object-match state are withheld until the UI is unlocked. The lock screen shows a separate camera preview for enrollment and verification alignment. First-time WebUI face enrollment requires explicit setup mode with `PHANTASM_UI_FACE_ENROLL=1` or a short-lived enrollment request created by the CLI reset flow.
 - UI face-lock reset is CLI-only and requires a typed confirmation phrase. It clears the face template, rotates the local access key, initializes the vault container, and clears physical-object bindings so a changed UI user starts from an empty local state.
 - The Web server binds to `127.0.0.1` by default.
 - Panic triggers require the secret value from the state directory's signal key.

@@ -115,7 +115,7 @@ First-time face enrollment is an explicit setup mode:
 PHANTASM_UI_FACE_LOCK=1 PHANTASM_UI_FACE_ENROLL=1 PYTHONPATH=src python3 -m phantasm.web_server
 ```
 
-Use setup mode only while provisioning the device. Normal locked sessions withhold the main camera preview until the UI is unlocked. The lock screen can open a short-lived local preview during enrollment or verification so the operator can align with the camera without exposing the normal object-matching UI. Deleting `face.bin` by itself is not a supported reset path; use the CLI reset so the vault and local object bindings are cleared together. A successful CLI reset also permits one short-lived enrollment without restarting the WebUI.
+Use setup mode only while provisioning the device. Normal locked sessions withhold the main object-matching preview until the UI is unlocked. The lock screen shows a local camera preview for enrollment and verification alignment without exposing the normal object-matching UI. Deleting `face.bin` by itself is not a supported reset path; use the CLI reset so the vault and local object bindings are cleared together. A successful CLI reset also permits one short-lived enrollment without restarting the WebUI.
 
 Face-lock reset is intentionally CLI-only because it also resets the local container and object bindings.
 
@@ -158,7 +158,6 @@ PHANTASM_STATE_DIR=/path/to/state python3 main.py init
 | `PHANTASM_UI_FACE_LOCK=1` | Require local face check before using the WebUI |
 | `PHANTASM_UI_FACE_ENROLL=1` | Permit first-time WebUI face-lock enrollment during setup |
 | `PHANTASM_UI_FACE_ENROLL_SECONDS` | Face enrollment request lifetime |
-| `PHANTASM_UI_FACE_PREVIEW_SECONDS` | Short lock-screen camera preview lifetime |
 | `PHANTASM_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime |
 | `PHANTASM_AUDIT=1` | Enable audit logging |
 

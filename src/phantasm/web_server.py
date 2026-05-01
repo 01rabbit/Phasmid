@@ -30,12 +30,9 @@ MAX_UPLOAD_BYTES = int(os.environ.get("PHANTASM_MAX_UPLOAD_BYTES", 25 * 1024 * 1
 RATE_LIMIT_WINDOW = 60
 RATE_LIMIT_MAX = 20
 FACE_SESSION_COOKIE = "phantasm_ui_session"
-FACE_PREVIEW_COOKIE = "phantasm_face_preview"
 FACE_FRAME_SAMPLES = 8
 FACE_FRAME_DELAY_SECONDS = 0.10
-FACE_PREVIEW_SECONDS = int(os.environ.get("PHANTASM_UI_FACE_PREVIEW_SECONDS", 30))
 _rate_limit = {}
-_face_preview_sessions = {}
 
 ENTRY_TO_MODE = {
     "entry_1": "dummy",
@@ -82,10 +79,6 @@ def _face_session_token(request):
     return request.cookies.get(FACE_SESSION_COOKIE, "")
 
 
-def _face_preview_token(request):
-    return request.cookies.get(FACE_PREVIEW_COOKIE, "")
-
-
 def _ui_unlocked(request):
     if not ui_face_lock_enabled():
         return True
@@ -105,44 +98,6 @@ def _face_enrollment_allowed():
 def require_ui_unlock(request: Request):
     if not _ui_unlocked(request):
         raise HTTPException(status_code=423, detail="ui locked")
-
-
-def _start_face_preview_session(client_id):
-    token = secrets.token_urlsafe(32)
-    expires_at = time.time() + FACE_PREVIEW_SECONDS
-    _face_preview_sessions[token] = {"client_id": client_id, "expires_at": expires_at}
-    return token, expires_at
-
-
-def _face_preview_session(request):
-    token = _face_preview_token(request)
-    if not token:
-        return None
-    session = _face_preview_sessions.get(token)
-    if not session:
-        return None
-    if session["client_id"] != _client_id(request):
-        return None
-    if session["expires_at"] <= time.time():
-        _face_preview_sessions.pop(token, None)
-        return None
-    return session
-
-
-def require_face_preview(request: Request):
-    if not ui_face_lock_enabled():
-        raise HTTPException(status_code=404, detail="face lock disabled")
-    session = _face_preview_session(request)
-    if session is None:
-        raise HTTPException(status_code=423, detail="face preview locked")
-    return session
-
-
-def _generate_limited_face_preview(deadline):
-    for chunk in gate.generate_frames():
-        if time.time() >= deadline:
-            break
-        yield chunk
 
 
 def _guard_page(request):
@@ -387,31 +342,12 @@ async def video_feed():
     )
 
 
-@app.post("/ui-lock/preview", dependencies=[Depends(require_web_token)])
-async def ui_lock_preview(request: Request):
-    enforce_rate_limit(request)
-    if not ui_face_lock_enabled():
-        return {"error": "Face UI lock is disabled."}
-    if not face_lock.is_enrolled() and not _face_enrollment_allowed():
-        return {"error": "Face enrollment is disabled for this session."}
-    token, expires_at = _start_face_preview_session(_client_id(request))
-    response = JSONResponse({"status": "Camera preview ready.", "seconds": FACE_PREVIEW_SECONDS})
-    response.set_cookie(
-        FACE_PREVIEW_COOKIE,
-        token,
-        max_age=FACE_PREVIEW_SECONDS,
-        httponly=True,
-        samesite="strict",
-    )
-    audit_event("ui_face_preview_started", source="web", expires_at=int(expires_at))
-    return response
-
-
 @app.get("/ui-lock/video_feed")
 async def ui_lock_video_feed(request: Request):
-    session = require_face_preview(request)
+    if not ui_face_lock_enabled():
+        raise HTTPException(status_code=404, detail="face lock disabled")
     return StreamingResponse(
-        _generate_limited_face_preview(session["expires_at"]),
+        gate.generate_frames(),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )
 
