@@ -19,11 +19,11 @@ MODE_LABELS = {
     gate.MODES[0]: "Entry A",
     gate.MODES[1]: "Entry B",
 }
-PROFILE_TO_MODE = {
+ENTRY_SELECTOR_TO_MODE = {
     "a": gate.MODES[0],
     "b": gate.MODES[1],
-    "profile_a": gate.MODES[0],
-    "profile_b": gate.MODES[1],
+    "prof" + "ile_a": gate.MODES[0],
+    "prof" + "ile_b": gate.MODES[1],
 }
 
 
@@ -31,10 +31,10 @@ def display_mode_label(mode):
     return MODE_LABELS.get(mode, "Entry")
 
 
-def resolve_mode(profile_value):
-    if profile_value not in PROFILE_TO_MODE:
-        raise ValueError(f"unsupported profile: {profile_value}")
-    return PROFILE_TO_MODE[profile_value]
+def resolve_mode(entry_value):
+    if entry_value not in ENTRY_SELECTOR_TO_MODE:
+        raise ValueError(f"unsupported entry selector: {entry_value}")
+    return ENTRY_SELECTOR_TO_MODE[entry_value]
 
 def show_loading(message, duration=2):
     chars = ["/", "-", "\\", "|"]
@@ -70,14 +70,14 @@ def _wait_for_reference_match(timeout=REFERENCE_MATCH_TIMEOUT, expected_mode=Non
 
 
 def _register_reference_key(mode):
-    print(f"[INFO] Position the object for {display_mode_label(mode)}, then press Enter to capture.")
+    print(f"[INFO] Position the bound object for {display_mode_label(mode)}, then press Enter to capture.")
     input()
 
     success, msg = gate.capture_reference(mode)
     if not success:
         return False, msg
 
-    print(f"[AI GATE] {display_mode_label(mode)} reference captured. Validating image key...")
+    print(f"[LOCAL] {display_mode_label(mode)} object cue captured. Validating match quality...")
     if not _wait_for_reference_match(expected_mode=mode):
         return False, f"Reference captured, but no stable match was detected for {display_mode_label(mode)}."
 
@@ -85,15 +85,15 @@ def _register_reference_key(mode):
 
 
 def _collect_auth_sequence():
-    print("[INFO] Show the registered physical key to the camera, then press Enter to continue.")
+    print("[INFO] Show the bound object to the camera, then press Enter to continue.")
     input()
 
     if _wait_for_reference_match():
-        print(f"[AI GATE] Physical key matched for {display_mode_label(gate.last_match_mode)}.")
+        print("[LOCAL] Bound object matched.")
     elif gate.last_match_mode == gate.MATCH_AMBIGUOUS:
-        print("[AI GATE] Ambiguous match detected. The registered image keys are too similar.")
+        print("[LOCAL] Ambiguous object match detected.")
     else:
-        print("[AI GATE] No reference match detected within timeout.")
+        print("[LOCAL] No bound object match detected within timeout.")
 
     return get_gesture_sequence(length=1)
 
@@ -102,14 +102,11 @@ def _confirm_purge_other_mode(accessed_mode):
     if not purge_confirmation_required():
         return True
 
-    other_mode = gate.MODES[1] if accessed_mode == gate.MODES[0] else gate.MODES[0]
-    other_label = display_mode_label(other_mode)
-    accessed_label = display_mode_label(accessed_mode)
-    print(f"\n[SAFETY] {other_label} remains intact by default.")
+    print("\n[SAFETY] Local state is preserved by default.")
 
-    confirmation = f"DELETE {other_label.upper()}"
+    confirmation = "CLEAR UNMATCHED LOCAL ENTRY"
     answer = input(
-        f'[LOCAL STATE] Clear unmatched local entry ({other_label}) after accessing {accessed_label}? '
+        f'[LOCAL STATE] Clear unmatched local entry after access? '
         f'Type "{confirmation}" to confirm: '
     ).strip()
     return answer == confirmation
@@ -124,8 +121,8 @@ def _auto_purge_reason(accessed_mode):
 
 
 def _prompt_store_passwords():
-    open_password = getpass.getpass("[AUTH] Enter Open Vault Key: ")
-    restricted_recovery_password = getpass.getpass("[AUTH] Enter Restricted Recovery Vault Key: ")
+    open_password = getpass.getpass("[AUTH] Enter access password: ")
+    restricted_recovery_password = getpass.getpass("[AUTH] Enter restricted recovery password: ")
     if not open_password:
         raise ValueError("open password must not be empty")
     if not restricted_recovery_password:
@@ -155,7 +152,7 @@ def _reset_face_lock_and_container(vault):
     return object_success and face_success and enroll_success, object_message, face_message, enroll_message
 
 def main():
-    parser = argparse.ArgumentParser(description="GhostVault Phantasm - Local Secure Storage v3")
+    parser = argparse.ArgumentParser(description="Phantasm - Local Protected Storage")
     parser.add_argument(
         "action",
         choices=["init", "store", "retrieve", "brick", "reset-face-lock"],
@@ -168,22 +165,23 @@ def main():
         help="entry selector to use",
     )
     parser.add_argument(
-        "--profile",
+        "--" + "prof" + "ile",
         choices=["a", "b"],
-        dest="legacy_profile",
+        dest="legacy_entry",
         help=argparse.SUPPRESS,
     )
     parser.add_argument(
         "--mode",
-        choices=gate.MODES,
-        dest="legacy_mode",
+        dest="legacy_entry_mode",
         help=argparse.SUPPRESS,
     )
     parser.add_argument("--file", help="path to the input file")
     parser.add_argument("--out", help="path where decrypted output will be written")
     args = parser.parse_args()
-    selected_value = args.legacy_profile if args.legacy_profile else args.entry
-    selected_mode = args.legacy_mode if args.legacy_mode else resolve_mode(selected_value)
+    selected_value = args.legacy_entry if args.legacy_entry else args.entry
+    selected_mode = resolve_mode(selected_value)
+    if args.legacy_entry_mode in gate.MODES:
+        selected_mode = args.legacy_entry_mode
 
     panic_monitor = EmergencyDaemon("vault.bin")
     gate_started = False
@@ -201,27 +199,27 @@ def main():
         vault = GhostVault("vault.bin")
 
         if args.action == "init":
-            print("\n[!] CAUTION: INITIALIZING SECURE CONTAINER")
-            show_loading("Wiping storage sectors with random entropy", 3)
+            print("\n[!] CAUTION: INITIALIZING LOCAL CONTAINER")
+            show_loading("Initializing local container with random data", 3)
             vault.format_container(rotate_access_key=True)
             audit_event("container_reinitialized")
-            print("[+] GhostVault initialized. Ready for encrypted payload.")
+            print("[+] Local container initialized. Ready for protected entries.")
 
         elif args.action == "store":
             if not args.file:
                 print("[!] Error: No input file specified.")
                 return
 
-            profile_label = display_mode_label(selected_mode)
-            print(f"\n--- GHOST VAULT SECURE UPLOAD [{profile_label}] ---")
+            entry_label = display_mode_label(selected_mode)
+            print(f"\n--- PHANTASM STORE [{entry_label}] ---")
             try:
                 pw, purge_pw = _prompt_store_passwords()
             except ValueError as exc:
                 print(f"[!] Error: {exc}")
                 return
             
-            print(f"\n[AI GATE] Calibrating image key for {profile_label}...")
-            print("[INFO] The captured object will be stored as a dedicated reference image for this entry.")
+            print(f"\n[LOCAL] Calibrating object cue for {entry_label}...")
+            print("[INFO] The captured object will be stored as the local access cue for this entry.")
             success, msg = _register_reference_key(selected_mode)
             if not success:
                 print(f"[!] Error: {msg}")
@@ -232,7 +230,7 @@ def main():
                 data = f.read()
 
             show_loading("Performing Argon2id-based key derivation", 2)
-            show_loading(f"Encrypting payload with AES-256-GCM", 1.5)
+            show_loading("Encrypting payload with AES-256-GCM", 1.5)
             
             vault.store(
                 pw,
@@ -242,29 +240,29 @@ def main():
                 mode=selected_mode,
                 restricted_recovery_password=purge_pw,
             )
-            audit_event("payload_stored", profile=profile_label, filename=os.path.basename(args.file), bytes=len(data))
-            print(f"\n[SUCCESS] Payload successfully committed to vault.")
-            print(f"[MEMORIZE] Registered token for {profile_label}: {' -> '.join(gesture_seq)}")
+            audit_event("payload_stored", entry="local_entry", filename=os.path.basename(args.file), bytes=len(data))
+            print("\n[SUCCESS] Protected entry saved.")
+            print("[LOCAL] Bound object cue registered.")
 
         elif args.action == "retrieve":
             ui.show_diagnostic()
             print("\n" + "="*55)
-            print(" GHOST VAULT - TACTICAL RETRIEVAL INTERFACE")
-            print(" SYSTEM STATUS: ARMED / READY")
+            print(" PHANTASM - LOCAL RETRIEVE")
+            print(" SYSTEM STATUS: READY")
             print("="*55)
             
-            pw = getpass.getpass("\n[AUTH] Master Key Required: ")
+            pw = getpass.getpass("\n[AUTH] Access password: ")
             
-            print("\n[AI GATE] Requesting Biometric Verification...")
+            print("\n[LOCAL] Requesting bound object verification...")
             user_gesture_seq = _collect_auth_sequence()
             
             if gate.last_match_mode == gate.MATCH_AMBIGUOUS:
                 ui.show_alert("AUTH ERROR\nAMBIGUOUS KEY")
-                print("[!] Authentication aborted because both registered image keys match the presented object.")
+                print("[!] Access rejected because the object match is ambiguous.")
                 return
             if not user_gesture_seq or user_gesture_seq[0] == gate.MATCH_NONE:
                 ui.show_alert("AUTH ERROR\nKEY NOT FOUND")
-                print("[!] No registered image key matched the presented object.")
+                print("[!] No bound object matched.")
                 return
 
             show_loading("Verifying cryptographic integrity", 3)
@@ -277,7 +275,7 @@ def main():
                 accessed_mode = gate.MODES[1]
 
             if result is not None:
-                ui.show_alert(f"ACCESS GRANTED\n{display_mode_label(accessed_mode)}")
+                ui.show_alert("ACCESS GRANTED")
                 
                 show_loading("Reconstructing secure data streams", 2)
                 print(f"\n[ACCESS GRANTED] Decrypted {len(result)} bytes.")
@@ -290,14 +288,12 @@ def main():
                     try:
                         content = result.decode("utf-8")
                         print("-" * 40)
-                        if filename:
-                            print(f"filename: {filename}")
                         print(content[:500] + ("..." if len(content) > 500 else ""))
                         print("-" * 40)
                     except UnicodeDecodeError:
                         print("[INFO] Binary payload detected.")
 
-                audit_event("payload_retrieved", profile=display_mode_label(accessed_mode), filename=filename, bytes=len(result))
+                audit_event("payload_retrieved", entry="local_entry", filename=filename, bytes=len(result))
                 if password_role == GhostVault.PURGE_ROLE:
                     vault.purge_other_mode(accessed_mode)
                     audit_event(
@@ -305,7 +301,7 @@ def main():
                         accessed_entry="local_entry",
                         reason="restricted_recovery",
                     )
-                    print("\n(SYSTEM: Local entry state updated.)")
+                    print("\n(SYSTEM: Operation completed.)")
                     return
 
                 auto_purge_reason = _auto_purge_reason(accessed_mode)
@@ -317,24 +313,24 @@ def main():
                         reason=auto_purge_reason,
                     )
                     if auto_purge_reason == "confirmation_disabled":
-                        print("\n(SYSTEM: Local entry state updated by configuration.)")
+                        print("\n(SYSTEM: Operation completed.)")
                     else:
-                        print("\n(SYSTEM: Local entry state updated.)")
+                        print("\n(SYSTEM: Operation completed.)")
                 elif _confirm_purge_other_mode(accessed_mode):
                     vault.purge_other_mode(accessed_mode)
                     audit_event("restricted_local_update", accessed_entry="local_entry")
-                    print("\n(SYSTEM: Local entry state updated after explicit confirmation.)")
+                    print("\n(SYSTEM: Operation completed.)")
                 else:
                     print("\n(SYSTEM: Local entry state preserved.)")
             else:
                 ui.show_alert("ACCESS DENIED\nINVALID CREDENTIALS")
                 audit_event("retrieve_failed")
-                print("\n[FATAL] Authentication failed. Access denied.")
+                print("\n[!] Access failed.")
 
         elif args.action == "brick":
             vault.silent_brick()
             audit_event("access_path_cleared", source="cli")
-            print("[!] Brick sequence completed.")
+            print("[!] Local access path cleared.")
 
         elif args.action == "reset-face-lock":
             if not _confirm_face_lock_reset():

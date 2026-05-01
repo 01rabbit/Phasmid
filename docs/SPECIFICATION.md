@@ -139,6 +139,8 @@ Normal navigation:
 
 The restricted action view is available only by direct route and is not shown in normal navigation. A direct `GET /emergency` renders only a restricted confirmation screen until the browser has a fresh restricted confirmation session. Hidden route concealment is not a security boundary.
 
+`PHANTASM_FIELD_MODE=1` reduces normal Maintenance detail for appliance use. Before restricted confirmation, Maintenance shows only general health, local-only posture, UI lock state, and a confirmation requirement for sensitive maintenance. It hides state paths, audit export, token rotation, and detailed diagnostics until a fresh restricted confirmation is active.
+
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/` | Home |
@@ -156,6 +158,8 @@ The restricted action view is available only by direct route and is not shown in
 | `POST` | `/face/lock` | Clear optional UI face session |
 | `POST` | `/register_key` | Bind or rebind a physical object |
 | `POST` | `/store` | Store a protected entry |
+| `POST` | `/metadata/check` | Local metadata risk check |
+| `POST` | `/metadata/scrub` | Best-effort local metadata reduction |
 | `POST` | `/retrieve` | Retrieve and download the matching entry |
 | `POST` | `/purge_other` | Hidden restricted clear action |
 | `POST` | `/emergency/initialize` | Hidden container initialization |
@@ -180,7 +184,29 @@ Optional UI face lock is enabled with `PHANTASM_UI_FACE_LOCK=1`. It gates access
 
 First-time face enrollment is disabled unless the WebUI process is started with `PHANTASM_UI_FACE_ENROLL=1` or a valid `.state/face.enroll` request exists. The setup flag is intended for device provisioning only. The enrollment request is created by `python3 main.py reset-face-lock`, is checked when `/ui-lock` is reloaded, and is removed after successful enrollment.
 
-## 8. Cryptography
+## 8. Metadata and Data Minimization
+
+Store provides a local-only metadata risk check. It does not call cloud services and does not send telemetry.
+
+The initial checker warns about common risks:
+
+- GPS-like image metadata;
+- camera maker or model metadata;
+- device serial-like fields;
+- document author fields;
+- creator application fields;
+- document title or subject fields;
+- embedded thumbnails;
+- local path leakage;
+- original filename context.
+
+Storage is not blocked by default. The UI offers continue, best-effort metadata reduction when supported, or cancel.
+
+Best-effort metadata reduction is conservative. It never overwrites the original file unless a future explicit option is added. Unsupported file types fail safely. Metadata removal is best-effort and may not remove every embedded identifier from every file format.
+
+The Store screen includes a short reminder: store only what is needed and separate identities, evidence, notes, and operational context when possible.
+
+## 9. Cryptography
 
 The current format is GhostVault v3.
 
@@ -204,7 +230,16 @@ Argon2id inputs:
 
 Default Argon2id parameters are tuned for Raspberry Pi Zero 2 W class hardware: `memory_cost=32768`, `iterations=2`, `lanes=1`.
 
-## 9. Physical-Key Matching
+Recommended field hierarchy:
+
+1. strong access password;
+2. physical-object cue;
+3. `.state/access.bin`;
+4. optional external value via `PHANTASM_HARDWARE_SECRET_FILE` or `PHANTASM_HARDWARE_SECRET_PROMPT=1`.
+
+For high-risk deployments, do not store all recovery conditions on the same physical medium. Phantasm is strongest when the encrypted container, local state, memorized password, physical-object cue, and optional external key material are separated.
+
+## 10. Physical-Key Matching
 
 Phantasm extracts ORB features from camera frames.
 
@@ -226,7 +261,7 @@ Retrieval:
 
 The physical object is an operational cue, not a high-entropy cryptographic factor.
 
-## 10. Runtime Policy
+## 11. Runtime Policy
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
@@ -246,10 +281,38 @@ The physical object is an operational cue, not a high-entropy cryptographic fact
 | `PHANTASM_UI_FACE_ENROLL_SECONDS` | Face enrollment request lifetime | `600` |
 | `PHANTASM_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime | `300` |
 | `PHANTASM_RESTRICTED_SESSION_SECONDS` | Restricted confirmation lifetime | `120` |
+| `PHANTASM_FIELD_MODE` | Reduce normal WebUI operational detail | `0` |
 | `PHANTASM_AUDIT` | Enable audit logging | `0` |
 | `PHANTASM_AUDIT_FILENAMES` | Record filename hashes | unset |
 
-## 11. Testing
+## 12. Mission Presets and Retention
+
+Phantasm documentation defines neutral mission presets rather than role-revealing UI labels. Examples include:
+
+- Local Notes;
+- Temporary Holding;
+- Protected Material;
+- Travel Set;
+- Review Set;
+- Research Material.
+
+Presets should influence guidance such as metadata warning, external key material recommendation, retention reminders, audit disabled by default, Field Mode recommendation, and entry separation guidance.
+
+Retention principle: the safest sensitive data is data not carried. Users should remove stale entries after the task or trip, avoid old contact lists, avoid mixing unrelated work in one local entry, and review contents before checkpoints or inspection events.
+
+## 13. Restricted Recovery and Key Destruction
+
+On flash media, complete overwrite-based deletion cannot be guaranteed across every storage layer. Phantasm therefore treats restricted recovery primarily as key-path invalidation and key-material destruction, with best-effort overwrite as a secondary measure.
+
+Restricted recovery must not be represented as guaranteed secure deletion. User-facing surfaces should use neutral terms such as restricted local update, local access path, key material, and best-effort overwrite.
+
+## 14. Appliance and Seizure Review
+
+Raspberry Pi Zero 2 W appliance assumptions are documented in `docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md`. The recommended appliance posture is local-only binding, USB gadget access, SSH disabled after provisioning, Wi-Fi and Bluetooth disabled unless explicitly needed, dedicated service user, systemd hardening, Field Mode, audit disabled by default, debug disabled by default, no telemetry, no cloud dependency, no remote management, and external key-material separation.
+
+Seizure review requirements are documented in `docs/SEIZURE_REVIEW_CHECKLIST.md`. Review normal screens, restricted pages before and after confirmation, browser history, cache, HTML source, JavaScript console, HTTP response headers, download filenames, optional audit logs, `.state/` names, temporary files, shell history, systemd logs, CLI output, environment variables, and service unit files.
+
+## 15. Testing
 
 ```bash
 python3 -m unittest discover -s tests

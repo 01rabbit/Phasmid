@@ -303,6 +303,60 @@ class WebServerBoundaryTests(unittest.TestCase):
 
         asyncio.run(run())
 
+    def test_field_mode_maintenance_hides_paths_before_restricted_confirmation(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+            )
+            with mock.patch.object(web_server, "_guard_page", return_value=None), \
+                 mock.patch.object(web_server, "field_mode_enabled", return_value=True), \
+                 mock.patch.object(web_server, "_restricted_session_valid", return_value=False):
+                response = await web_server.maintenance_page(request)
+            self.assertTrue(response.context["field_mode"])
+            self.assertFalse(response.context["restricted_confirmed"])
+            self.assertEqual(response.context["state_path"], "")
+
+        asyncio.run(run())
+
+    def test_field_mode_diagnostics_are_neutral_before_restricted_confirmation(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+                url=SimpleNamespace(path="/maintenance/diagnostics"),
+            )
+            with mock.patch.object(web_server, "field_mode_enabled", return_value=True), \
+                 mock.patch.object(web_server, "_restricted_session_valid", return_value=False), \
+                 mock.patch.object(web_server, "neutral_status", return_value={
+                     "camera_ready": True,
+                     "object_state": "none",
+                     "device_state": "ready",
+                     "local_mode": True,
+                 }):
+                response = await web_server.diagnostics(request)
+            self.assertEqual(
+                set(response.keys()),
+                {"device_state", "camera_ready", "object_state", "local_mode", "restricted_confirmation_active"},
+            )
+
+        asyncio.run(run())
+
+    def test_field_mode_rejects_log_export_without_restricted_confirmation(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+                url=SimpleNamespace(path="/maintenance/logs"),
+            )
+            with mock.patch.object(web_server, "field_mode_enabled", return_value=True), \
+                 mock.patch.object(web_server, "_restricted_session_valid", return_value=False):
+                with self.assertRaises(HTTPException) as ctx:
+                    await web_server.export_logs(request)
+            self.assertEqual(ctx.exception.status_code, 403)
+
+        asyncio.run(run())
+
     def test_hidden_clear_requires_explicit_phrase(self):
         async def run():
             request = SimpleNamespace(
@@ -401,7 +455,7 @@ class WebServerBoundaryTests(unittest.TestCase):
             self.assertFalse(web_server._maybe_auto_purge("secret", source="test"))
         purge.assert_not_called()
 
-    def test_restricted_recovery_password_role_purges_alternate_profile(self):
+    def test_restricted_recovery_password_role_updates_unmatched_entry(self):
         with mock.patch.object(web_server.vault, "purge_other_mode") as purge:
             self.assertTrue(
                 web_server._purge_for_password_role(
@@ -412,7 +466,7 @@ class WebServerBoundaryTests(unittest.TestCase):
             )
         purge.assert_called_once_with("dummy")
 
-    def test_open_password_role_does_not_purge_alternate_profile(self):
+    def test_open_password_role_preserves_unmatched_entry(self):
         with mock.patch.object(web_server.vault, "purge_other_mode") as purge:
             self.assertFalse(
                 web_server._purge_for_password_role(
@@ -428,6 +482,39 @@ class WebServerBoundaryTests(unittest.TestCase):
         self.assertIn("retrieved_payload.bin", response.headers["content-disposition"])
         self.assertNotIn("x-local-state-updated", response.headers)
         self.assertNotIn("source-name", str(response.headers).lower())
+
+    def test_metadata_check_reports_obvious_local_risk(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                url=SimpleNamespace(path="/metadata/check"),
+            )
+            upload = UploadFile(
+                filename="notes.txt",
+                file=_BytesFile(b"author: Alice\npath: /Users/alice/source.txt\n"),
+            )
+            response = await web_server.metadata_check(request, upload)
+            self.assertTrue(response["risk"])
+            self.assertIn("local path leakage", response["findings"])
+
+        asyncio.run(run())
+
+    def test_metadata_scrub_uses_neutral_download_name(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                url=SimpleNamespace(path="/metadata/scrub"),
+            )
+            upload = UploadFile(
+                filename="revealing-name.txt",
+                file=_BytesFile(b"author: Alice\npath: /home/alice/source.txt\n"),
+            )
+            response = await web_server.metadata_scrub(request, upload)
+            headers = str(response.headers).lower()
+            self.assertIn("metadata_reduced_payload.txt", headers)
+            self.assertNotIn("revealing-name", headers)
+
+        asyncio.run(run())
 
 
 class _BytesFile:

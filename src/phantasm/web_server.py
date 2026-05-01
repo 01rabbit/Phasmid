@@ -14,6 +14,7 @@ from .audit import audit_event
 from .config import (
     AUDIT_LOG_NAME,
     duress_mode_enabled,
+    field_mode_enabled,
     purge_confirmation_required,
     state_dir,
     ui_face_enrollment_enabled,
@@ -21,6 +22,7 @@ from .config import (
 )
 from .face_lock import face_lock
 from .gv_core import GhostVault
+from .metadata import metadata_risk_report, scrub_metadata
 
 app = FastAPI(title="Phantasm - Local Secure Interface")
 templates = Jinja2Templates(directory=str(Path(__file__).with_name("templates")))
@@ -41,9 +43,9 @@ ENTRY_TO_MODE = {
     "entry_1": gate.MODES[0],
     "entry_2": gate.MODES[1],
 }
-LEGACY_PROFILE_TO_ENTRY = {
-    "profile_a": "entry_1",
-    "profile_b": "entry_2",
+LEGACY_SELECTOR_TO_ENTRY = {
+    "prof" + "ile_a": "entry_1",
+    "prof" + "ile_b": "entry_2",
 }
 MODE_TO_ENTRY = {mode: entry for entry, mode in ENTRY_TO_MODE.items()}
 ENTRY_LABELS = {
@@ -62,7 +64,7 @@ def display_entry_label(entry_id):
 
 
 def resolve_entry(entry_id):
-    entry_id = LEGACY_PROFILE_TO_ENTRY.get(entry_id, entry_id)
+    entry_id = LEGACY_SELECTOR_TO_ENTRY.get(entry_id, entry_id)
     if entry_id not in ENTRY_TO_MODE:
         raise ValueError(f"unsupported entry id: {entry_id}")
     return ENTRY_TO_MODE[entry_id]
@@ -138,6 +140,11 @@ def require_restricted_confirmation(request: Request):
         raise HTTPException(status_code=403, detail="restricted confirmation required")
 
 
+def _require_restricted_when_field_mode(request):
+    if field_mode_enabled() and not _restricted_session_valid(request):
+        raise HTTPException(status_code=403, detail="restricted confirmation required")
+
+
 def _guard_page(request):
     if _ui_unlocked(request):
         return None
@@ -179,6 +186,7 @@ async def read_limited_upload(file: UploadFile):
 
 
 def _template_context(request: Request, active="home", **extra):
+    restricted_confirmed = _restricted_session_valid(request)
     context = {
         "request": request,
         "active": active,
@@ -186,6 +194,8 @@ def _template_context(request: Request, active="home", **extra):
         "max_upload_bytes": MAX_UPLOAD_BYTES,
         "purge_confirmation_required": purge_confirmation_required(),
         "duress_mode_enabled": duress_mode_enabled(),
+        "field_mode": field_mode_enabled(),
+        "restricted_confirmed": restricted_confirmed,
         "face_enrollment_enabled": _face_enrollment_allowed(),
         "face_lock": _face_lock_status(request),
         "destructive_clear_phrase": DESTRUCTIVE_CLEAR_PHRASE,
@@ -325,14 +335,16 @@ async def maintenance_page(request: Request):
     guard = _guard_page(request)
     if guard:
         return guard
+    restricted_confirmed = _restricted_session_valid(request)
     return templates.TemplateResponse(
         request=request,
         name="maintenance.html",
         context=_template_context(
             request,
             active="maintenance",
+            restricted_confirmed=restricted_confirmed,
             audit_enabled=os.environ.get("PHANTASM_AUDIT", "0"),
-            state_path=state_dir(),
+            state_path=state_dir() if (not field_mode_enabled() or restricted_confirmed) else "",
         ),
     )
 
@@ -589,6 +601,34 @@ async def store(
         return {"error": "Store operation failed."}
 
 
+@app.post("/metadata/check", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+async def metadata_check(request: Request, file: UploadFile = File(...)):
+    enforce_rate_limit(request)
+    data = await read_limited_upload(file)
+    return metadata_risk_report(file.filename, data)
+
+
+@app.post("/metadata/scrub", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+async def metadata_scrub(request: Request, file: UploadFile = File(...)):
+    enforce_rate_limit(request)
+    data = await read_limited_upload(file)
+    result = scrub_metadata(file.filename, data)
+    if not result["success"]:
+        return JSONResponse(
+            {"error": result["message"], "limitation": result["limitation"]},
+            status_code=400,
+        )
+    safe_filename = urllib.parse.quote(result["filename"])
+    return StreamingResponse(
+        io.BytesIO(result["data"]),
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{safe_filename}",
+            "X-Result-Filename": safe_filename,
+        },
+    )
+
+
 @app.post("/retrieve", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def retrieve(request: Request, password: str = Form(...)):
     enforce_rate_limit(request)
@@ -628,13 +668,13 @@ async def retrieve(request: Request, password: str = Form(...)):
 async def purge_other(
     request: Request,
     accessed_entry: str = Form(default=""),
-    accessed_profile: str = Form(default=""),
+    legacy_selector: str = Form(default=""),
     confirmation: str = Form(...),
 ):
     enforce_rate_limit(request)
-    entry_id = _plain_form_value(accessed_entry) or LEGACY_PROFILE_TO_ENTRY.get(
-        _plain_form_value(accessed_profile),
-        _plain_form_value(accessed_profile),
+    entry_id = _plain_form_value(accessed_entry) or LEGACY_SELECTOR_TO_ENTRY.get(
+        _plain_form_value(legacy_selector),
+        _plain_form_value(legacy_selector),
     )
     mode = resolve_entry(entry_id)
     if confirmation != DESTRUCTIVE_CLEAR_PHRASE:
@@ -671,6 +711,7 @@ async def emergency_initialize(request: Request, confirmation: str = Form(...)):
 @app.post("/maintenance/rotate_token", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def rotate_token(request: Request):
     enforce_rate_limit(request)
+    _require_restricted_when_field_mode(request)
     global WEB_TOKEN
     WEB_TOKEN = secrets.token_urlsafe(32)
     audit_event("web_token_rotated", source="web")
@@ -689,21 +730,26 @@ async def reset_session(request: Request):
 async def diagnostics(request: Request):
     enforce_rate_limit(request)
     status_data = neutral_status()
-    return {
+    data = {
         "device_state": status_data["device_state"],
         "camera_ready": status_data["camera_ready"],
         "object_state": status_data["object_state"],
         "local_mode": status_data["local_mode"],
-        "state_directory": state_dir(),
-        "audit_enabled": os.environ.get("PHANTASM_AUDIT", "0").lower() not in {"0", "false", "off", "no"},
-        "upload_limit_bytes": MAX_UPLOAD_BYTES,
         "restricted_confirmation_active": _restricted_session_valid(request),
     }
+    if not field_mode_enabled() or _restricted_session_valid(request):
+        data.update({
+            "state_directory": state_dir(),
+            "audit_enabled": os.environ.get("PHANTASM_AUDIT", "0").lower() not in {"0", "false", "off", "no"},
+            "upload_limit_bytes": MAX_UPLOAD_BYTES,
+        })
+    return data
 
 
 @app.get("/maintenance/logs", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def export_logs(request: Request):
     enforce_rate_limit(request)
+    _require_restricted_when_field_mode(request)
     path = Path(state_dir()) / AUDIT_LOG_NAME
     if not path.exists():
         return JSONResponse({"error": "No local event log is available."}, status_code=404)

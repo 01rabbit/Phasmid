@@ -227,9 +227,9 @@ class FaceUILock:
         return nonce + AESGCM(self._state_encryption_key()).encrypt(nonce, plaintext, self._aad())
 
     def _state_encryption_key(self):
-        secret = os.environ.get("PHANTASM_STATE_SECRET")
-        if secret:
-            return hashlib.sha256(secret.encode("utf-8")).digest()
+        external_value = os.environ.get("PHANTASM_STATE_SECRET")
+        if external_value:
+            return hashlib.sha256(external_value.encode("utf-8")).digest()
         return hashlib.sha256(self._load_or_create_local_state_key() + b":face-ui-lock").digest()
 
     def _load_or_create_local_state_key(self):

@@ -1,6 +1,7 @@
 import contextlib
 import io
 import os
+import re
 import sys
 import unittest
 
@@ -11,6 +12,14 @@ from phantasm import cli
 
 
 class CLITests(unittest.TestCase):
+    def test_local_state_confirmation_language_is_neutral(self):
+        output = io.StringIO()
+        with unittest.mock.patch.object(cli, "purge_confirmation_required", return_value=True), \
+             unittest.mock.patch("builtins.input", return_value=""), \
+             contextlib.redirect_stdout(output):
+            self.assertFalse(cli._confirm_purge_other_mode(cli.gate.MODES[0]))
+        self.assertNotRegex(output.getvalue(), re.compile(r"profile|dummy|secret|decoy|truth|fake|real", re.I))
+
     def test_face_reset_confirmation_requires_exact_phrase(self):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertTrue(cli._confirm_face_lock_reset(lambda _: cli.FACE_RESET_CONFIRMATION))

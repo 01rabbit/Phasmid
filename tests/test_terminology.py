@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import unittest
+import glob
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
@@ -12,6 +13,11 @@ USER_FACING_FILES = [
     "docs/SPECIFICATION.md",
     "docs/THREAT_MODEL.md",
     "docs/RPI_ZERO_DEPLOYMENT.md",
+    "docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md",
+    "docs/SOURCE_SAFE_WORKFLOW.md",
+    "docs/SEIZURE_REVIEW_CHECKLIST.md",
+    "docs/FIELD_TEST_PROCEDURE.md",
+    "contrib/systemd/phantasm.service",
 ]
 
 TEMPLATE_DIR = os.path.join(ROOT, "src", "phantasm", "templates")
@@ -20,11 +26,17 @@ PYTHON_BOUNDARY_FILES = [
     "src/phantasm/cli.py",
     "src/phantasm/audit.py",
     "src/phantasm/emergency_daemon.py",
+    "src/phantasm/config.py",
+    "src/phantasm/metadata.py",
+    "src/phantasm/bridge_ui.py",
+    "src/phantasm/face_lock.py",
 ]
 
 FORBIDDEN_PATTERNS = [
     r"\bProfile A\b",
     r"\bProfile B\b",
+    r"\bprofile\b",
+    r"\bprofiles\b",
     r"\bdummy\b",
     r"\bsecret\b",
     r"\bdecoy\b",
@@ -53,6 +65,19 @@ FORBIDDEN_PATTERNS = [
 
 
 class TerminologyAuditTests(unittest.TestCase):
+    def test_all_python_modules_are_classified_for_terminology_audit(self):
+        all_modules = {
+            os.path.relpath(path, ROOT)
+            for path in glob.glob(os.path.join(ROOT, "src", "phantasm", "*.py"))
+        }
+        scanned = set(PYTHON_BOUNDARY_FILES)
+        internal_allowlist = {
+            "src/phantasm/__init__.py",
+            "src/phantasm/ai_gate.py",
+            "src/phantasm/gv_core.py",
+        }
+        self.assertEqual(all_modules, scanned | internal_allowlist)
+
     def test_user_facing_files_do_not_expose_forbidden_terms(self):
         paths = [os.path.join(ROOT, path) for path in USER_FACING_FILES]
         paths.extend(
@@ -106,6 +131,9 @@ def _line_is_allowed(line):
         re.search(r"PHANTASM_[A-Z_]*SECRET", line)
         or re.search(r"import secrets|secrets\.", line)
         or re.search(r"argparse\.SUPPRESS", line)
+        or re.search(r"no lies, no unnecessary truth", line, flags=re.IGNORECASE)
+        or re.search(r"PHANTASM_HARDWARE_SECRET", line)
+        or re.search(r"PHANTASM_STATE_SECRET", line)
     )
 
 

@@ -37,3 +37,7 @@ def ui_face_lock_enabled():
 
 def ui_face_enrollment_enabled():
     return env_flag("PHANTASM_UI_FACE_ENROLL", default=False)
+
+
+def field_mode_enabled():
+    return env_flag("PHANTASM_FIELD_MODE", default=False)
