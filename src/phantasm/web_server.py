@@ -354,7 +354,7 @@ async def face_verify(request: Request):
     success, message = face_lock.verify_from_frame(frame, client_id)
     if not success:
         audit_event("ui_face_lock_failed", source="web")
-        return {"error": message, "face_lock": _face_lock_status(request)}
+        return {"error": message}
 
     token = secrets.token_urlsafe(32)
     face_lock.create_session(client_id, token)

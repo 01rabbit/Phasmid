@@ -25,19 +25,25 @@
         </div>
         {% endif %}
         <h3>Status</h3>
-        <pre id="faceOutput" class="codebox">{{ face_lock | tojson(indent=2) }}</pre>
+        <p id="faceStatus" class="copy">
+            {% if face_lock.enrolled %}
+            Waiting for local face verification.
+            {% else %}
+            Waiting for local face enrollment.
+            {% endif %}
+        </p>
     </section>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    const output = document.getElementById('faceOutput');
+    const statusLine = document.getElementById('faceStatus');
 
     async function postFace(url) {
         const res = await apiFetch(url, { method: 'POST', body: new URLSearchParams() });
         const data = await res.json();
-        output.textContent = JSON.stringify(data, null, 2);
+        statusLine.textContent = data.status || data.error || 'Face lock action finished.';
         toast(data.status || data.error || 'Face lock action finished.');
         if (data.status && url === '/face/verify') {
             window.location.href = '/';
