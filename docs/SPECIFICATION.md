@@ -1,0 +1,217 @@
+# Phantasm Specification
+
+## 1. Overview
+
+Phantasm is a local secure-storage prototype. It stores encrypted payloads in `vault.bin` and requires a password plus a camera-recognized physical object profile before retrieval.
+
+The project is intended for local use, including USB gadget mode or localhost access. It is not a replacement for full-disk encryption, a hardware security module, or an audited classified-data handling system.
+
+## 2. Features
+
+- Initialize an encrypted container.
+- Store Profile A and Profile B payloads.
+- Register and verify camera-based physical keys.
+- Encrypt and retrieve payloads.
+- Trigger emergency brick behavior.
+- Operate from a CLI or local Web UI.
+- Optionally write a minimal audit log.
+
+## 3. Repository Layout
+
+| Path | Purpose |
+| --- | --- |
+| `main.py` | Compatibility CLI launcher |
+| `src/phantasm/cli.py` | CLI implementation |
+| `src/phantasm/gv_core.py` | Encrypted container logic |
+| `src/phantasm/ai_gate.py` | Camera input, physical-key registration, ORB matching |
+| `src/phantasm/web_server.py` | FastAPI Web UI/API |
+| `src/phantasm/bridge_ui.py` | OpenCV status UI |
+| `src/phantasm/emergency_daemon.py` | Panic trigger watcher and brick flow |
+| `src/phantasm/audit.py` | Optional audit log |
+| `src/phantasm/config.py` | Shared state names and runtime policy |
+| `src/phantasm/templates/index.html` | Web UI |
+| `scripts/bench_kdf.py` | Argon2id benchmark helper |
+| `docs/THREAT_MODEL.md` | Threat model |
+| `tests/` | Unit tests |
+
+## 4. Runtime Files
+
+| Path | Purpose |
+| --- | --- |
+| `vault.bin` | Encrypted container |
+| `.state/store.bin` | Encrypted physical-key state blob |
+| `.state/lock.bin` | Local key for physical-key state encryption |
+| `.state/access.bin` | Local access key required to decrypt `vault.bin` |
+| `.state/signal.key` | Panic trigger token |
+| `.state/signal.trigger` | Panic trigger file |
+| `.state/events.log` | Optional audit log |
+
+The default state directory is `.state/` and can be changed with `PHANTASM_STATE_DIR`. The directory is intended to be mode `0700`; secret files are intended to be mode `0600`. Neutral filenames reduce obvious metadata, but they do not provide deniability.
+
+## 5. Profiles
+
+| Display Name | Internal Mode | Purpose |
+| --- | --- | --- |
+| Profile A | `dummy` | First profile |
+| Profile B | `secret` | Second profile |
+
+The CLI accepts `--profile a` or `--profile b`. The Web UI exposes Profile A and Profile B selectors.
+
+## 6. CLI
+
+### Initialize
+
+```bash
+python3 main.py init
+```
+
+This overwrites `vault.bin` with random data and creates the local access key if it does not already exist.
+
+### Store
+
+```bash
+python3 main.py store --profile a --file path/to/file
+python3 main.py store --profile b --file path/to/file
+```
+
+Store flow:
+
+1. Start the camera gate.
+2. Prompt for the vault password.
+3. Register the physical key for the selected profile.
+4. Read the input file.
+5. Derive a key with Argon2id.
+6. Encrypt the payload with AES-GCM and write it to the profile span in `vault.bin`.
+
+### Retrieve
+
+```bash
+python3 main.py retrieve --out output.bin
+```
+
+Retrieve flow:
+
+1. Start the camera gate.
+2. Prompt for the vault password.
+3. Verify the registered physical key.
+4. Try Profile A, then Profile B.
+5. Write or display the retrieved payload.
+6. Keep the alternate profile intact by default.
+7. Purge the alternate profile only when the configured policy allows it.
+
+`PHANTASM_PURGE_CONFIRMATION=0` disables the explicit confirmation phrase and purges the alternate profile after retrieval. `PHANTASM_DURESS_MODE=1` automatically purges Profile B after a successful Profile A retrieval. Both settings can cause data loss and are disabled by default.
+
+### Brick
+
+```bash
+python3 main.py brick
+```
+
+The brick flow destroys `.state/access.bin` first, then performs a best-effort overwrite of `vault.bin`. Flash media, snapshots, backups, and journaling filesystems may retain old data.
+
+## 7. Web UI
+
+Start the server:
+
+```bash
+python3 -m phantasm.web_server
+```
+
+The default bind address is `127.0.0.1:8000`.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/` | Web UI |
+| `GET` | `/video_feed` | Camera stream |
+| `GET` | `/status` | Physical-key status |
+| `POST` | `/register_key` | Register a physical key |
+| `POST` | `/store` | Store a file |
+| `POST` | `/retrieve` | Retrieve and download a payload |
+| `POST` | `/purge_other` | Purge the alternate profile according to policy |
+
+Mutating endpoints require `X-Phantasm-Token`. The token is generated on process start unless `PHANTASM_WEB_TOKEN` is set.
+
+## 8. Cryptography
+
+The current format is GhostVault v3.
+
+- No plaintext magic/header.
+- Fixed-width profile spans.
+- Per-record random salt and nonce.
+- AES-GCM authenticated encryption.
+- Filename and payload metadata are encrypted.
+- v1/v2 compatibility retrieval has been removed.
+
+Argon2id inputs:
+
+- User password
+- Physical-key token
+- Profile mode
+- Per-record random salt
+- `.state/access.bin`
+- Optional `PHANTASM_HARDWARE_SECRET_FILE`
+- Optional `PHANTASM_HARDWARE_SECRET`
+- Optional `PHANTASM_HARDWARE_SECRET_PROMPT`
+
+Default Argon2id parameters are tuned for Raspberry Pi Zero 2 W class hardware: `memory_cost=32768`, `iterations=2`, `lanes=1`.
+
+## 9. Physical-Key Matching
+
+Phantasm extracts ORB features from camera frames.
+
+Registration:
+
+1. Capture several frames over a short interval.
+2. Select the candidate with the most keypoints.
+3. Reject low-feature images.
+4. Reject candidates too similar to the other profile.
+5. Store Profile A/B templates together in encrypted `.state/store.bin`.
+
+Retrieval:
+
+1. Extract ORB features from current frames.
+2. Match against the encrypted reference templates.
+3. Require enough good matches and homography inliers.
+4. Require stable matching in at least 3 of the last 5 frames.
+5. Reject ambiguous matches across both profiles.
+
+The physical key is an operational gate, not a high-entropy cryptographic factor.
+
+## 10. Runtime Policy
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `PHANTASM_STATE_DIR` | Runtime state directory | `.state` |
+| `PHANTASM_STATE_SECRET` | External secret for physical-key state encryption | unset |
+| `PHANTASM_HARDWARE_SECRET_FILE` | External secret file mixed into Argon2id | unset |
+| `PHANTASM_HARDWARE_SECRET` | External secret string mixed into Argon2id | unset |
+| `PHANTASM_HARDWARE_SECRET_PROMPT` | Prompt for an external secret | unset |
+| `PHANTASM_PURGE_CONFIRMATION` | Require explicit purge confirmation | `1` |
+| `PHANTASM_DURESS_MODE` | Auto-purge Profile B after Profile A retrieval | `0` |
+| `PHANTASM_WEB_TOKEN` | Web mutation token | random at start |
+| `PHANTASM_HOST` | Web bind host | `127.0.0.1` |
+| `PHANTASM_PORT` | Web bind port | `8000` |
+| `PHANTASM_MAX_UPLOAD_BYTES` | Web upload limit | `26214400` |
+| `PHANTASM_AUDIT` | Enable audit logging | `0` |
+| `PHANTASM_AUDIT_FILENAMES` | Record filename hashes | unset |
+
+## 11. Testing
+
+```bash
+python3 -m unittest discover -s tests
+```
+
+KDF benchmark:
+
+```bash
+python3 scripts/bench_kdf.py
+```
+
+## 12. Compatibility
+
+This build reads and writes GhostVault v3 only. Older v1/v2 containers must be retrieved with an older build and then stored again with this build.
+
+## 13. Limits
+
+Phantasm does not guarantee protection against a compromised OS, live memory capture, keylogging, camera observation, forced disclosure, complete secure deletion, deniability, or unsafe network exposure.
+

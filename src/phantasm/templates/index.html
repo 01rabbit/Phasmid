@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHANTASM | Object-Based Secure Gate</title>
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --surface: #1c1c1e;
+            --accent: #30d158;
+            --error: #ff453a;
+            --text: #ffffff;
+            --text-secondary: #8e8e93;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .app-container { width: 100%; max-width: 1000px; padding: 40px; }
+        header { margin-bottom: 30px; border-left: 4px solid var(--accent); padding-left: 20px; }
+        header h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+        header p { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
+
+        .main-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 30px; }
+        
+        .video-card {
+            background: var(--surface);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .video-card img { width: 100%; height: auto; aspect-ratio: 4/3; background: #000; display: block; }
+        
+        .control-panel { display: flex; flex-direction: column; gap: 20px; }
+        .card { background: var(--surface); border-radius: 16px; padding: 24px; border: 1px solid rgba(255,255,255,0.05); }
+        .card h3 { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+        
+        .key-status { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .status-lamp { width: 12px; height: 12px; border-radius: 50%; background: #333; transition: all 0.3s; }
+        .status-lamp.active { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+        .status-label { font-size: 14px; font-weight: 600; }
+
+        input, select, button {
+            width: 100%; background: #2c2c2e; border: none; border-radius: 10px; padding: 14px;
+            color: #fff; font-size: 14px; margin-bottom: 12px; transition: all 0.2s;
+        }
+        input:focus { outline: 2px solid var(--accent); }
+        button { background: var(--accent); color: #000; font-weight: 600; cursor: pointer; }
+        button:hover { opacity: 0.9; transform: scale(0.98); }
+        button.secondary { background: #3a3a3c; color: #fff; }
+
+        .log-area {
+            background: #000; border-radius: 10px; padding: 12px; font-family: monospace;
+            font-size: 12px; height: 150px; overflow-y: auto; color: var(--accent); border: 1px solid #333;
+        }
+        .guide { font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 15px; }
+        .guide b { color: var(--accent); }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>PHANTASM</h1>
+            <p>TACTICAL OBJECT-BASED ENCRYPTION MODULE v1.1.0</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="video-card">
+                <img id="stream" src="/video_feed">
+                <div style="padding: 20px;">
+                    <div class="key-status">
+                        <div id="status-lamp" class="status-lamp"></div>
+                        <span id="status-label" class="status-label">PHYSICAL KEY: NOT DETECTED</span>
+                    </div>
+                    <p class="guide">
+                        1. <b>Select Profile A or Profile B</b> before registering a key.<br>
+                        2. <b>Register a different physical object</b> for each profile.<br>
+                        3. <b>Present the matching object</b> before decrypting.
+                    </p>
+                    <button class="secondary" onclick="registerKey()" style="width: auto; padding: 8px 16px; font-size: 12px;">REGISTER KEY FOR SELECTED MODE</button>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <div class="card">
+                    <h3>Secure Access</h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <button type="button" id="btnStore" onclick="setMode('store')" style="margin:0;">STORE</button>
+                        <button type="button" id="btnRetrieve" onclick="setMode('retrieve')" class="secondary" style="margin:0;">RETRIEVE</button>
+                    </div>
+                    <form id="vaultForm">
+                        <div id="fileInputArea">
+                            <input type="file" name="file">
+                        </div>
+                        <input type="password" name="password" placeholder="Vault Access Key" required>
+                        <div id="modeSelectArea">
+                            <select name="profile">
+                                <option value="profile_a">Profile A</option>
+                                <option value="profile_b">Profile B</option>
+                            </select>
+                        </div>
+                        <button type="submit" id="submitBtn">EXECUTE OPERATION</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Diagnostic Log</h3>
+                    <div class="log-area" id="log">
+                        > PHANTASM System initialized.<br>
+                        > Waiting for physical key validation...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'store';
+        const webToken = "{{ web_token }}";
+        const maxUploadBytes = Number("{{ max_upload_bytes }}");
+        const purgeConfirmationRequired = {{ purge_confirmation_required }};
+        const duressModeEnabled = {{ duress_mode_enabled }};
+        const modeLabels = {
+            profile_a: 'Profile A',
+            profile_b: 'Profile B'
+        };
+        const alternateLabels = {
+            profile_a: 'Profile B',
+            profile_b: 'Profile A'
+        };
+        
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('btnStore').className = mode === 'store' ? '' : 'secondary';
+            document.getElementById('btnRetrieve').className = mode === 'retrieve' ? '' : 'secondary';
+            document.getElementById('fileInputArea').style.display = mode === 'store' ? 'block' : 'none';
+            document.getElementById('modeSelectArea').style.display = mode === 'store' ? 'block' : 'none';
+            document.getElementById('submitBtn').innerText = mode === 'store' ? 'COMMIT TO VAULT' : 'DECRYPT & DOWNLOAD';
+        }
+
+        function log(msg) {
+            const el = document.getElementById('log');
+            el.appendChild(document.createElement('br'));
+            el.appendChild(document.createTextNode(`> ${msg}`));
+            el.scrollTop = el.scrollHeight;
+        }
+
+        async function registerKey() {
+            const selectedProfile = document.querySelector('select[name="profile"]').value;
+            let replace = false;
+            try {
+                const statusRes = await fetch('/status');
+                const status = await statusRes.json();
+                if (status.registered_modes && status.registered_modes[selectedProfile === 'profile_a' ? 'dummy' : 'secret']) {
+                    replace = window.confirm(`${modeLabels[selectedProfile]} already has an image key. Replace it?`);
+                    if (!replace) {
+                        log('Key registration cancelled.');
+                        return;
+                    }
+                }
+            } catch(e) {}
+            log(`Capturing image key for ${modeLabels[selectedProfile]}...`);
+            const res = await fetch('/register_key', {
+                method: 'POST',
+                headers: { 'X-Phantasm-Token': webToken },
+                body: new URLSearchParams({ profile: selectedProfile, replace: String(replace) })
+            });
+            const data = await res.json();
+            if (data.status) log(`SUCCESS: ${data.status}`);
+            if (data.error) log(`ERROR: ${data.error}`);
+        }
+
+        setInterval(async () => {
+            try {
+                const res = await fetch('/status');
+                const data = await res.json();
+                
+                const lamp = document.getElementById('status-lamp');
+                const label = document.getElementById('status-label');
+                
+                if (data.matched_mode === 'ambiguous') {
+                    lamp.className = "status-lamp active";
+                    lamp.style.background = "var(--error)";
+                    label.innerText = "PHYSICAL KEY: AMBIGUOUS MATCH";
+                    label.style.color = "var(--error)";
+                } else if (data.object_detected) {
+                    lamp.className = "status-lamp active";
+                    lamp.style.background = "var(--accent)";
+                    label.innerText = `PHYSICAL KEY: ${data.matched_profile} VALIDATED`;
+                    label.style.color = "var(--accent)";
+                } else {
+                    lamp.className = "status-lamp";
+                    lamp.style.background = "#333";
+                    label.innerText = "PHYSICAL KEY: NOT DETECTED";
+                    label.style.color = "var(--text-secondary)";
+                }
+            } catch(e) {}
+        }, 1000);
+
+        document.getElementById('vaultForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const endpoint = currentMode === 'store' ? '/store' : '/retrieve';
+            const upload = formData.get('file');
+            if (currentMode === 'store' && upload && upload.size > maxUploadBytes) {
+                log('ERROR: selected file exceeds upload limit.');
+                return;
+            }
+            
+            log(`Initiating secure ${currentMode} operation...`);
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'X-Phantasm-Token': webToken },
+                body: formData
+            });
+            
+            if (res.ok && res.headers.get('content-type') === 'application/octet-stream') {
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                
+                let filename = "decrypted_payload.bin";
+                const headerFilename = res.headers.get('X-Filename');
+                if (headerFilename) {
+                    filename = decodeURIComponent(headerFilename);
+                }
+                const accessedProfile = res.headers.get('X-Accessed-Profile');
+                
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                log(`RETRIEVAL SUCCESSFUL: ${filename}`);
+                if (accessedProfile && alternateLabels[accessedProfile]) {
+                    if (duressModeEnabled && accessedProfile === 'profile_a') {
+                        log(`${alternateLabels[accessedProfile]} state updated.`);
+                        return;
+                    }
+                    if (!purgeConfirmationRequired) {
+                        log(`${alternateLabels[accessedProfile]} purged by configuration.`);
+                        return;
+                    }
+                    const phrase = `DELETE ${alternateLabels[accessedProfile].toUpperCase()}`;
+                    const answer = window.prompt(`${alternateLabels[accessedProfile]} remains intact. To purge it, type: ${phrase}`);
+                    if (answer === phrase) {
+                        const purgeRes = await fetch('/purge_other', {
+                            method: 'POST',
+                            headers: { 'X-Phantasm-Token': webToken },
+                            body: new URLSearchParams({
+                                accessed_profile: accessedProfile,
+                                confirmation: answer
+                            })
+                        });
+                        const purgeData = await purgeRes.json();
+                        if (purgeData.error) log(`ERROR: ${purgeData.error}`);
+                        if (purgeData.status) log(`SUCCESS: ${purgeData.status}`);
+                    } else {
+                        log(`${alternateLabels[accessedProfile]} preserved.`);
+                    }
+                }
+            } else {
+                const data = await res.json();
+                if (data.error) log(`ERROR: ${data.error}`);
+                if (data.status) log(`SUCCESS: ${data.status}`);
+            }
+        };
+
+        setMode('store');
+    </script>
+</body>
+</html>

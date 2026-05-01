@@ -1,0 +1,27 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Runtime state and generated secrets
+.state/
+.phantasm/
+vault.bin
+*.trigger
+*.key
+events.log
+
+# Local payload samples and outputs
+secret.txt
+dummy.txt
+dump.txt
+*.out
+*.bin
+
+!requirements.txt
+!MIO _Logo.png
+
