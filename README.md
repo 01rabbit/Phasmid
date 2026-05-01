@@ -17,6 +17,12 @@ Phantasm is research software. It is not a replacement for full-disk encryption,
 
 Phantasm does not promise perfect deniability. It reduces operational damage in some compelled-access scenarios by separating access conditions, local state, physical-object cues, and restricted recovery behavior.
 
+## Philosophy
+
+Phantasm follows a simple rule: no lies, no unnecessary truth.
+
+The interface should report what the user needs to complete the current operation, but it should not reveal the internal disclosure model, storage structure, trial order, or restricted recovery behavior.
+
 ## Repository Layout
 
 ```text
@@ -103,6 +109,14 @@ Navigation:
 
 Restricted actions are not shown in normal navigation. Hidden routes are UX concealment only, so restricted actions also require the Web mutation token, an unlocked UI session when face lock is enabled, a fresh restricted confirmation, and a typed action phrase. The hidden restricted route initially renders only a confirmation screen.
 
+Field Mode reduces Maintenance detail and other operational hints:
+
+```bash
+PHANTASM_FIELD_MODE=1 PYTHONPATH=src python3 -m phantasm.web_server
+```
+
+Field Mode is recommended for high-risk local appliance deployments. It reduces casual leakage but is not a security boundary.
+
 Optional UI face lock:
 
 ```bash
@@ -124,6 +138,12 @@ Use setup mode only while provisioning the device. Normal locked sessions withho
 Object-image matching is an operational access cue layered on top of password-based cryptographic recovery. It is not high-entropy cryptographic key material and is not a substitute for strong passwords, key management, or secure operational procedure.
 
 Matching can fail because of lighting, camera quality, object orientation, motion blur, or ambiguous objects. Failure messages are intentionally neutral.
+
+## Metadata Awareness
+
+The Store screen includes a local metadata risk check. It can warn when a file appears to contain GPS-like fields, camera or author metadata, creator application fields, embedded thumbnails, local path leakage, or original filename context.
+
+The optional metadata reduction path is best-effort, local-only, and conservative. It does not overwrite the original file and does not claim forensic-grade sanitization.
 
 ## Runtime State
 
@@ -159,6 +179,7 @@ PHANTASM_STATE_DIR=/path/to/state python3 main.py init
 | `PHANTASM_UI_FACE_ENROLL_SECONDS` | Face enrollment request lifetime |
 | `PHANTASM_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime |
 | `PHANTASM_RESTRICTED_SESSION_SECONDS` | Restricted confirmation lifetime |
+| `PHANTASM_FIELD_MODE=1` | Reduce normal WebUI operational detail |
 | `PHANTASM_AUDIT=1` | Enable audit logging |
 
 ## Local-Only Trust Boundary
@@ -166,6 +187,8 @@ PHANTASM_STATE_DIR=/path/to/state python3 main.py init
 Phantasm is intended for localhost or USB Ethernet gadget access. It should not be exposed to an untrusted network and should not be deployed as an Internet-facing service. Remote management, telemetry, cloud unlock, and analytics are intentionally out of scope.
 
 Restricted local data-loss behavior should be understood primarily as key-material destruction and local access-path invalidation. Best-effort overwrite may be attempted, but SD card behavior means overwrite must not be treated as guaranteed secure deletion.
+
+For high-risk deployments, do not store all recovery conditions on the same physical medium. Phantasm is strongest when the encrypted container, local state, memorized password, physical-object cue, and optional external key material are separated.
 
 ## Test
 
@@ -183,7 +206,11 @@ python3 scripts/bench_kdf.py
 
 - [Specification](docs/SPECIFICATION.md)
 - [Threat Model](docs/THREAT_MODEL.md)
-- [Raspberry Pi Zero 2 W Deployment Profile](docs/RPI_ZERO_DEPLOYMENT.md)
+- [Raspberry Pi Zero 2 W Deployment](docs/RPI_ZERO_DEPLOYMENT.md)
+- [Raspberry Pi Zero 2 W Appliance Deployment](docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md)
+- [Source-Safe Storage Workflow](docs/SOURCE_SAFE_WORKFLOW.md)
+- [Seizure Review Checklist](docs/SEIZURE_REVIEW_CHECKLIST.md)
+- [Field Test Procedure](docs/FIELD_TEST_PROCEDURE.md)
 
 ## Security Notes
 

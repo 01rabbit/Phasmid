@@ -10,6 +10,9 @@
             <span class="badge">Local State</span>
         </div>
         <p class="copy">Review runtime state and operational settings. Destructive local actions are isolated from this view.</p>
+        {% if field_mode and not restricted_confirmed %}
+        <p class="copy">Field Mode is active. Sensitive maintenance details require restricted confirmation.</p>
+        {% endif %}
         <details>
             <summary>Restricted confirmation</summary>
             <label class="field">
@@ -19,23 +22,39 @@
             <button type="button" class="secondary small" data-action="confirm-restricted">Confirm local control</button>
         </details>
         <div class="status-grid">
+            {% if not field_mode or restricted_confirmed %}
             {{ ui.status_card("Session Token", "tokenState", "Active") }}
             {{ ui.status_card("Audit Settings", "auditState", audit_enabled) }}
             {{ ui.status_card("State Directory", "statePath", state_path) }}
+            {% endif %}
             {{ ui.status_card("UI Lock", "uiLockState", "Enabled" if face_lock.enabled else "Disabled") }}
         </div>
         <div class="actions">
+            {% if not field_mode or restricted_confirmed %}
             <button type="button" data-action="rotate-token">Rotate token</button>
+            {% endif %}
             <button type="button" class="secondary" data-action="reset-session">Reset session</button>
             {% if face_lock.enabled %}
             <button type="button" class="secondary" data-action="lock-ui">Lock UI</button>
             <button type="button" class="secondary" data-action="enroll-face">Enroll face lock</button>
             {% endif %}
             <a class="button secondary" href="/maintenance/entries">Entry management</a>
+            {% if not field_mode or restricted_confirmed %}
             <a class="button secondary" href="/maintenance/logs" id="exportLogs">Export logs</a>
+            {% endif %}
         </div>
     </section>
+    {% if not field_mode or restricted_confirmed %}
     {{ ui.diagnostics_panel() }}
+    {% else %}
+    <section class="panel">
+        <div class="panel-head">
+            <h2>Device Health</h2>
+            <span class="badge">Local-only</span>
+        </div>
+        <p class="copy">General device health is available from Home. Detailed diagnostics require restricted confirmation.</p>
+    </section>
+    {% endif %}
     <section class="panel">
         <h2>Security Notes</h2>
         <p class="copy">
@@ -54,13 +73,17 @@
         document.getElementById('diagnosticsOutput').textContent = JSON.stringify(data, null, 2);
     }
 
-    document.querySelector('[data-action="diagnostics"]').addEventListener('click', runDiagnostics);
+    const diagnosticsButton = document.querySelector('[data-action="diagnostics"]');
+    if (diagnosticsButton) diagnosticsButton.addEventListener('click', runDiagnostics);
 
     document.querySelector('[data-action="confirm-restricted"]').addEventListener('click', async () => {
-        await confirmRestrictedAction(document.getElementById('restrictedConfirmation').value);
+        if (await confirmRestrictedAction(document.getElementById('restrictedConfirmation').value)) {
+            window.location.reload();
+        }
     });
 
-    document.querySelector('[data-action="rotate-token"]').addEventListener('click', async () => {
+    const rotateTokenButton = document.querySelector('[data-action="rotate-token"]');
+    if (rotateTokenButton) rotateTokenButton.addEventListener('click', async () => {
         const res = await apiFetch('/maintenance/rotate_token', { method: 'POST', body: new URLSearchParams() });
         const data = await res.json();
         if (data.web_token) webToken = data.web_token;
@@ -94,7 +117,8 @@
         });
     }
 
-    document.getElementById('exportLogs').addEventListener('click', async (event) => {
+    const exportLogs = document.getElementById('exportLogs');
+    if (exportLogs) exportLogs.addEventListener('click', async (event) => {
         event.preventDefault();
         const res = await apiFetch('/maintenance/logs');
         if (!res.ok) {

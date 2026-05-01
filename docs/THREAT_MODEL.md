@@ -14,6 +14,9 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - Local vault access key in the configured state directory.
 - Panic token in the configured state directory.
 - Web UI mutation token created at process start or supplied through `PHANTASM_WEB_TOKEN`.
+- Browser-visible surfaces such as rendered HTML, console output, response headers, filenames, and cached pages.
+- CLI output, shell history, application stdout/stderr, and systemd logs.
+- Source identity, notes, evidence metadata, temporary field data, and local operational context.
 
 ## Assumptions
 
@@ -23,6 +26,8 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - The Web UI is intended for local use through `127.0.0.1` or USB gadget networking.
 - Camera matching is an operational gate, not a cryptographic biometric factor.
 - Device capture is realistic, so rendered UI and documentation should avoid explaining the internal disclosure model during normal use.
+- Field Mode reduces normal information exposure, but it is not a security boundary.
+- Hidden restricted routes reduce casual exposure, but they are not security boundaries.
 
 ## Current Defenses
 
@@ -40,17 +45,25 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - When UI face lock is enabled, the normal object-matching preview and object-match state are withheld until the UI is unlocked. The lock screen shows a separate camera preview for enrollment and verification alignment.
 - The Web server binds to `127.0.0.1` by default.
 - Audit logging is disabled by default. If `PHANTASM_AUDIT=1` is set, security-relevant operations append minimal JSONL records to the state directory's event log without recording passwords, payload bytes, plaintext filenames, or internal slot labels.
+- Field Mode (`PHANTASM_FIELD_MODE=1`) hides Maintenance paths, audit export, token rotation, and detailed diagnostics until restricted confirmation is active.
+- Store includes a local metadata risk check and limited best-effort metadata reduction for supported file types.
+- Documentation includes seizure review, source-safe storage separation, field testing, and Raspberry Pi Zero 2 W appliance deployment guidance.
 
 ## Residual Risks
 
 - A compromised host can read passwords, process memory, camera frames, Web tokens, and decrypted output.
 - ORB feature templates are not high-entropy cryptographic material. If the local state lock key is copied with the state blob, the local template encryption does not protect them.
 - If the local access key is copied with `vault.bin`, the local access-key protection does not raise attacker cost.
+- If `vault.bin`, the configured state directory, and external key material are carried together on one medium, separation benefits are reduced.
 - Secure deletion is best-effort only. SSD wear leveling, backups, snapshots, and journaling filesystems may retain previous data.
+- On flash media, recovery resistance depends primarily on key-material destruction or removal, not overwrite guarantees.
 - The v3 format avoids a plaintext format marker, but surrounding tool files can still reveal that a Phantasm-style container may be in use.
 - Dual password slots duplicate encrypted payload material within the selected internal storage span. This improves operational control but reduces maximum payload size.
 - UI face lock can be affected by lighting, camera angle, false rejects, false accepts, and presentation attacks using photos or screens.
 - The in-memory Web rate limiter and restricted confirmation state reset on process restart and are not substitutes for a full access-control layer.
+- UI tokens can be read from a compromised browser or host session.
+- Metadata checks and metadata reduction are best-effort. They can miss embedded identifiers, thumbnails, histories, and application-specific fields.
+- Browser history, cache, shell history, systemd logs, environment variables, and temporary files can leak operational context if the appliance is not configured carefully.
 - Legacy v1/v2 retrieval has been removed. Old containers must be migrated by retrieving with an older build and storing again with this build.
 
 ## Operational Guidance
@@ -62,6 +75,8 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - Set `PHANTASM_STATE_SECRET` from removable media, a password manager, or a device value if encrypted reference templates must survive project-directory disclosure.
 - Enable `PHANTASM_AUDIT=1` only when an audit trail is more important than minimizing local metadata.
 - Keep the configured state directory and `vault.bin` on encrypted local storage.
+- For high-risk deployments, separate `vault.bin`, local state, memorized password, object cue, and optional external key material across different control conditions.
+- Use `PHANTASM_FIELD_MODE=1` for appliance-style deployments.
 - Treat UI face lock as a convenience barrier for local interface use, not as a substitute for passwords, object cues, or external values.
 - Use `PHANTASM_UI_FACE_ENROLL=1` only during controlled provisioning.
 - Reload `/ui-lock` after `python3 main.py reset-face-lock` to consume the short-lived enrollment request.
@@ -69,4 +84,7 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - Use distinct high-entropy values for normal access and restricted recovery passwords.
 - Keep `PHANTASM_PURGE_CONFIRMATION=1` unless the deployment explicitly accepts the data-loss risk of automatic local-state updates.
 - Reinitialize the container after a panic event.
+- Run the seizure review checklist before field evaluation.
+- Review metadata before storing source, evidence, notes, or travel material.
+- Keep only necessary data on the device and remove stale entries after the task or trip.
 - Run tests before changing cryptographic or Web boundary behavior.

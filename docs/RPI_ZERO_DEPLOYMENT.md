@@ -1,6 +1,6 @@
-# Raspberry Pi Zero 2 W Deployment Profile
+# Raspberry Pi Zero 2 W Deployment
 
-This profile describes a conservative local appliance deployment for Raspberry Pi Zero 2 W class hardware.
+This document describes a conservative local appliance deployment for Raspberry Pi Zero 2 W class hardware.
 
 Phantasm should remain local-only. The expected access path is localhost during development or USB Ethernet gadget mode during appliance use. Do not expose the WebUI to an untrusted network.
 
@@ -24,7 +24,7 @@ Phantasm should remain local-only. The expected access path is localhost during 
 ## Storage and Temporary Files
 
 - Keep `vault.bin` and the configured state directory on encrypted local storage when possible.
-- Disable swap for the appliance profile.
+- Disable swap for the appliance deployment.
 - Use `tmpfs` for upload and temporary working directories where practical.
 - Keep audit logging disabled by default.
 - Keep debug mode disabled by default.
@@ -54,7 +54,9 @@ WorkingDirectory=/opt/phantasm
 Environment=PYTHONPATH=/opt/phantasm/src
 Environment=PHANTASM_HOST=127.0.0.1
 Environment=PHANTASM_PORT=8000
+Environment=PHANTASM_FIELD_MODE=1
 Environment=PHANTASM_AUDIT=0
+Environment=PHANTASM_DEBUG=0
 ExecStart=/usr/bin/python3 -m phantasm.web_server
 Restart=on-failure
 RestartSec=2

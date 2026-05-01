@@ -14,6 +14,10 @@
             Select a file, enter an access password, and present a physical object to bind as an access cue.
             If the object already matches a local entry, that entry is updated.
         </p>
+        <details>
+            <summary>Data minimization</summary>
+            <p class="copy">Store only what you need to carry. Separate identities, evidence, notes, and operational context when possible.</p>
+        </details>
         <form id="storeForm">
             <label class="field">
                 <span>File to protect</span>
@@ -34,11 +38,18 @@
             <input type="hidden" name="overwrite" id="overwriteFlag" value="false">
             <input type="hidden" name="overwrite_confirmation" id="overwriteConfirmation">
             <div class="actions">
+                <button type="button" class="secondary" id="metadataCheckButton">Check metadata risk</button>
+                <button type="button" class="secondary" id="metadataScrubButton">Download reduced copy</button>
                 <button type="button" class="secondary" id="captureButton">Capture object</button>
                 <button type="submit">Save entry</button>
                 <a class="button secondary" href="/">Cancel</a>
             </div>
         </form>
+        <section id="metadataPanel" class="panel hidden" style="margin-top: 16px;">
+            <h2>Metadata Risk</h2>
+            <p id="metadataOutput" class="copy">No metadata check has been run.</p>
+            <p class="copy">Metadata removal is best-effort and may not remove every embedded identifier from every file format.</p>
+        </section>
         <section id="overwritePanel" class="panel hidden" style="margin-top: 16px;">
             <h2>Replace Local Entry</h2>
             <p class="copy">No open local entry is available. Select a local entry label and confirm replacement.</p>
@@ -74,6 +85,49 @@
             document.getElementById('overwritePanel').classList.remove('hidden');
         }
         toast(data.status || data.error || 'Object capture finished.');
+    });
+
+    async function selectedFileFormData() {
+        const file = document.querySelector('input[name="file"]').files[0];
+        if (!file) {
+            toast('Select a file first.');
+            return null;
+        }
+        const formData = new FormData();
+        formData.append('file', file);
+        return formData;
+    }
+
+    document.getElementById('metadataCheckButton').addEventListener('click', async () => {
+        const formData = await selectedFileFormData();
+        if (!formData) return;
+        const res = await apiFetch('/metadata/check', { method: 'POST', body: formData });
+        const data = await res.json();
+        document.getElementById('metadataPanel').classList.remove('hidden');
+        const findings = data.findings && data.findings.length ? ` Findings: ${data.findings.join(', ')}.` : '';
+        document.getElementById('metadataOutput').textContent = data.warning ? `${data.warning}${findings}` : 'No obvious metadata risk detected by the local check.';
+    });
+
+    document.getElementById('metadataScrubButton').addEventListener('click', async () => {
+        const formData = await selectedFileFormData();
+        if (!formData) return;
+        const res = await apiFetch('/metadata/scrub', { method: 'POST', body: formData });
+        if (!res.ok) {
+            const data = await res.json();
+            toast(data.error || 'Metadata removal is not supported for this file type.');
+            return;
+        }
+        const blob = await res.blob();
+        const name = decodeURIComponent(res.headers.get('X-Result-Filename') || 'metadata_reduced_payload.bin');
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        toast('Best-effort metadata removal completed.');
     });
 
     document.getElementById('confirmOverwrite').addEventListener('click', () => {
