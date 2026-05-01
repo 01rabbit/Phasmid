@@ -122,6 +122,18 @@ def _auto_purge_reason(accessed_mode):
         return "confirmation_disabled"
     return None
 
+
+def _prompt_store_passwords():
+    open_password = getpass.getpass("[AUTH] Enter Open Vault Key: ")
+    purge_password = getpass.getpass("[AUTH] Enter Open+Purge Vault Key: ")
+    if not open_password:
+        raise ValueError("open password must not be empty")
+    if not purge_password:
+        raise ValueError("open+purge password must not be empty")
+    if open_password == purge_password:
+        raise ValueError("open and open+purge passwords must be different")
+    return open_password, purge_password
+
 def main():
     parser = argparse.ArgumentParser(description="GhostVault Phantasm - Tactical Secure Storage v3")
     parser.add_argument("action", choices=["init", "store", "retrieve", "brick"], help="operation to run")
@@ -171,7 +183,11 @@ def main():
 
             profile_label = display_mode_label(selected_mode)
             print(f"\n--- GHOST VAULT SECURE UPLOAD [{profile_label}] ---")
-            pw = getpass.getpass("[AUTH] Enter Vault Access Key: ")
+            try:
+                pw, purge_pw = _prompt_store_passwords()
+            except ValueError as exc:
+                print(f"[!] Error: {exc}")
+                return
             
             print(f"\n[AI GATE] Calibrating image key for {profile_label}...")
             print("[INFO] The captured object will be stored as a dedicated reference image for this profile.")
@@ -193,6 +209,7 @@ def main():
                 gesture_seq,
                 filename=os.path.basename(args.file),
                 mode=selected_mode,
+                purge_password=purge_pw,
             )
             audit_event("payload_stored", profile=profile_label, filename=os.path.basename(args.file), bytes=len(data))
             print(f"\n[SUCCESS] Payload successfully committed to vault.")
@@ -221,11 +238,11 @@ def main():
 
             fake_loading("Verifying cryptographic integrity", 3)
             
-            result, filename = vault.retrieve(pw, user_gesture_seq, mode="dummy")
+            result, filename, password_role = vault.retrieve_with_policy(pw, user_gesture_seq, mode="dummy")
             accessed_mode = "dummy"
 
             if result is None:
-                result, filename = vault.retrieve(pw, user_gesture_seq, mode="secret")
+                result, filename, password_role = vault.retrieve_with_policy(pw, user_gesture_seq, mode="secret")
                 accessed_mode = "secret"
 
             if result is not None:
@@ -250,6 +267,16 @@ def main():
                         print("[INFO] Binary payload detected.")
 
                 audit_event("payload_retrieved", profile=display_mode_label(accessed_mode), filename=filename, bytes=len(result))
+                if password_role == GhostVault.PURGE_ROLE:
+                    vault.purge_other_mode(accessed_mode)
+                    audit_event(
+                        "alternate_profile_purged",
+                        accessed_profile=display_mode_label(accessed_mode),
+                        reason="purge_password",
+                    )
+                    print("\n(SYSTEM: Alternate profile state updated.)")
+                    return
+
                 auto_purge_reason = _auto_purge_reason(accessed_mode)
                 if auto_purge_reason:
                     vault.purge_other_mode(accessed_mode)

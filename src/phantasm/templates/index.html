@@ -99,7 +99,10 @@
                         <div id="fileInputArea">
                             <input type="file" name="file">
                         </div>
-                        <input type="password" name="password" placeholder="Vault Access Key" required>
+                        <input type="password" name="password" placeholder="Open Password" required>
+                        <div id="purgePasswordArea">
+                            <input type="password" name="purge_password" placeholder="Open+Purge Password">
+                        </div>
                         <div id="modeSelectArea">
                             <select name="profile">
                                 <option value="profile_a">Profile A</option>
@@ -141,6 +144,7 @@
             document.getElementById('btnStore').className = mode === 'store' ? '' : 'secondary';
             document.getElementById('btnRetrieve').className = mode === 'retrieve' ? '' : 'secondary';
             document.getElementById('fileInputArea').style.display = mode === 'store' ? 'block' : 'none';
+            document.getElementById('purgePasswordArea').style.display = mode === 'store' ? 'block' : 'none';
             document.getElementById('modeSelectArea').style.display = mode === 'store' ? 'block' : 'none';
             document.getElementById('submitBtn').innerText = mode === 'store' ? 'COMMIT TO VAULT' : 'DECRYPT & DOWNLOAD';
         }
@@ -213,6 +217,20 @@
                 log('ERROR: selected file exceeds upload limit.');
                 return;
             }
+            if (currentMode === 'store') {
+                const openPassword = formData.get('password') || '';
+                const purgePassword = formData.get('purge_password') || '';
+                if (!purgePassword) {
+                    log('ERROR: open+purge password is required when storing.');
+                    return;
+                }
+                if (openPassword === purgePassword) {
+                    log('ERROR: open and open+purge passwords must be different.');
+                    return;
+                }
+            } else {
+                formData.delete('purge_password');
+            }
             
             log(`Initiating secure ${currentMode} operation...`);
             const res = await fetch(endpoint, {
@@ -232,6 +250,7 @@
                     filename = decodeURIComponent(headerFilename);
                 }
                 const accessedProfile = res.headers.get('X-Accessed-Profile');
+                const purgeApplied = res.headers.get('X-Purge-Applied') === '1';
                 
                 a.href = url;
                 a.download = filename;
@@ -239,6 +258,10 @@
                 a.click();
                 log(`RETRIEVAL SUCCESSFUL: ${filename}`);
                 if (accessedProfile && alternateLabels[accessedProfile]) {
+                    if (purgeApplied) {
+                        log(`${alternateLabels[accessedProfile]} state updated.`);
+                        return;
+                    }
                     if (duressModeEnabled && accessedProfile === 'profile_a') {
                         log(`${alternateLabels[accessedProfile]} state updated.`);
                         return;

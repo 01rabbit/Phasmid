@@ -12,6 +12,7 @@ The project is intended for local use, including USB gadget mode or localhost ac
 - Store Profile A and Profile B payloads.
 - Register and verify camera-based physical keys.
 - Encrypt and retrieve payloads.
+- Use separate open and open+purge passwords for each stored payload.
 - Trigger emergency brick behavior.
 - Operate from a CLI or local Web UI.
 - Optionally write a minimal audit log.
@@ -77,11 +78,12 @@ python3 main.py store --profile b --file path/to/file
 Store flow:
 
 1. Start the camera gate.
-2. Prompt for the vault password.
+2. Prompt for two different vault passwords: open and open+purge.
 3. Register the physical key for the selected profile.
 4. Read the input file.
 5. Derive a key with Argon2id.
-6. Encrypt the payload with AES-GCM and write it to the profile span in `vault.bin`.
+6. Encrypt the payload with AES-GCM into the profile's open slot.
+7. Encrypt the same payload into the profile's open+purge slot using the same physical key and the second password.
 
 ### Retrieve
 
@@ -94,12 +96,13 @@ Retrieve flow:
 1. Start the camera gate.
 2. Prompt for the vault password.
 3. Verify the registered physical key.
-4. Try Profile A, then Profile B.
+4. Try Profile A open, Profile A open+purge, Profile B open, then Profile B open+purge.
 5. Write or display the retrieved payload.
-6. Keep the alternate profile intact by default.
-7. Purge the alternate profile only when the configured policy allows it.
+6. If the open password was used, keep the alternate profile intact by default.
+7. If the open+purge password was used, silently purge the alternate profile after successful retrieval.
+8. For open-password retrieval, purge the alternate profile only when the configured policy allows it.
 
-`PHANTASM_PURGE_CONFIRMATION=0` disables the explicit confirmation phrase and purges the alternate profile after retrieval. `PHANTASM_DURESS_MODE=1` automatically purges Profile B after a successful Profile A retrieval. Both settings can cause data loss and are disabled by default.
+`PHANTASM_PURGE_CONFIRMATION=0` disables the explicit confirmation phrase and purges the alternate profile after open-password retrieval. `PHANTASM_DURESS_MODE=1` automatically purges Profile B after a successful Profile A open-password retrieval. The open+purge password always purges the alternate profile after successful retrieval. These settings and passwords can cause data loss.
 
 ### Brick
 
@@ -137,6 +140,7 @@ The current format is GhostVault v3.
 
 - No plaintext magic/header.
 - Fixed-width profile spans.
+- Each profile span contains an open slot and an open+purge slot.
 - Per-record random salt and nonce.
 - AES-GCM authenticated encryption.
 - Filename and payload metadata are encrypted.
@@ -147,6 +151,7 @@ Argon2id inputs:
 - User password
 - Physical-key token
 - Profile mode
+- Password role: open or open+purge
 - Per-record random salt
 - `.state/access.bin`
 - Optional `PHANTASM_HARDWARE_SECRET_FILE`
@@ -214,4 +219,3 @@ This build reads and writes GhostVault v3 only. Older v1/v2 containers must be r
 ## 13. Limits
 
 Phantasm does not guarantee protection against a compromised OS, live memory capture, keylogging, camera observation, forced disclosure, complete secure deletion, deniability, or unsafe network exposure.
-

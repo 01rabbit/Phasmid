@@ -34,6 +34,37 @@ class GhostVaultV3Tests(unittest.TestCase):
             self.assertEqual(vault.retrieve("pw", seq, mode="dummy"), (b"payload", "payload.txt"))
             self.assertEqual(vault.retrieve("bad-pw", seq, mode="dummy"), (None, None))
 
+    def test_open_and_purge_passwords_share_image_key_but_report_different_policy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = self.make_vault(os.path.join(tmp, "vault.bin"))
+            seq = ["reference_dummy_matched"]
+
+            vault.store(
+                "open-pw",
+                b"payload",
+                seq,
+                filename="payload.bin",
+                mode="dummy",
+                purge_password="purge-pw",
+            )
+
+            self.assertEqual(
+                vault.retrieve_with_policy("open-pw", seq, mode="dummy"),
+                (b"payload", "payload.bin", GhostVault.OPEN_ROLE),
+            )
+            self.assertEqual(
+                vault.retrieve_with_policy("purge-pw", seq, mode="dummy"),
+                (b"payload", "payload.bin", GhostVault.PURGE_ROLE),
+            )
+
+    def test_open_and_purge_passwords_must_be_different(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = self.make_vault(os.path.join(tmp, "vault.bin"))
+            seq = ["reference_dummy_matched"]
+
+            with self.assertRaises(ValueError):
+                vault.store("same", b"payload", seq, mode="dummy", purge_password="same")
+
     def test_empty_payload_retrieves_as_success(self):
         with tempfile.TemporaryDirectory() as tmp:
             vault = self.make_vault(os.path.join(tmp, "vault.bin"))

@@ -107,6 +107,7 @@ async def register_key(request: Request, profile: str = Form(...), replace: bool
 async def store(request: Request,
                 file: UploadFile = File(...),
                 password: str = Form(...), 
+                purge_password: str = Form(...),
                 profile: str = Form("profile_a")):
     enforce_rate_limit(request)
     
@@ -117,6 +118,12 @@ async def store(request: Request,
         mode = resolve_mode(profile)
         if not gate.get_status()["registered_modes"].get(mode):
             return {"error": f"No image key is registered for {display_mode_label(mode)}."}
+        if not password:
+            return {"error": "Open password must not be empty."}
+        if not purge_password:
+            return {"error": "Open+purge password must not be empty."}
+        if password == purge_password:
+            return {"error": "Open and open+purge passwords must be different."}
 
         vault.store(
             password,
@@ -124,6 +131,7 @@ async def store(request: Request,
             gate.sequence_for_mode(mode),
             filename=orig_filename,
             mode=mode,
+            purge_password=purge_password,
         )
         audit_event("payload_stored", profile=display_mode_label(mode), filename=orig_filename, bytes=len(data), source="web")
         return {"status": f"Payload '{orig_filename}' committed to {display_mode_label(mode)}."}
@@ -139,17 +147,31 @@ async def retrieve(request: Request, password: str = Form(...)):
     if auth_sequence[0] == gate.MATCH_NONE:
         return {"error": "Authentication failed: no registered image key matched."}
 
-    result, filename = vault.retrieve(password, auth_sequence, mode="dummy")
+    result, filename, password_role = vault.retrieve_with_policy(password, auth_sequence, mode="dummy")
     if result is not None:
         audit_event("payload_retrieved", profile=display_mode_label("dummy"), filename=filename, bytes=len(result), source="web")
-        _maybe_auto_purge("dummy", source="web")
-        return create_file_response(result, filename or "profile-a.bin", accessed_profile="profile_a")
+        purge_applied = _purge_for_password_role("dummy", password_role, source="web")
+        if not purge_applied:
+            purge_applied = _maybe_auto_purge("dummy", source="web")
+        return create_file_response(
+            result,
+            filename or "profile-a.bin",
+            accessed_profile="profile_a",
+            purge_applied=purge_applied,
+        )
 
-    result, filename = vault.retrieve(password, auth_sequence, mode="secret")
+    result, filename, password_role = vault.retrieve_with_policy(password, auth_sequence, mode="secret")
     if result is not None:
         audit_event("payload_retrieved", profile=display_mode_label("secret"), filename=filename, bytes=len(result), source="web")
-        _maybe_auto_purge("secret", source="web")
-        return create_file_response(result, filename or "profile-b.bin", accessed_profile="profile_b")
+        purge_applied = _purge_for_password_role("secret", password_role, source="web")
+        if not purge_applied:
+            purge_applied = _maybe_auto_purge("secret", source="web")
+        return create_file_response(
+            result,
+            filename or "profile-b.bin",
+            accessed_profile="profile_b",
+            purge_applied=purge_applied,
+        )
     
     audit_event("retrieve_failed", source="web")
     return {"error": "Authentication failed."}
@@ -188,7 +210,21 @@ def _maybe_auto_purge(accessed_mode, source):
     )
     return True
 
-def create_file_response(content, filename, accessed_profile=None):
+
+def _purge_for_password_role(accessed_mode, password_role, source):
+    if password_role != GhostVault.PURGE_ROLE:
+        return False
+    vault.purge_other_mode(accessed_mode)
+    audit_event(
+        "alternate_profile_purged",
+        accessed_profile=display_mode_label(accessed_mode),
+        source=source,
+        reason="purge_password",
+    )
+    return True
+
+
+def create_file_response(content, filename, accessed_profile=None, purge_applied=False):
     # Support UTF-8 filenames in downloads.
     safe_filename = urllib.parse.quote(filename)
     return StreamingResponse(
@@ -198,6 +234,7 @@ def create_file_response(content, filename, accessed_profile=None):
             "Content-Disposition": f"attachment; filename*=UTF-8''{safe_filename}",
             "X-Filename": safe_filename,
             "X-Accessed-Profile": accessed_profile or "",
+            "X-Purge-Applied": "1" if purge_applied else "0",
         }
     )
 

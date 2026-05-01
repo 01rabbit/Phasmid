@@ -11,6 +11,7 @@ Phantasm is research software. It is not a replacement for full-disk encryption,
 - Uses a camera-based physical key as an additional operational gate.
 - Encrypts payloads with AES-GCM and Argon2id-derived keys.
 - Uses a local access key so `vault.bin` alone is not enough to decrypt data.
+- Supports separate open and open+purge passwords for the same physical-key profile.
 - Provides a CLI and local Web UI.
 - Supports an emergency brick flow that destroys the local access key first.
 
@@ -56,6 +57,8 @@ python3 main.py store --profile a --file path/to/file
 python3 main.py store --profile b --file path/to/file
 ```
 
+The store flow asks for two different passwords. The open password decrypts the selected profile and leaves the alternate profile intact. The open+purge password decrypts the selected profile and silently purges the alternate profile after successful retrieval. Both passwords use the same registered physical object for that profile.
+
 Retrieve a file:
 
 ```bash
@@ -100,7 +103,7 @@ PHANTASM_STATE_DIR=/path/to/state python3 main.py init
 | `PHANTASM_STATE_SECRET` | External secret for physical-key state encryption |
 | `PHANTASM_HARDWARE_SECRET_FILE` | External secret file mixed into Argon2id |
 | `PHANTASM_HARDWARE_SECRET_PROMPT=1` | Prompt for an external secret |
-| `PHANTASM_PURGE_CONFIRMATION=0` | Disable explicit purge confirmation |
+| `PHANTASM_PURGE_CONFIRMATION=0` | Disable explicit purge confirmation for open-password retrieval |
 | `PHANTASM_DURESS_MODE=1` | Auto-purge Profile B after Profile A retrieval |
 | `PHANTASM_AUDIT=1` | Enable audit logging |
 

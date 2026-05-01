@@ -95,6 +95,28 @@ class WebServerBoundaryTests(unittest.TestCase):
             self.assertFalse(web_server._maybe_auto_purge("secret", source="test"))
         purge.assert_not_called()
 
+    def test_purge_password_role_purges_alternate_profile(self):
+        with mock.patch.object(web_server.vault, "purge_other_mode") as purge:
+            self.assertTrue(
+                web_server._purge_for_password_role(
+                    "dummy",
+                    web_server.GhostVault.PURGE_ROLE,
+                    source="test",
+                )
+            )
+        purge.assert_called_once_with("dummy")
+
+    def test_open_password_role_does_not_purge_alternate_profile(self):
+        with mock.patch.object(web_server.vault, "purge_other_mode") as purge:
+            self.assertFalse(
+                web_server._purge_for_password_role(
+                    "dummy",
+                    web_server.GhostVault.OPEN_ROLE,
+                    source="test",
+                )
+            )
+        purge.assert_not_called()
+
 
 class _BytesFile:
     def __init__(self, content):

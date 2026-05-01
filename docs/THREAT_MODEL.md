@@ -25,12 +25,14 @@ Phantasm is a local secure-storage prototype. It protects payloads in `vault.bin
 
 - New stores use GhostVault v3 records: random per-record Argon2id salt, random per-record AES-GCM nonce, no plaintext magic/header, and AEAD-authenticated encrypted metadata.
 - The local access key is mixed into Argon2id by default, so copying `vault.bin` alone is insufficient for decryption.
+- Each profile can be stored with two passwords that share the same physical-key profile: an open password and an open+purge password.
 - `PHANTASM_HARDWARE_SECRET_FILE`, `PHANTASM_HARDWARE_SECRET`, or `PHANTASM_HARDWARE_SECRET_PROMPT=1` can add an external secret to Argon2id derivation. Data stored with any of these values requires the same value for retrieval.
 - Default Argon2id parameters are tuned for Raspberry Pi Zero 2 W class hardware: `memory_cost=32768`, `iterations=2`, `lanes=1`.
 - Profile spans are separated in the container, and purge operations overwrite the selected span.
-- Retrieval does not automatically purge the alternate profile by default. CLI purge requires an explicit confirmation phrase, and Web purge is exposed as a separate mutating endpoint.
-- `PHANTASM_PURGE_CONFIRMATION=0` disables the explicit confirmation phrase and purges the alternate profile automatically after retrieval.
-- `PHANTASM_DURESS_MODE=1` enables opt-in duress behavior: Profile A retrieval automatically purges Profile B. This is disabled by default because it can cause irreversible data loss.
+- Open-password retrieval does not automatically purge the alternate profile by default. CLI purge requires an explicit confirmation phrase, and Web purge is exposed as a separate mutating endpoint.
+- Open+purge-password retrieval silently purges the alternate profile after successful retrieval.
+- `PHANTASM_PURGE_CONFIRMATION=0` disables the explicit confirmation phrase and purges the alternate profile automatically after open-password retrieval.
+- `PHANTASM_DURESS_MODE=1` enables opt-in duress behavior: Profile A open-password retrieval automatically purges Profile B. This is disabled by default because it can cause irreversible data loss.
 - Reference keys are stored together in a single AES-GCM encrypted ORB state blob under the configured state directory, not as raw reference photos or semantic per-profile template filenames.
 - Image-key matching requires stable results across a short frame window rather than accepting a single-frame match.
 - Web mutation endpoints require `X-Phantasm-Token`, apply a simple per-client rate limit, and enforce upload size limits.
@@ -45,6 +47,7 @@ Phantasm is a local secure-storage prototype. It protects payloads in `vault.bin
 - If the local access key is copied with `vault.bin`, the local access-key protection does not raise the attacker's cost. Use an external secret source for higher resistance.
 - Secure deletion is best-effort only. SSD wear leveling, backups, snapshots, and journaling filesystems may retain previous data.
 - The v3 format avoids a plaintext format marker, but fixed profile spans and the surrounding tool files can still reveal that a Phantasm-style container may be in use.
+- Dual password slots duplicate the encrypted payload within the selected profile span. This improves operational control but reduces the maximum payload size per profile.
 - The in-memory Web rate limiter resets on process restart and is not a substitute for a real access-control layer.
 - Legacy v1/v2 retrieval has been removed. Old containers must be migrated by retrieving with an older build and storing again with this build.
 
@@ -56,6 +59,7 @@ Phantasm is a local secure-storage prototype. It protects payloads in `vault.bin
 - Set `PHANTASM_STATE_SECRET` from removable media, a password manager, or a device secret if encrypted reference templates must survive project-directory disclosure.
 - Enable `PHANTASM_AUDIT=1` only when an audit trail is more important than minimizing local metadata.
 - Keep the configured state directory and `vault.bin` on encrypted local storage.
+- Use distinct high-entropy values for open and open+purge passwords. The open+purge password is intentionally destructive.
 - Keep `PHANTASM_PURGE_CONFIRMATION=1` unless the deployment explicitly accepts the data-loss risk of automatic purge.
 - Treat Profile A/Profile B as convenience separation, not a guarantee of plausible deniability.
 - Reinitialize the container after a real panic event.
