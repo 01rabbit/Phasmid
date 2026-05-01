@@ -46,6 +46,7 @@ The project is intended for local use, including USB gadget mode or localhost ac
 | `.state/signal.key` | Panic trigger token |
 | `.state/signal.trigger` | Panic trigger file |
 | `.state/events.log` | Optional audit log |
+| `.state/face.bin` | Optional encrypted WebUI face-lock template |
 
 The default state directory is `.state/` and can be changed with `PHANTASM_STATE_DIR`. The directory is intended to be mode `0700`; secret files are intended to be mode `0600`. Neutral filenames reduce obvious metadata, but they do not provide deniability.
 
@@ -112,6 +113,14 @@ python3 main.py brick
 
 The brick flow destroys `.state/access.bin` first, then performs a best-effort overwrite of `vault.bin`. Flash media, snapshots, backups, and journaling filesystems may retain old data.
 
+### Reset UI Face Lock
+
+```bash
+python3 main.py reset-face-lock
+```
+
+This CLI-only flow resets the optional WebUI face lock. It requires the typed confirmation phrase `RESET FACE LOCK AND VAULT`, removes the encrypted face-lock template, initializes `vault.bin`, clears physical-object bindings, and clears active face-lock sessions. This is destructive because changing the UI user invalidates the local trust boundary for the stored entries.
+
 ## 7. WebUI v2
 
 Start the server:
@@ -172,6 +181,8 @@ The normal UI must not display internal profile names, internal retrieval order,
 Emergency initialization overwrites `vault.bin` with a fresh empty container and clears local object bindings. It is a destructive reset for normal reuse, distinct from emergency brick, which destroys the local access path first.
 
 Optional UI face lock is enabled with `PHANTASM_UI_FACE_LOCK=1`. It gates access to normal WebUI routes with a short-lived local session cookie. Face templates are encrypted in the runtime state directory. This lock is not used in Argon2id input and does not participate in vault encryption or retrieval.
+
+Face-lock reset is intentionally available only through the CLI. The WebUI can enroll, verify, and clear the current session, but it does not expose a route that resets the face template and container together.
 
 ## 8. Cryptography
 

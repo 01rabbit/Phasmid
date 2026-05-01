@@ -71,6 +71,14 @@ Brick the local access path:
 python3 main.py brick
 ```
 
+Reset the optional UI face lock from the CLI:
+
+```bash
+python3 main.py reset-face-lock
+```
+
+This operation has no WebUI route. It requires the confirmation phrase `RESET FACE LOCK AND VAULT`, clears the enrolled face-lock template, initializes `vault.bin`, and clears physical-object bindings. Use it when the local UI user changes and the stored vault data must be treated as no longer valid.
+
 ## Web UI
 
 ```bash
@@ -96,6 +104,8 @@ PHANTASM_UI_FACE_LOCK=1 PYTHONPATH=src python3 -m phantasm.web_server
 ```
 
 When enabled, the WebUI starts at `/ui-lock`. The face check only unlocks the local interface for a short session; it is not mixed into vault encryption or retrieval keys.
+
+Face-lock reset is intentionally CLI-only because it also resets the local container and object bindings.
 
 The hidden Emergency page includes:
 

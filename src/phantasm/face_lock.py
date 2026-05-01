@@ -101,6 +101,22 @@ class FaceUILock:
         if token:
             self.sessions.pop(token, None)
 
+    def reset(self):
+        self.sessions.clear()
+        self.failures.clear()
+        if not os.path.exists(self.template_path):
+            return True, "Face UI lock is already clear."
+        try:
+            size = max(os.path.getsize(self.template_path), 1024)
+            with open(self.template_path, "r+b") as handle:
+                handle.write(os.urandom(size))
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.remove(self.template_path)
+        except OSError:
+            return False, "Failed to clear face UI lock."
+        return True, "Face UI lock cleared."
+
     def status(self, client_id=None, token=None):
         return {
             "enabled": True,

@@ -43,6 +43,23 @@ class FaceUILockTests(unittest.TestCase):
             self.assertFalse(ok)
             self.assertIn("temporarily unavailable", message)
 
+    def test_reset_removes_template_and_runtime_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lock = self.make_lock(tmp)
+            sample = np.full(lock.FACE_SIZE, 80, dtype=np.float32)
+            lock._write_templates(np.array([sample], dtype=np.float32))
+            lock.create_session("client", "token")
+            lock.failures["client"] = 1
+
+            ok, message = lock.reset()
+
+            self.assertTrue(ok)
+            self.assertIn("cleared", message)
+            self.assertFalse(lock.is_enrolled())
+            self.assertFalse(os.path.exists(lock.template_path))
+            self.assertEqual(lock.sessions, {})
+            self.assertEqual(lock.failures, {})
+
 
 if __name__ == "__main__":
     unittest.main()

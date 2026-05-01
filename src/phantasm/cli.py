@@ -9,10 +9,12 @@ from .audit import audit_event
 from .bridge_ui import ui
 from .config import duress_mode_enabled, purge_confirmation_required
 from .emergency_daemon import EmergencyDaemon
+from .face_lock import face_lock
 from .gv_core import GhostVault
 
 CAMERA_WARMUP_TIMEOUT = 10
 REFERENCE_MATCH_TIMEOUT = 10
+FACE_RESET_CONFIRMATION = "RESET FACE LOCK AND VAULT"
 MODE_LABELS = {
     "dummy": "Profile A",
     "secret": "Profile B",
@@ -134,9 +136,31 @@ def _prompt_store_passwords():
         raise ValueError("open and open+purge passwords must be different")
     return open_password, purge_password
 
+
+def _confirm_face_lock_reset(input_func=input):
+    print("\n[!] CAUTION: FACE UI LOCK RESET")
+    print("[!] This clears the enrolled face lock and initializes all stored vault data.")
+    print("[!] Physical object bindings are also cleared.")
+    answer = input_func(f'Type "{FACE_RESET_CONFIRMATION}" to continue: ').strip()
+    return answer == FACE_RESET_CONFIRMATION
+
+
+def _reset_face_lock_and_container(vault):
+    vault.format_container()
+    object_success, object_message = gate.clear_references()
+    face_success, face_message = face_lock.reset()
+    audit_event("container_initialized", source="cli_face_reset")
+    audit_event("object_bindings_cleared", source="cli_face_reset", success=object_success)
+    audit_event("ui_face_lock_cleared", source="cli_face_reset", success=face_success)
+    return object_success and face_success, object_message, face_message
+
 def main():
-    parser = argparse.ArgumentParser(description="GhostVault Phantasm - Tactical Secure Storage v3")
-    parser.add_argument("action", choices=["init", "store", "retrieve", "brick"], help="operation to run")
+    parser = argparse.ArgumentParser(description="GhostVault Phantasm - Local Secure Storage v3")
+    parser.add_argument(
+        "action",
+        choices=["init", "store", "retrieve", "brick", "reset-face-lock"],
+        help="operation to run",
+    )
     parser.add_argument(
         "--profile",
         choices=["a", "b"],
@@ -304,6 +328,19 @@ def main():
             vault.silent_brick()
             audit_event("container_bricked", source="cli")
             print("[!] Brick sequence completed.")
+
+        elif args.action == "reset-face-lock":
+            if not _confirm_face_lock_reset():
+                print("[ABORTED] Face UI lock reset cancelled.")
+                return
+            success, object_message, face_message = _reset_face_lock_and_container(vault)
+            print(f"[+] Container initialized: vault.bin is empty.")
+            print(f"[+] Object bindings: {object_message}")
+            print(f"[+] Face UI lock: {face_message}")
+            if success:
+                print("[+] Reset complete. Register a new face lock and new entries before use.")
+            else:
+                print("[!] Reset completed with warnings. Review the messages above.")
     finally:
         panic_monitor.stop()
         if gate_started:
