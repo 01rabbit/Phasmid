@@ -103,6 +103,9 @@ class GhostVault:
         if not create:
             raise ValueError("local vault access key is missing")
 
+        return self._write_new_access_key()
+
+    def _write_new_access_key(self):
         os.makedirs(self.state_dir, mode=0o700, exist_ok=True)
         try:
             os.chmod(self.state_dir, 0o700)
@@ -116,6 +119,10 @@ class GhostVault:
         except OSError:
             pass
         return key
+
+    def rotate_access_key(self):
+        self.destroy_access_keys()
+        return self._write_new_access_key()
 
     def _require_container(self):
         if not os.path.exists(self.path):
@@ -145,8 +152,11 @@ class GhostVault:
             raise ValueError("container is too small for encrypted record")
         return capacity
 
-    def format_container(self):
-        self._load_or_create_access_key(create=True)
+    def format_container(self, rotate_access_key=False):
+        if rotate_access_key:
+            self.rotate_access_key()
+        else:
+            self._load_or_create_access_key(create=True)
         with open(self.path, 'wb') as f:
             f.write(os.urandom(self.size))
         try:

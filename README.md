@@ -50,6 +50,8 @@ Initialize a container:
 python3 main.py init
 ```
 
+Initialization rotates the local access key and clears the container for new entries.
+
 Store a file:
 
 ```bash
@@ -77,7 +79,7 @@ Reset the optional UI face lock from the CLI:
 python3 main.py reset-face-lock
 ```
 
-This operation has no WebUI route. It requires the confirmation phrase `RESET FACE LOCK AND VAULT`, clears the enrolled face-lock template, initializes `vault.bin`, and clears physical-object bindings. Use it when the local UI user changes and the stored vault data must be treated as no longer valid.
+This operation has no WebUI route. It requires the confirmation phrase `RESET FACE LOCK AND VAULT`, clears the enrolled face-lock template, rotates the local access key, initializes `vault.bin`, and clears physical-object bindings. Use it when the local UI user changes and the stored vault data must be treated as no longer valid.
 
 ## Web UI
 
@@ -113,7 +115,7 @@ The hidden Emergency page includes:
 - initialize local container
 - emergency brick
 
-`Initialize local container` resets `vault.bin` and clears object bindings so both protected entries are empty and ready for new registration.
+`Initialize local container` rotates the local access key, resets `vault.bin`, and clears object bindings so both protected entries are empty and ready for new registration.
 
 ## Runtime State
 
@@ -124,6 +126,7 @@ By default, Phantasm writes runtime state to `.state/`:
 - `access.bin`: local access key required for vault retrieval
 - `signal.key` / `signal.trigger`: panic trigger files
 - `events.log`: optional audit log
+- `face.bin`: optional encrypted WebUI face-lock template
 
 Override the state location with:
 

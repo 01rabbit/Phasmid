@@ -146,7 +146,7 @@ def _confirm_face_lock_reset(input_func=input):
 
 
 def _reset_face_lock_and_container(vault):
-    vault.format_container()
+    vault.format_container(rotate_access_key=True)
     object_success, object_message = gate.clear_references()
     face_success, face_message = face_lock.reset()
     audit_event("container_initialized", source="cli_face_reset")
@@ -196,7 +196,7 @@ def main():
         if args.action == "init":
             print("\n[!] CAUTION: INITIALIZING SECURE CONTAINER")
             fake_loading("Wiping storage sectors with random entropy", 3)
-            vault.format_container()
+            vault.format_container(rotate_access_key=True)
             audit_event("container_initialized")
             print("[+] GhostVault initialized. Ready for encrypted payload.")
 

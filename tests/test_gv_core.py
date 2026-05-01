@@ -132,6 +132,28 @@ class GhostVaultV3Tests(unittest.TestCase):
 
             self.assertEqual(vault.retrieve("pw", seq, mode="dummy"), (None, None))
 
+    def test_format_container_can_rotate_access_key(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "vault.bin")
+            vault = self.make_vault(path)
+            seq = ["reference_dummy_matched"]
+
+            vault.store("pw", b"payload", seq, filename="payload.bin", mode="dummy")
+            with open(vault.access_key_path, "rb") as handle:
+                old_key = handle.read()
+            with open(path, "rb") as handle:
+                old_container = handle.read()
+
+            vault.format_container(rotate_access_key=True)
+
+            with open(vault.access_key_path, "rb") as handle:
+                new_key = handle.read()
+            self.assertNotEqual(old_key, new_key)
+
+            with open(path, "wb") as handle:
+                handle.write(old_container)
+            self.assertEqual(vault.retrieve("pw", seq, mode="dummy"), (None, None))
+
 
 if __name__ == "__main__":
     unittest.main()

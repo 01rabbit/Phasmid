@@ -37,7 +37,7 @@ Phantasm is a local secure-storage prototype. It protects payloads in `vault.bin
 - Image-key matching requires stable results across a short frame window rather than accepting a single-frame match.
 - Web mutation endpoints require `X-Phantasm-Token`, apply a simple per-client rate limit, and enforce upload size limits.
 - Optional UI face lock (`PHANTASM_UI_FACE_LOCK=1`) can gate normal WebUI routes with a short-lived local session. This is a UI access control only and is not used for vault encryption.
-- UI face-lock reset is CLI-only and requires a typed confirmation phrase. It clears the face template, initializes the vault container, and clears physical-object bindings so a changed UI user starts from an empty local state.
+- UI face-lock reset is CLI-only and requires a typed confirmation phrase. It clears the face template, rotates the local access key, initializes the vault container, and clears physical-object bindings so a changed UI user starts from an empty local state.
 - The Web server binds to `127.0.0.1` by default.
 - Panic triggers require the secret value from the state directory's signal key.
 - Audit logging is disabled by default. If `PHANTASM_AUDIT=1` is set, security-relevant operations append minimal JSONL records to the state directory's event log without recording passwords, payload bytes, or plaintext filenames. Filename hashes are only recorded when `PHANTASM_AUDIT_FILENAMES=hash`.
@@ -63,7 +63,7 @@ Phantasm is a local secure-storage prototype. It protects payloads in `vault.bin
 - Enable `PHANTASM_AUDIT=1` only when an audit trail is more important than minimizing local metadata.
 - Keep the configured state directory and `vault.bin` on encrypted local storage.
 - Treat UI face lock as a convenience barrier for local interface use, not as a substitute for passwords, object cues, or external secrets.
-- Use `python3 main.py reset-face-lock` when the authorized local UI user changes. This intentionally clears stored vault data and object bindings as part of the reset.
+- Use `python3 main.py reset-face-lock` when the authorized local UI user changes. This intentionally rotates the local access key, clears stored vault data, and clears object bindings as part of the reset.
 - Use distinct high-entropy values for open and open+purge passwords. The open+purge password is intentionally destructive.
 - Keep `PHANTASM_PURGE_CONFIRMATION=1` unless the deployment explicitly accepts the data-loss risk of automatic purge.
 - Treat Profile A/Profile B as convenience separation, not a guarantee of plausible deniability.

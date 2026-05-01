@@ -187,7 +187,7 @@ class WebServerBoundaryTests(unittest.TestCase):
                     request,
                     confirmation=web_server.INITIALIZE_CONTAINER_PHRASE,
                 )
-            init.assert_called_once_with()
+            init.assert_called_once_with(rotate_access_key=True)
             clear.assert_called_once_with()
             self.assertIn("initialized", response["status"])
 

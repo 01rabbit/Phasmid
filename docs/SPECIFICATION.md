@@ -30,7 +30,7 @@ The project is intended for local use, including USB gadget mode or localhost ac
 | `src/phantasm/emergency_daemon.py` | Panic trigger watcher and brick flow |
 | `src/phantasm/audit.py` | Optional audit log |
 | `src/phantasm/config.py` | Shared state names and runtime policy |
-| `src/phantasm/templates/index.html` | Web UI |
+| `src/phantasm/templates/` | WebUI v2 server-rendered templates |
 | `scripts/bench_kdf.py` | Argon2id benchmark helper |
 | `docs/THREAT_MODEL.md` | Threat model |
 | `tests/` | Unit tests |
@@ -67,7 +67,7 @@ The CLI accepts `--profile a` or `--profile b`. WebUI v2 maps these internal pro
 python3 main.py init
 ```
 
-This overwrites `vault.bin` with random data and creates the local access key if it does not already exist.
+This rotates the local access key, overwrites `vault.bin` with random data, and leaves an empty container ready for new entries.
 
 ### Store
 
@@ -119,7 +119,7 @@ The brick flow destroys `.state/access.bin` first, then performs a best-effort o
 python3 main.py reset-face-lock
 ```
 
-This CLI-only flow resets the optional WebUI face lock. It requires the typed confirmation phrase `RESET FACE LOCK AND VAULT`, removes the encrypted face-lock template, initializes `vault.bin`, clears physical-object bindings, and clears active face-lock sessions. This is destructive because changing the UI user invalidates the local trust boundary for the stored entries.
+This CLI-only flow resets the optional WebUI face lock. It requires the typed confirmation phrase `RESET FACE LOCK AND VAULT`, removes the encrypted face-lock template, rotates the local access key, initializes `vault.bin`, clears physical-object bindings, and clears active face-lock sessions. This is destructive because changing the UI user invalidates the local trust boundary for the stored entries.
 
 ## 7. WebUI v2
 
@@ -178,7 +178,7 @@ Mutating endpoints require `X-Phantasm-Token`. The token is generated on process
 
 The normal UI must not display internal profile names, internal retrieval order, or alternate-entry state after retrieval.
 
-Emergency initialization overwrites `vault.bin` with a fresh empty container and clears local object bindings. It is a destructive reset for normal reuse, distinct from emergency brick, which destroys the local access path first.
+Emergency initialization rotates the local access key, overwrites `vault.bin` with a fresh empty container, and clears local object bindings. It is a destructive reset for normal reuse, distinct from emergency brick, which destroys the local access path first.
 
 Optional UI face lock is enabled with `PHANTASM_UI_FACE_LOCK=1`. It gates access to normal WebUI routes with a short-lived local session cookie. Face templates are encrypted in the runtime state directory. This lock is not used in Argon2id input and does not participate in vault encryption or retrieval.
 

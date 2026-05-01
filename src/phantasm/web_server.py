@@ -548,7 +548,7 @@ async def emergency_initialize(request: Request, confirmation: str = Form(...)):
     enforce_rate_limit(request)
     if confirmation != INITIALIZE_CONTAINER_PHRASE:
         return {"error": f"Confirmation required: {INITIALIZE_CONTAINER_PHRASE}"}
-    vault.format_container()
+    vault.format_container(rotate_access_key=True)
     success, message = gate.clear_references()
     if not success:
         return {"error": message}
