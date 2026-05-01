@@ -1,19 +1,20 @@
-from fastapi import FastAPI, UploadFile, File, Form, Request, Header, HTTPException, Depends
-from fastapi.responses import HTMLResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
-from .ai_gate import gate, get_gesture_sequence
-from .audit import audit_event
-from .config import duress_mode_enabled, purge_confirmation_required
-from .gv_core import GhostVault
-import uvicorn
+from pathlib import Path
 import io
 import os
 import secrets
 import time
 import urllib.parse
-from pathlib import Path
 
-app = FastAPI(title="Phantasm - Tactical Secure Interface")
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.templating import Jinja2Templates
+
+from .ai_gate import gate, get_gesture_sequence
+from .audit import audit_event
+from .config import AUDIT_LOG_NAME, duress_mode_enabled, purge_confirmation_required, state_dir
+from .gv_core import GhostVault
+
+app = FastAPI(title="Phantasm - Local Secure Interface")
 templates = Jinja2Templates(directory=str(Path(__file__).with_name("templates")))
 vault = GhostVault("vault.bin")
 WEB_TOKEN = os.environ.get("PHANTASM_WEB_TOKEN") or secrets.token_urlsafe(32)
@@ -21,24 +22,41 @@ MAX_UPLOAD_BYTES = int(os.environ.get("PHANTASM_MAX_UPLOAD_BYTES", 25 * 1024 * 1
 RATE_LIMIT_WINDOW = 60
 RATE_LIMIT_MAX = 20
 _rate_limit = {}
-MODE_LABELS = {
-    "dummy": "Profile A",
-    "secret": "Profile B",
+
+ENTRY_TO_MODE = {
+    "entry_1": "dummy",
+    "entry_2": "secret",
 }
-PROFILE_TO_MODE = {
-    "profile_a": "dummy",
-    "profile_b": "secret",
+LEGACY_PROFILE_TO_ENTRY = {
+    "profile_a": "entry_1",
+    "profile_b": "entry_2",
 }
+MODE_TO_ENTRY = {mode: entry for entry, mode in ENTRY_TO_MODE.items()}
+ENTRY_LABELS = {
+    "entry_1": "Entry 1",
+    "entry_2": "Entry 2",
+}
+DESTRUCTIVE_CLEAR_PHRASE = "CLEAR LOCAL ENTRY"
+EMERGENCY_BRICK_PHRASE = "BRICK LOCAL STATE"
 
 
-def display_mode_label(mode):
-    return MODE_LABELS.get(mode, "Profile")
+def display_entry_label(entry_id):
+    return ENTRY_LABELS.get(entry_id, "Entry")
 
 
-def resolve_mode(profile_value):
-    if profile_value not in PROFILE_TO_MODE:
-        raise ValueError(f"unsupported profile: {profile_value}")
-    return PROFILE_TO_MODE[profile_value]
+def resolve_entry(entry_id):
+    entry_id = LEGACY_PROFILE_TO_ENTRY.get(entry_id, entry_id)
+    if entry_id not in ENTRY_TO_MODE:
+        raise ValueError(f"unsupported entry id: {entry_id}")
+    return ENTRY_TO_MODE[entry_id]
+
+
+def mode_to_entry(mode):
+    return MODE_TO_ENTRY.get(mode)
+
+
+def _plain_form_value(value, default=""):
+    return value if isinstance(value, str) else default
 
 
 def require_web_token(x_phantasm_token: str = Header(default="")):
@@ -63,67 +81,252 @@ async def read_limited_upload(file: UploadFile):
         raise HTTPException(status_code=413, detail="upload too large")
     return data
 
+
+def _template_context(request: Request, active="home", **extra):
+    context = {
+        "request": request,
+        "active": active,
+        "web_token": WEB_TOKEN,
+        "max_upload_bytes": MAX_UPLOAD_BYTES,
+        "purge_confirmation_required": purge_confirmation_required(),
+        "duress_mode_enabled": duress_mode_enabled(),
+        "destructive_clear_phrase": DESTRUCTIVE_CLEAR_PHRASE,
+        "emergency_brick_phrase": EMERGENCY_BRICK_PHRASE,
+        "entries": [
+            {"id": entry_id, "label": label}
+            for entry_id, label in ENTRY_LABELS.items()
+        ],
+    }
+    context.update(extra)
+    return context
+
+
+def _raw_gate_status():
+    return gate.get_status()
+
+
+def neutral_status():
+    raw = _raw_gate_status()
+    matched_mode = raw.get("matched_mode")
+    with gate.lock:
+        camera_ready = gate.latest_frame is not None
+
+    if matched_mode == gate.MATCH_AMBIGUOUS:
+        object_state = "ambiguous"
+    elif matched_mode in gate.AUTH_TOKENS:
+        object_state = "matched"
+    elif raw.get("object_detected"):
+        object_state = "detected"
+    else:
+        object_state = "none"
+
+    return {
+        "camera_ready": camera_ready,
+        "object_state": object_state,
+        "device_state": "ready",
+        "local_mode": True,
+    }
+
+
+def entry_management_status():
+    raw = _raw_gate_status()
+    registered = raw.get("registered_modes", {})
+    current_entry = mode_to_entry(raw.get("matched_mode"))
+    return {
+        "entries": [
+            {
+                "id": entry_id,
+                "label": label,
+                "bound": bool(registered.get(ENTRY_TO_MODE[entry_id])),
+                "matched": entry_id == current_entry,
+            }
+            for entry_id, label in ENTRY_LABELS.items()
+        ],
+        "object_state": neutral_status()["object_state"],
+    }
+
+
+def _first_unbound_entry():
+    registered = _raw_gate_status().get("registered_modes", {})
+    for entry_id, mode in ENTRY_TO_MODE.items():
+        if not registered.get(mode):
+            return entry_id
+    return None
+
+
+def _matched_entry():
+    matched_mode = _raw_gate_status().get("matched_mode")
+    if matched_mode in gate.AUTH_TOKENS:
+        return mode_to_entry(matched_mode)
+    return None
+
+
+def _select_entry_for_store(entry_hint=None, overwrite=False):
+    matched_entry = _matched_entry()
+    if matched_entry:
+        return matched_entry, False
+
+    free_entry = _first_unbound_entry()
+    if free_entry:
+        return free_entry, True
+
+    if overwrite and entry_hint in ENTRY_TO_MODE:
+        return entry_hint, True
+
+    return None, False
+
+
+def _capture_entry_binding(mode):
+    success, message = gate.capture_reference(mode)
+    if not success:
+        return False, "Object binding failed. Retry capture."
+    return True, message
+
+
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+async def home(request: Request):
     return templates.TemplateResponse(
         request=request,
-        name="index.html",
-        context={
-            "web_token": WEB_TOKEN,
-            "max_upload_bytes": MAX_UPLOAD_BYTES,
-            "purge_confirmation_required": str(purge_confirmation_required()).lower(),
-            "duress_mode_enabled": str(duress_mode_enabled()).lower(),
-        },
+        name="home.html",
+        context=_template_context(request, active="home"),
     )
+
+
+@app.get("/store", response_class=HTMLResponse)
+async def store_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="store.html",
+        context=_template_context(request, active="store"),
+    )
+
+
+@app.get("/retrieve", response_class=HTMLResponse)
+async def retrieve_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="retrieve.html",
+        context=_template_context(request, active="retrieve"),
+    )
+
+
+@app.get("/maintenance", response_class=HTMLResponse)
+async def maintenance_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="maintenance.html",
+        context=_template_context(
+            request,
+            active="maintenance",
+            audit_enabled=os.environ.get("PHANTASM_AUDIT", "0"),
+            state_path=state_dir(),
+        ),
+    )
+
+
+@app.get("/maintenance/entries", response_class=HTMLResponse)
+async def entry_management_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="entry_management.html",
+        context=_template_context(
+            request,
+            active="maintenance",
+            entry_status=entry_management_status(),
+        ),
+    )
+
+
+@app.get("/emergency", response_class=HTMLResponse)
+async def emergency_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="emergency.html",
+        context=_template_context(request, active="maintenance"),
+    )
+
 
 @app.get("/video_feed")
 async def video_feed():
-    return StreamingResponse(gate.generate_frames(), 
-                             media_type="multipart/x-mixed-replace; boundary=frame")
+    return StreamingResponse(
+        gate.generate_frames(),
+        media_type="multipart/x-mixed-replace; boundary=frame",
+    )
+
 
 @app.get("/status")
 async def status():
-    status = gate.get_status()
-    matched_mode = status.get("matched_mode")
-    if matched_mode in MODE_LABELS:
-        status["matched_profile"] = display_mode_label(matched_mode)
-    else:
-        status["matched_profile"] = None
-    return status
+    return neutral_status()
+
+
+@app.get("/maintenance/entry_status", dependencies=[Depends(require_web_token)])
+async def entry_status(request: Request):
+    enforce_rate_limit(request)
+    return entry_management_status()
+
 
 @app.post("/register_key", dependencies=[Depends(require_web_token)])
-async def register_key(request: Request, profile: str = Form(...), replace: bool = Form(False)):
+async def register_key(
+    request: Request,
+    entry_hint: str = Form(default=""),
+    replace: bool = Form(False),
+):
     enforce_rate_limit(request)
-    mode = resolve_mode(profile)
-    if gate.get_status()["registered_modes"].get(mode) and not replace:
-        return {"error": f"{display_mode_label(mode)} already has an image key. Confirm replacement first."}
-    success, message = gate.capture_reference(mode)
+    entry_id = entry_hint if entry_hint in ENTRY_TO_MODE else _matched_entry() or _first_unbound_entry()
+    if entry_id is None:
+        return {
+            "error": "No open local entry is available.",
+            "overwrite_required": True,
+            "entries": list(ENTRY_LABELS.values()),
+        }
+
+    mode = resolve_entry(entry_id)
+    if entry_hint in ENTRY_TO_MODE and not replace and _raw_gate_status()["registered_modes"].get(mode):
+        return {"error": "Entry already has a bound object. Confirm replacement first."}
+
+    success, message = _capture_entry_binding(mode)
     if success:
-        audit_event("image_key_registered", profile=display_mode_label(mode), source="web")
-        return {"status": f"{display_mode_label(mode)} image key registered."}
+        audit_event("image_key_registered", entry=display_entry_label(entry_id), source="web")
+        return {"status": "Object bound to protected entry.", "entry_label": display_entry_label(entry_id)}
     return {"error": message}
 
+
 @app.post("/store", dependencies=[Depends(require_web_token)])
-async def store(request: Request,
-                file: UploadFile = File(...),
-                password: str = Form(...), 
-                purge_password: str = Form(...),
-                profile: str = Form("profile_a")):
+async def store(
+    request: Request,
+    file: UploadFile = File(...),
+    password: str = Form(...),
+    purge_password: str = Form(default=""),
+    local_note_label: str = Form(default=""),
+    entry_hint: str = Form(default=""),
+    overwrite: bool = Form(False),
+):
     enforce_rate_limit(request)
-    
     data = await read_limited_upload(file)
     orig_filename = file.filename
-    
+
     try:
-        mode = resolve_mode(profile)
-        if not gate.get_status()["registered_modes"].get(mode):
-            return {"error": f"No image key is registered for {display_mode_label(mode)}."}
         if not password:
-            return {"error": "Open password must not be empty."}
-        if not purge_password:
-            return {"error": "Open+purge password must not be empty."}
-        if password == purge_password:
-            return {"error": "Open and open+purge passwords must be different."}
+            return {"error": "Access password must not be empty."}
+        if purge_password and password == purge_password:
+            return {"error": "Access and destructive passwords must be different."}
+
+        entry_id, needs_capture = _select_entry_for_store(entry_hint=entry_hint, overwrite=overwrite)
+        if entry_id is None:
+            return {
+                "error": "No open local entry is available. Confirm replacement to continue.",
+                "overwrite_required": True,
+                "entries": [
+                    {"id": item_id, "label": label}
+                    for item_id, label in ENTRY_LABELS.items()
+                ],
+            }
+
+        mode = resolve_entry(entry_id)
+        if needs_capture or overwrite:
+            success, message = _capture_entry_binding(mode)
+            if not success:
+                return {"error": message}
 
         vault.store(
             password,
@@ -131,64 +334,130 @@ async def store(request: Request,
             gate.sequence_for_mode(mode),
             filename=orig_filename,
             mode=mode,
-            purge_password=purge_password,
+            purge_password=purge_password or None,
         )
-        audit_event("payload_stored", profile=display_mode_label(mode), filename=orig_filename, bytes=len(data), source="web")
-        return {"status": f"Payload '{orig_filename}' committed to {display_mode_label(mode)}."}
-    except Exception as e:
-        return {"error": str(e)}
+        audit_event(
+            "payload_stored",
+            entry=display_entry_label(entry_id),
+            filename=orig_filename,
+            bytes=len(data),
+            label_present=bool(local_note_label),
+            source="web",
+        )
+        return {"status": "Protected entry saved.", "entry_label": display_entry_label(entry_id)}
+    except Exception as exc:
+        return {"error": str(exc)}
+
 
 @app.post("/retrieve", dependencies=[Depends(require_web_token)])
 async def retrieve(request: Request, password: str = Form(...)):
     enforce_rate_limit(request)
     auth_sequence = get_gesture_sequence(length=1)
     if gate.last_match_mode == gate.MATCH_AMBIGUOUS:
-        return {"error": "Authentication failed: both registered keys match the presented object."}
+        return {"error": "Ambiguous object match."}
     if auth_sequence[0] == gate.MATCH_NONE:
-        return {"error": "Authentication failed: no registered image key matched."}
+        return {"error": "No valid entry found."}
 
-    result, filename, password_role = vault.retrieve_with_policy(password, auth_sequence, mode="dummy")
-    if result is not None:
-        audit_event("payload_retrieved", profile=display_mode_label("dummy"), filename=filename, bytes=len(result), source="web")
-        purge_applied = _purge_for_password_role("dummy", password_role, source="web")
+    for mode in ("dummy", "secret"):
+        result, filename, password_role = vault.retrieve_with_policy(password, auth_sequence, mode=mode)
+        if result is None:
+            continue
+
+        entry_id = mode_to_entry(mode)
+        audit_event(
+            "payload_retrieved",
+            entry=display_entry_label(entry_id),
+            filename=filename,
+            bytes=len(result),
+            source="web",
+        )
+        purge_applied = _purge_for_password_role(mode, password_role, source="web")
         if not purge_applied:
-            purge_applied = _maybe_auto_purge("dummy", source="web")
+            purge_applied = _maybe_auto_purge(mode, source="web")
         return create_file_response(
             result,
-            filename or "profile-a.bin",
-            accessed_profile="profile_a",
+            filename or "protected-entry.bin",
             purge_applied=purge_applied,
         )
 
-    result, filename, password_role = vault.retrieve_with_policy(password, auth_sequence, mode="secret")
-    if result is not None:
-        audit_event("payload_retrieved", profile=display_mode_label("secret"), filename=filename, bytes=len(result), source="web")
-        purge_applied = _purge_for_password_role("secret", password_role, source="web")
-        if not purge_applied:
-            purge_applied = _maybe_auto_purge("secret", source="web")
-        return create_file_response(
-            result,
-            filename or "profile-b.bin",
-            accessed_profile="profile_b",
-            purge_applied=purge_applied,
-        )
-    
     audit_event("retrieve_failed", source="web")
-    return {"error": "Authentication failed."}
+    return {"error": "No valid entry found."}
 
 
 @app.post("/purge_other", dependencies=[Depends(require_web_token)])
-async def purge_other(request: Request, accessed_profile: str = Form(...), confirmation: str = Form(...)):
+async def purge_other(
+    request: Request,
+    accessed_entry: str = Form(default=""),
+    accessed_profile: str = Form(default=""),
+    confirmation: str = Form(...),
+):
     enforce_rate_limit(request)
-    mode = resolve_mode(accessed_profile)
-    other_mode = "secret" if mode == "dummy" else "dummy"
-    expected = f"DELETE {display_mode_label(other_mode).upper()}"
-    if purge_confirmation_required() and confirmation != expected:
-        return {"error": f"Confirmation required: {expected}"}
+    entry_id = _plain_form_value(accessed_entry) or LEGACY_PROFILE_TO_ENTRY.get(
+        _plain_form_value(accessed_profile),
+        _plain_form_value(accessed_profile),
+    )
+    mode = resolve_entry(entry_id)
+    if confirmation != DESTRUCTIVE_CLEAR_PHRASE:
+        return {"error": f"Confirmation required: {DESTRUCTIVE_CLEAR_PHRASE}"}
 
     vault.purge_other_mode(mode)
-    audit_event("alternate_profile_purged", accessed_profile=display_mode_label(mode), source="web")
-    return {"status": f"Alternate profile ({display_mode_label(other_mode)}) purged."}
+    audit_event("alternate_entry_cleared", accessed_entry=display_entry_label(entry_id), source="web")
+    return {"status": "Unmatched local entry cleared."}
+
+
+@app.post("/emergency/brick", dependencies=[Depends(require_web_token)])
+async def emergency_brick(request: Request, confirmation: str = Form(...)):
+    enforce_rate_limit(request)
+    if confirmation != EMERGENCY_BRICK_PHRASE:
+        return {"error": f"Confirmation required: {EMERGENCY_BRICK_PHRASE}"}
+    vault.silent_brick()
+    audit_event("container_bricked", source="web")
+    return {"status": "Emergency brick completed. Close this session."}
+
+
+@app.post("/maintenance/rotate_token", dependencies=[Depends(require_web_token)])
+async def rotate_token(request: Request):
+    enforce_rate_limit(request)
+    global WEB_TOKEN
+    WEB_TOKEN = secrets.token_urlsafe(32)
+    audit_event("web_token_rotated", source="web")
+    return {"status": "Session token rotated.", "web_token": WEB_TOKEN}
+
+
+@app.post("/maintenance/reset_session", dependencies=[Depends(require_web_token)])
+async def reset_session(request: Request):
+    enforce_rate_limit(request)
+    _rate_limit.clear()
+    return {"status": "Local session counters reset."}
+
+
+@app.get("/maintenance/diagnostics", dependencies=[Depends(require_web_token)])
+async def diagnostics(request: Request):
+    enforce_rate_limit(request)
+    status_data = neutral_status()
+    return {
+        "device_state": status_data["device_state"],
+        "camera_ready": status_data["camera_ready"],
+        "object_state": status_data["object_state"],
+        "local_mode": status_data["local_mode"],
+        "state_directory": state_dir(),
+        "audit_enabled": os.environ.get("PHANTASM_AUDIT", "0").lower() not in {"0", "false", "off", "no"},
+        "upload_limit_bytes": MAX_UPLOAD_BYTES,
+    }
+
+
+@app.get("/maintenance/logs", dependencies=[Depends(require_web_token)])
+async def export_logs(request: Request):
+    enforce_rate_limit(request)
+    path = Path(state_dir()) / AUDIT_LOG_NAME
+    if not path.exists():
+        return JSONResponse({"error": "No local event log is available."}, status_code=404)
+    data = path.read_bytes()
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="application/jsonl",
+        headers={"Content-Disposition": "attachment; filename=phantasm-events.jsonl"},
+    )
 
 
 def _maybe_auto_purge(accessed_mode, source):
@@ -203,8 +472,8 @@ def _maybe_auto_purge(accessed_mode, source):
 
     vault.purge_other_mode(accessed_mode)
     audit_event(
-        "alternate_profile_purged",
-        accessed_profile=display_mode_label(accessed_mode),
+        "alternate_entry_cleared",
+        accessed_entry=display_entry_label(mode_to_entry(accessed_mode)),
         source=source,
         reason=reason,
     )
@@ -216,31 +485,31 @@ def _purge_for_password_role(accessed_mode, password_role, source):
         return False
     vault.purge_other_mode(accessed_mode)
     audit_event(
-        "alternate_profile_purged",
-        accessed_profile=display_mode_label(accessed_mode),
+        "alternate_entry_cleared",
+        accessed_entry=display_entry_label(mode_to_entry(accessed_mode)),
         source=source,
-        reason="purge_password",
+        reason="destructive_password",
     )
     return True
 
 
-def create_file_response(content, filename, accessed_profile=None, purge_applied=False):
-    # Support UTF-8 filenames in downloads.
+def create_file_response(content, filename, purge_applied=False):
     safe_filename = urllib.parse.quote(filename)
     return StreamingResponse(
-        io.BytesIO(content), 
+        io.BytesIO(content),
         media_type="application/octet-stream",
         headers={
             "Content-Disposition": f"attachment; filename*=UTF-8''{safe_filename}",
             "X-Filename": safe_filename,
-            "X-Accessed-Profile": accessed_profile or "",
             "X-Purge-Applied": "1" if purge_applied else "0",
-        }
+        },
     )
+
 
 if __name__ == "__main__":
     host = os.environ.get("PHANTASM_HOST", "127.0.0.1")
     port = int(os.environ.get("PHANTASM_PORT", "8000"))
     print(f"[WEB] Starting on http://{host}:{port}")
     print("[WEB] Mutating requests require X-Phantasm-Token from the served UI.")
-    uvicorn.run(app, host=host, port=port)
+    uvicorn_run = __import__("uvicorn").run
+    uvicorn_run(app, host=host, port=port)

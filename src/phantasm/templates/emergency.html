@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% import "_components.html" as ui %}
+{% block title %}Phantasm | Emergency{% endblock %}
+
+{% block content %}
+<div class="grid-single">
+    <section class="panel">
+        <div class="panel-head">
+            <h2>Emergency</h2>
+            <span class="badge bad">Destructive Action</span>
+        </div>
+        {{ ui.destructive_warning() }}
+        <p class="copy">This hidden route is separated from normal navigation. Use it only for destructive local actions.</p>
+    </section>
+
+    <section class="panel">
+        <h2>Clear Unmatched Entry</h2>
+        <p class="copy">Clear the local entry that is not selected below. This operation is irreversible in normal use.</p>
+        <form id="clearForm">
+            <label class="field">
+                <span>Reference entry label</span>
+                <select name="accessed_entry">
+                    {% for entry in entries %}
+                    <option value="{{ entry.id }}">{{ entry.label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="field">
+                <span>Confirmation phrase</span>
+                <input type="text" name="confirmation" placeholder="{{ destructive_clear_phrase }}" required>
+            </label>
+            <button type="submit" class="danger">Clear unmatched entry</button>
+        </form>
+    </section>
+
+    <section class="panel">
+        <h2>Trigger Emergency Brick</h2>
+        {{ ui.destructive_warning() }}
+        <form id="brickForm">
+            <label class="field">
+                <span>Confirmation phrase</span>
+                <input type="text" name="confirmation" placeholder="{{ emergency_brick_phrase }}" required>
+            </label>
+            <button type="submit" class="danger">Trigger emergency brick</button>
+        </form>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('clearForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const res = await apiFetch('/purge_other', { method: 'POST', body: new FormData(event.currentTarget) });
+        const data = await res.json();
+        toast(data.status || data.error || 'Clear action finished.');
+    });
+
+    document.getElementById('brickForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const res = await apiFetch('/emergency/brick', { method: 'POST', body: new FormData(event.currentTarget) });
+        const data = await res.json();
+        toast(data.status || data.error || 'Emergency action finished.');
+        if (data.status) document.body.classList.add('locked');
+    });
+</script>
+{% endblock %}

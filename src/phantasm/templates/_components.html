@@ -1,0 +1,41 @@
+{% macro status_card(title, value_id, value, detail="") -%}
+<section class="status-card">
+    <span class="card-label">{{ title }}</span>
+    <strong id="{{ value_id }}">{{ value }}</strong>
+    {% if detail %}<small>{{ detail }}</small>{% endif %}
+</section>
+{%- endmacro %}
+
+{% macro camera_preview() -%}
+<section class="panel camera-panel">
+    <div class="panel-head">
+        <h2>Camera Preview</h2>
+        <span id="objectBadge" class="badge neutral">Unavailable</span>
+    </div>
+    <img class="camera-feed" src="/video_feed" alt="Local camera preview">
+</section>
+{%- endmacro %}
+
+{% macro password_field(name, label, placeholder, required=True) -%}
+<label class="field">
+    <span>{{ label }}</span>
+    <input type="password" name="{{ name }}" placeholder="{{ placeholder }}" {% if required %}required{% endif %}>
+</label>
+{%- endmacro %}
+
+{% macro diagnostics_panel() -%}
+<section class="panel">
+    <div class="panel-head">
+        <h2>Diagnostics</h2>
+        <button class="secondary small" data-action="diagnostics">Run diagnostics</button>
+    </div>
+    <pre id="diagnosticsOutput" class="codebox">No diagnostics run in this session.</pre>
+</section>
+{%- endmacro %}
+
+{% macro destructive_warning() -%}
+<p class="warning-copy">
+    This action may cause irreversible local data loss. Best-effort overwrite behavior is attempted,
+    but complete deletion is not guaranteed across every storage layer.
+</p>
+{%- endmacro %}

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% import "_components.html" as ui %}
+{% block title %}Phantasm | Maintenance{% endblock %}
+
+{% block content %}
+<div class="grid-single">
+    <section class="panel">
+        <div class="panel-head">
+            <h2>Local Maintenance</h2>
+            <span class="badge">Local State</span>
+        </div>
+        <p class="copy">Review runtime state and operational settings. Destructive local actions are isolated from this view.</p>
+        <div class="status-grid">
+            {{ ui.status_card("Session Token", "tokenState", "Active") }}
+            {{ ui.status_card("Audit Settings", "auditState", audit_enabled) }}
+            {{ ui.status_card("State Directory", "statePath", state_path) }}
+            {{ ui.status_card("Operation Mode", "operationMode", "Local-only") }}
+        </div>
+        <div class="actions">
+            <button type="button" data-action="rotate-token">Rotate token</button>
+            <button type="button" class="secondary" data-action="reset-session">Reset session</button>
+            <a class="button secondary" href="/maintenance/entries">Entry management</a>
+            <a class="button secondary" href="/maintenance/logs" id="exportLogs">Export logs</a>
+        </div>
+    </section>
+    {{ ui.diagnostics_panel() }}
+    <section class="panel">
+        <h2>Security Notes</h2>
+        <p class="copy">
+            Phantasm does not claim protection against a compromised host, live memory capture,
+            keylogging, camera observation, forced disclosure, or guaranteed secure deletion.
+        </p>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function runDiagnostics() {
+        const res = await apiFetch('/maintenance/diagnostics');
+        const data = await res.json();
+        document.getElementById('diagnosticsOutput').textContent = JSON.stringify(data, null, 2);
+    }
+
+    document.querySelector('[data-action="diagnostics"]').addEventListener('click', runDiagnostics);
+
+    document.querySelector('[data-action="rotate-token"]').addEventListener('click', async () => {
+        const res = await apiFetch('/maintenance/rotate_token', { method: 'POST', body: new URLSearchParams() });
+        const data = await res.json();
+        if (data.web_token) webToken = data.web_token;
+        toast(data.status || data.error || 'Token rotation finished.');
+    });
+
+    document.querySelector('[data-action="reset-session"]').addEventListener('click', async () => {
+        const res = await apiFetch('/maintenance/reset_session', { method: 'POST', body: new URLSearchParams() });
+        const data = await res.json();
+        toast(data.status || data.error || 'Session reset finished.');
+    });
+
+    document.getElementById('exportLogs').addEventListener('click', async (event) => {
+        event.preventDefault();
+        const res = await apiFetch('/maintenance/logs');
+        if (!res.ok) {
+            const data = await res.json();
+            toast(data.error || 'No local event log is available.');
+            return;
+        }
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'phantasm-events.jsonl';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    });
+</script>
+{% endblock %}

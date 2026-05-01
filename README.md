@@ -12,7 +12,7 @@ Phantasm is research software. It is not a replacement for full-disk encryption,
 - Encrypts payloads with AES-GCM and Argon2id-derived keys.
 - Uses a local access key so `vault.bin` alone is not enough to decrypt data.
 - Supports separate open and open+purge passwords for the same physical-key profile.
-- Provides a CLI and local Web UI.
+- Provides a CLI and local WebUI v2.
 - Supports an emergency brick flow that destroys the local access key first.
 
 ## Repository Layout
@@ -78,6 +78,16 @@ PYTHONPATH=src python3 -m phantasm.web_server
 ```
 
 Open `http://127.0.0.1:8000`.
+
+WebUI v2 uses neutral entry-based terminology during normal operation. The internal two-profile model remains, but the UI does not expose profile names or retrieval order.
+
+Navigation:
+
+- `Home`: local device state, camera state, object state, and primary actions.
+- `Store`: create or update a protected entry by selecting a file, entering an access password, and binding an object.
+- `Retrieve`: unlock the matching local entry without choosing an internal profile.
+- `Maintenance`: diagnostics, token rotation, audit state, log export, and entry management.
+- `/emergency`: hidden route for destructive local actions with typed confirmation.
 
 ## Runtime State
 

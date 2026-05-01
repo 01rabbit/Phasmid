@@ -48,7 +48,22 @@ class WebServerBoundaryTests(unittest.TestCase):
 
         asyncio.run(run())
 
-    def test_purge_other_requires_explicit_phrase(self):
+    def test_status_uses_neutral_terms(self):
+        with mock.patch.object(web_server.gate, "get_status", return_value={
+            "object_detected": True,
+            "matched_mode": "dummy",
+            "match_states": {"dummy": True, "secret": False},
+            "registered_modes": {"dummy": True, "secret": False},
+        }):
+            status = web_server.neutral_status()
+
+        self.assertEqual(status["object_state"], "matched")
+        self.assertEqual(
+            set(status.keys()),
+            {"camera_ready", "object_state", "device_state", "local_mode"},
+        )
+
+    def test_hidden_clear_requires_explicit_phrase(self):
         async def run():
             request = SimpleNamespace(
                 client=SimpleNamespace(host="127.0.0.1"),
@@ -56,14 +71,14 @@ class WebServerBoundaryTests(unittest.TestCase):
             )
             response = await web_server.purge_other(
                 request,
-                accessed_profile="profile_a",
+                accessed_entry="entry_1",
                 confirmation="DELETE",
             )
             self.assertIn("Confirmation required", response["error"])
 
         asyncio.run(run())
 
-    def test_purge_other_allows_missing_phrase_when_confirmation_disabled(self):
+    def test_hidden_clear_ignores_purge_confirmation_environment(self):
         async def run():
             request = SimpleNamespace(
                 client=SimpleNamespace(host="127.0.0.1"),
@@ -73,11 +88,28 @@ class WebServerBoundaryTests(unittest.TestCase):
                  mock.patch.object(web_server.vault, "purge_other_mode") as purge:
                 response = await web_server.purge_other(
                     request,
-                    accessed_profile="profile_a",
+                    accessed_entry="entry_1",
                     confirmation="",
                 )
+            purge.assert_not_called()
+            self.assertIn("Confirmation required", response["error"])
+
+        asyncio.run(run())
+
+    def test_hidden_clear_accepts_confirmation_phrase(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                url=SimpleNamespace(path="/purge_other"),
+            )
+            with mock.patch.object(web_server.vault, "purge_other_mode") as purge:
+                response = await web_server.purge_other(
+                    request,
+                    accessed_entry="entry_1",
+                    confirmation=web_server.DESTRUCTIVE_CLEAR_PHRASE,
+                )
             purge.assert_called_once_with("dummy")
-            self.assertIn("purged", response["status"])
+            self.assertIn("cleared", response["status"])
 
         asyncio.run(run())
 

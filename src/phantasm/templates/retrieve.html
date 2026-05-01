@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% import "_components.html" as ui %}
+{% block title %}Phantasm | Retrieve{% endblock %}
+
+{% block content %}
+<div class="grid">
+    {{ ui.camera_preview() }}
+    <section class="panel">
+        <div class="panel-head">
+            <h2>Unlock Local Entry</h2>
+            <span class="badge">Retrieve</span>
+        </div>
+        <p class="copy">Present the bound object and enter the access password. Only a successful result is returned.</p>
+        <form id="retrieveForm">
+            {{ ui.password_field("password", "Access password", "Required") }}
+            <div class="actions">
+                <button type="submit">Unlock</button>
+                <button type="reset" class="secondary">Reset</button>
+            </div>
+        </form>
+        <section id="downloadPanel" class="result-panel">
+            <h3>Download Result</h3>
+            <p class="copy" id="downloadName">Access granted.</p>
+            <div class="actions">
+                <button type="button" id="downloadButton">Download</button>
+                <button type="button" class="secondary" id="clearSession">Clear session</button>
+            </div>
+        </section>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let pendingDownload = null;
+    let pendingFilename = 'protected-entry.bin';
+
+    document.getElementById('retrieveForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        const res = await apiFetch('/retrieve', { method: 'POST', body: formData });
+        if (res.ok && res.headers.get('content-type') === 'application/octet-stream') {
+            pendingDownload = await res.blob();
+            pendingFilename = 'protected-entry.bin';
+            const headerFilename = res.headers.get('X-Filename');
+            if (headerFilename) pendingFilename = decodeURIComponent(headerFilename);
+            document.getElementById('downloadName').textContent = `Access granted: ${pendingFilename}`;
+            document.getElementById('downloadPanel').style.display = 'block';
+            toast(res.headers.get('X-Purge-Applied') === '1' ? 'Access granted. Local state updated.' : 'Access granted.');
+            return;
+        }
+        const data = await res.json();
+        toast(data.error || 'No valid entry found.');
+    });
+
+    document.getElementById('downloadButton').addEventListener('click', () => {
+        if (!pendingDownload) return;
+        const url = window.URL.createObjectURL(pendingDownload);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = pendingFilename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('clearSession').addEventListener('click', () => {
+        pendingDownload = null;
+        document.getElementById('downloadPanel').style.display = 'none';
+        document.getElementById('retrieveForm').reset();
+        toast('Local session cleared.');
+    });
+</script>
+{% endblock %}

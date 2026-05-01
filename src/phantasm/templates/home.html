@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% import "_components.html" as ui %}
+{% block title %}Phantasm | Home{% endblock %}
+
+{% block content %}
+<section class="status-grid">
+    {{ ui.status_card("Device Status", "deviceState", "Ready") }}
+    {{ ui.status_card("Camera Status", "cameraState", "Checking") }}
+    {{ ui.status_card("Object State", "objectState", "Unavailable") }}
+    {{ ui.status_card("Operation Mode", "operationMode", "Local-only") }}
+</section>
+
+<div class="grid">
+    {{ ui.camera_preview() }}
+    <section class="panel">
+        <div class="panel-head">
+            <h2>Protected Entry Console</h2>
+            <span class="badge good">Local-only</span>
+        </div>
+        <p class="copy">
+            Create or unlock a protected entry using an access password and a bound physical object.
+            This interface is designed for localhost or USB gadget access.
+        </p>
+        <div class="actions">
+            <a class="button" href="/store">Store</a>
+            <a class="button secondary" href="/retrieve">Retrieve</a>
+            <a class="button secondary" href="/maintenance">Maintenance</a>
+        </div>
+        <h3>Recent Local Event</h3>
+        <p class="copy">Waiting for a local operation.</p>
+    </section>
+</div>
+{% endblock %}

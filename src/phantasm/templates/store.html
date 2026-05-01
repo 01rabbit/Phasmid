@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% import "_components.html" as ui %}
+{% block title %}Phantasm | Store{% endblock %}
+
+{% block content %}
+<div class="grid">
+    {{ ui.camera_preview() }}
+    <section class="panel">
+        <div class="panel-head">
+            <h2>Create Protected Entry</h2>
+            <span class="badge">Store</span>
+        </div>
+        <p class="copy">
+            Select a file, enter an access password, and present a physical object to bind as an access cue.
+            If the object already matches a local entry, that entry is updated.
+        </p>
+        <form id="storeForm">
+            <label class="field">
+                <span>File to protect</span>
+                <input type="file" name="file" required>
+            </label>
+            {{ ui.password_field("password", "Access password", "Required") }}
+            <details>
+                <summary>Advanced</summary>
+                {{ ui.password_field("purge_password", "Optional destructive password", "Decrypt and clear the unmatched entry", False) }}
+                <label class="field">
+                    <span>Local note label</span>
+                    <input type="text" name="local_note_label" placeholder="Optional local label">
+                </label>
+                <p class="copy">Audit preference is controlled by local environment settings.</p>
+            </details>
+            <input type="hidden" name="entry_hint" id="entryHint">
+            <input type="hidden" name="overwrite" id="overwriteFlag" value="false">
+            <div class="actions">
+                <button type="button" class="secondary" id="captureButton">Capture object</button>
+                <button type="submit">Save entry</button>
+                <a class="button secondary" href="/">Cancel</a>
+            </div>
+        </form>
+        <section id="overwritePanel" class="panel hidden" style="margin-top: 16px;">
+            <h2>Replace Local Entry</h2>
+            <p class="copy">No open local entry is available. Select a local entry label and confirm replacement.</p>
+            <label class="field">
+                <span>Local entry label</span>
+                <select id="overwriteEntry">
+                    {% for entry in entries %}
+                    <option value="{{ entry.id }}">{{ entry.label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button type="button" class="danger" id="confirmOverwrite">Replace selected local entry</button>
+        </section>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('captureButton').addEventListener('click', async () => {
+        const body = new URLSearchParams({ replace: 'false' });
+        const res = await apiFetch('/register_key', { method: 'POST', body });
+        const data = await res.json();
+        if (data.overwrite_required) {
+            document.getElementById('overwritePanel').classList.remove('hidden');
+        }
+        toast(data.status || data.error || 'Object capture finished.');
+    });
+
+    document.getElementById('confirmOverwrite').addEventListener('click', () => {
+        document.getElementById('entryHint').value = document.getElementById('overwriteEntry').value;
+        document.getElementById('overwriteFlag').value = 'true';
+        document.getElementById('overwritePanel').classList.add('hidden');
+        toast('Replacement confirmed for the next save.');
+    });
+
+    document.getElementById('storeForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const formData = new FormData(form);
+        const upload = formData.get('file');
+        if (upload && upload.size > maxUploadBytes) {
+            toast('Selected file exceeds the local upload limit.');
+            return;
+        }
+        const accessPassword = formData.get('password') || '';
+        const destructivePassword = formData.get('purge_password') || '';
+        if (destructivePassword && destructivePassword === accessPassword) {
+            toast('Access and destructive passwords must be different.');
+            return;
+        }
+        const res = await apiFetch('/store', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.overwrite_required) {
+            document.getElementById('overwritePanel').classList.remove('hidden');
+        }
+        if (data.status) form.reset();
+        toast(data.status || data.error || 'Store operation finished.');
+    });
+</script>
+{% endblock %}

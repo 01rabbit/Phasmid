@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% import "_components.html" as ui %}
+{% block title %}Phantasm | Entry Management{% endblock %}
+
+{% block content %}
+<div class="grid">
+    {{ ui.camera_preview() }}
+    <section class="panel">
+        <div class="panel-head">
+            <h2>Entry Management</h2>
+            <span class="badge">Maintenance</span>
+        </div>
+        <p class="copy">Rebind a physical object, test matching, or rename a local label outside the normal flow.</p>
+        <label class="field">
+            <span>Entry label</span>
+            <select id="entrySelect">
+                {% for entry in entries %}
+                <option value="{{ entry.id }}">{{ entry.label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <div class="actions">
+            <button type="button" id="rebindButton">Rebind object</button>
+            <button type="button" class="secondary" id="testButton">Test matching</button>
+            <button type="button" class="secondary" id="renameButton">Rename local label</button>
+            <button type="button" class="secondary" id="clearTemplateButton">Clear local object template</button>
+        </div>
+        <h3>Binding Status</h3>
+        <pre id="entryOutput" class="codebox">{{ entry_status | tojson(indent=2) }}</pre>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function refreshEntryStatus() {
+        const res = await apiFetch('/maintenance/entry_status');
+        const data = await res.json();
+        document.getElementById('entryOutput').textContent = JSON.stringify(data, null, 2);
+    }
+
+    document.getElementById('rebindButton').addEventListener('click', async () => {
+        const entry = document.getElementById('entrySelect').value;
+        const body = new URLSearchParams({ entry_hint: entry, replace: 'true' });
+        const res = await apiFetch('/register_key', { method: 'POST', body });
+        const data = await res.json();
+        toast(data.status || data.error || 'Rebind operation finished.');
+        refreshEntryStatus();
+    });
+
+    document.getElementById('testButton').addEventListener('click', refreshEntryStatus);
+    document.getElementById('renameButton').addEventListener('click', () => {
+        toast('Local label rename is reserved for a future persistent label store.');
+    });
+    document.getElementById('clearTemplateButton').addEventListener('click', () => {
+        toast('Use the hidden emergency route for destructive local actions.');
+    });
+</script>
+{% endblock %}

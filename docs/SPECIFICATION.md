@@ -56,7 +56,7 @@ The default state directory is `.state/` and can be changed with `PHANTASM_STATE
 | Profile A | `dummy` | First profile |
 | Profile B | `secret` | Second profile |
 
-The CLI accepts `--profile a` or `--profile b`. The Web UI exposes Profile A and Profile B selectors.
+The CLI accepts `--profile a` or `--profile b`. WebUI v2 maps these internal profiles to neutral protected-entry terminology and does not expose profile selectors during normal operation.
 
 ## 6. CLI
 
@@ -112,27 +112,57 @@ python3 main.py brick
 
 The brick flow destroys `.state/access.bin` first, then performs a best-effort overwrite of `vault.bin`. Flash media, snapshots, backups, and journaling filesystems may retain old data.
 
-## 7. Web UI
+## 7. WebUI v2
 
 Start the server:
 
 ```bash
-python3 -m phantasm.web_server
+PYTHONPATH=src python3 -m phantasm.web_server
 ```
 
 The default bind address is `127.0.0.1:8000`.
 
+WebUI v2 is server-rendered with lightweight JavaScript. It preserves the internal two-profile model while presenting normal operations as protected-entry workflows.
+
+Normal navigation:
+
+- Home
+- Store
+- Retrieve
+- Maintenance
+
+The Emergency view is available only by direct route and is not shown in normal navigation.
+
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/` | Web UI |
+| `GET` | `/` | Home |
+| `GET` | `/store` | Store screen |
+| `GET` | `/retrieve` | Retrieve screen |
+| `GET` | `/maintenance` | Maintenance screen |
+| `GET` | `/maintenance/entries` | Entry management screen |
+| `GET` | `/emergency` | Hidden emergency screen |
 | `GET` | `/video_feed` | Camera stream |
-| `GET` | `/status` | Physical-key status |
-| `POST` | `/register_key` | Register a physical key |
-| `POST` | `/store` | Store a file |
-| `POST` | `/retrieve` | Retrieve and download a payload |
-| `POST` | `/purge_other` | Purge the alternate profile according to policy |
+| `GET` | `/status` | Neutral device/object status |
+| `POST` | `/register_key` | Bind or rebind a physical object |
+| `POST` | `/store` | Store a protected entry |
+| `POST` | `/retrieve` | Retrieve and download the matching entry |
+| `POST` | `/purge_other` | Hidden emergency clear action |
+| `POST` | `/emergency/brick` | Hidden emergency brick action |
+| `GET` | `/maintenance/diagnostics` | Local diagnostics |
+| `POST` | `/maintenance/rotate_token` | Rotate Web mutation token |
+| `POST` | `/maintenance/reset_session` | Reset local session counters |
+| `GET` | `/maintenance/logs` | Export optional local audit log |
 
 Mutating endpoints require `X-Phantasm-Token`. The token is generated on process start unless `PHANTASM_WEB_TOKEN` is set.
+
+`/status` intentionally returns only neutral fields:
+
+- `camera_ready`
+- `object_state`
+- `device_state`
+- `local_mode`
+
+The normal UI must not display internal profile names, internal retrieval order, or alternate-entry state after retrieval.
 
 ## 8. Cryptography
 
