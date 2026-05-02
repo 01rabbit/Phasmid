@@ -12,6 +12,10 @@ from phantasm import cli
 
 
 class CLITests(unittest.TestCase):
+    def test_entry_labels_are_neutral(self):
+        self.assertEqual(cli.display_mode_label(cli.gate.MODES[0]), "selected local entry")
+        self.assertEqual(cli.display_mode_label(cli.gate.MODES[1]), "selected local entry")
+
     def test_local_state_confirmation_language_is_neutral(self):
         output = io.StringIO()
         with unittest.mock.patch.object(cli, "purge_confirmation_required", return_value=True), \
@@ -19,6 +23,34 @@ class CLITests(unittest.TestCase):
              contextlib.redirect_stdout(output):
             self.assertFalse(cli._confirm_purge_other_mode(cli.gate.MODES[0]))
         self.assertNotRegex(output.getvalue(), re.compile(r"profile|dummy|secret|decoy|truth|fake|real", re.I))
+
+    def test_object_registration_output_is_neutral(self):
+        output = io.StringIO()
+        with unittest.mock.patch("builtins.input", return_value=""), \
+             unittest.mock.patch.object(cli.gate, "capture_reference", return_value=(True, "ok")), \
+             unittest.mock.patch.object(cli, "_wait_for_reference_match", return_value=True), \
+             contextlib.redirect_stdout(output):
+            success, message = cli._register_reference_key(cli.gate.MODES[0])
+
+        self.assertTrue(success)
+        self.assertEqual(message, "Object access cue registered.")
+        self.assertNotRegex(
+            output.getvalue(),
+            re.compile(
+                r"profile|Entry A|Entry B|image key|registered image keys|Physical key|"
+                r"other profile|other mode|DELETE Entry|TACTICAL|ARMED|Master Key|Biometric",
+                re.I,
+            ),
+        )
+
+    def test_cli_source_does_not_include_retired_user_visible_phrases(self):
+        with open(cli.__file__, "r", encoding="utf-8") as handle:
+            source = handle.read()
+        self.assertNotIn("Entry A", source)
+        self.assertNotIn("Entry B", source)
+        self.assertNotIn("AMBIGUOUS KEY", source)
+        self.assertNotIn("KEY NOT FOUND", source)
+        self.assertNotIn("Performing Argon2id-based key derivation", source)
 
     def test_face_reset_confirmation_requires_exact_phrase(self):
         with contextlib.redirect_stdout(io.StringIO()):

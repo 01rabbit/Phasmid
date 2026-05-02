@@ -618,7 +618,7 @@ async def metadata_scrub(request: Request, file: UploadFile = File(...)):
             {"error": result["message"], "limitation": result["limitation"]},
             status_code=422,
         )
-    safe_filename = urllib.parse.quote(result["filename"])
+    safe_filename = urllib.parse.quote("metadata_reduced_payload.bin")
     return StreamingResponse(
         io.BytesIO(result["data"]),
         media_type="application/octet-stream",

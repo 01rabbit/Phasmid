@@ -12,6 +12,9 @@ from .config import STATE_BLOB_NAME, STATE_KEY_NAME, state_dir
 
 
 class AIGate:
+    # Legacy internal identifiers are retained for vault compatibility only.
+    # They must never be emitted to UI, API responses, overlays, CLI output,
+    # default logs, documentation examples, or user-visible errors.
     MODES = ("dummy", "secret")
     AUTH_TOKENS = {
         "dummy": "reference_dummy_matched",
@@ -465,7 +468,7 @@ class AIGate:
         )
         cv2.putText(
             image,
-            "Show a bound object to continue",
+            "Present a bound object to continue",
             (15, 100),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.5,

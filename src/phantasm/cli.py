@@ -16,8 +16,8 @@ CAMERA_WARMUP_TIMEOUT = 10
 REFERENCE_MATCH_TIMEOUT = 10
 FACE_RESET_CONFIRMATION = "RESET FACE LOCK AND VAULT"
 MODE_LABELS = {
-    gate.MODES[0]: "Entry A",
-    gate.MODES[1]: "Entry B",
+    gate.MODES[0]: "selected local entry",
+    gate.MODES[1]: "selected local entry",
 }
 ENTRY_SELECTOR_TO_MODE = {
     "a": gate.MODES[0],
@@ -28,13 +28,14 @@ ENTRY_SELECTOR_TO_MODE = {
 
 
 def display_mode_label(mode):
-    return MODE_LABELS.get(mode, "Entry")
+    return MODE_LABELS.get(mode, "local entry")
 
 
 def resolve_mode(entry_value):
     if entry_value not in ENTRY_SELECTOR_TO_MODE:
         raise ValueError(f"unsupported entry selector: {entry_value}")
     return ENTRY_SELECTOR_TO_MODE[entry_value]
+
 
 def show_loading(message, duration=2):
     chars = ["/", "-", "\\", "|"]
@@ -70,7 +71,10 @@ def _wait_for_reference_match(timeout=REFERENCE_MATCH_TIMEOUT, expected_mode=Non
 
 
 def _register_reference_key(mode):
-    print(f"[INFO] Position the bound object for {display_mode_label(mode)}, then press Enter to capture.")
+    print(
+        f"[INFO] Position the bound object for {display_mode_label(mode)}, "
+        "then press Enter to capture."
+    )
     input()
 
     success, msg = gate.capture_reference(mode)
@@ -79,7 +83,10 @@ def _register_reference_key(mode):
 
     print(f"[LOCAL] {display_mode_label(mode)} object cue captured. Validating match quality...")
     if not _wait_for_reference_match(expected_mode=mode):
-        return False, f"Object cue captured, but no stable match was detected for {display_mode_label(mode)}."
+        return (
+            False,
+            f"Object cue captured, but no stable match was detected for {display_mode_label(mode)}.",
+        )
 
     return True, "Object access cue registered."
 
@@ -124,11 +131,11 @@ def _prompt_store_passwords():
     open_password = getpass.getpass("[AUTH] Enter access password: ")
     restricted_recovery_password = getpass.getpass("[AUTH] Enter restricted recovery password: ")
     if not open_password:
-        raise ValueError("open password must not be empty")
+        raise ValueError("access password must not be empty")
     if not restricted_recovery_password:
         raise ValueError("restricted recovery password must not be empty")
     if open_password == restricted_recovery_password:
-        raise ValueError("open and restricted recovery passwords must be different")
+        raise ValueError("access and restricted recovery passwords must be different")
     return open_password, restricted_recovery_password
 
 
@@ -144,12 +151,22 @@ def _reset_face_lock_and_container(vault):
     vault.format_container(rotate_access_key=True)
     object_success, object_message = gate.clear_references()
     face_success, face_message = face_lock.reset()
-    enroll_success, enroll_message = face_lock.arm_enrollment() if face_success else (False, "Face enrollment was not armed.")
+    enroll_success, enroll_message = (
+        face_lock.arm_enrollment()
+        if face_success
+        else (False, "Face enrollment was not armed.")
+    )
     audit_event("container_reinitialized", source="cli_face_reset")
     audit_event("object_bindings_cleared", source="cli_face_reset", success=object_success)
     audit_event("ui_face_lock_cleared", source="cli_face_reset", success=face_success)
     audit_event("ui_face_enrollment_armed", source="cli_face_reset", success=enroll_success)
-    return object_success and face_success and enroll_success, object_message, face_message, enroll_message
+    return (
+        object_success and face_success and enroll_success,
+        object_message,
+        face_message,
+        enroll_message,
+    )
+
 
 def main():
     parser = argparse.ArgumentParser(description="Phantasm - Local Protected Storage")
@@ -217,7 +234,7 @@ def main():
             except ValueError as exc:
                 print(f"[!] Error: {exc}")
                 return
-            
+
             print(f"\n[LOCAL] Calibrating object cue for {entry_label}...")
             print("[INFO] The captured object will be stored as the local access cue for this entry.")
             success, msg = _register_reference_key(selected_mode)
@@ -229,9 +246,9 @@ def main():
             with open(args.file, "rb") as f:
                 data = f.read()
 
-            show_loading("Performing Argon2id-based key derivation", 2)
+            show_loading("Preparing cryptographic recovery", 2)
             show_loading("Encrypting payload with AES-256-GCM", 1.5)
-            
+
             vault.store(
                 pw,
                 data,
@@ -240,46 +257,59 @@ def main():
                 mode=selected_mode,
                 restricted_recovery_password=purge_pw,
             )
-            audit_event("payload_stored", entry="local_entry", filename=os.path.basename(args.file), bytes=len(data))
+            audit_event(
+                "payload_stored",
+                entry="local_entry",
+                filename=os.path.basename(args.file),
+                bytes=len(data),
+            )
             print("\n[SUCCESS] Protected entry saved.")
             print("[LOCAL] Bound object cue registered.")
 
         elif args.action == "retrieve":
             ui.show_diagnostic()
-            print("\n" + "="*55)
-            print(" PHANTASM - LOCAL RETRIEVE")
-            print(" SYSTEM STATUS: READY")
-            print("="*55)
-            
+            print("\n" + "=" * 55)
+            print(" PHANTASM - LOCAL RETRIEVAL")
+            print(" DEVICE STATUS: READY")
+            print("=" * 55)
+
             pw = getpass.getpass("\n[AUTH] Access password: ")
-            
+
             print("\n[LOCAL] Requesting bound object verification...")
             user_gesture_seq = _collect_auth_sequence()
-            
+
             if gate.last_match_mode == gate.MATCH_AMBIGUOUS:
-                ui.show_alert("AUTH ERROR\nAMBIGUOUS KEY")
+                ui.show_alert("ACCESS ERROR\nAMBIGUOUS OBJECT")
                 print("[!] Access rejected because the object match is ambiguous.")
                 return
             if not user_gesture_seq or user_gesture_seq[0] == gate.MATCH_NONE:
-                ui.show_alert("AUTH ERROR\nKEY NOT FOUND")
+                ui.show_alert("ACCESS ERROR\nOBJECT NOT FOUND")
                 print("[!] No bound object matched.")
                 return
 
-            show_loading("Verifying cryptographic integrity", 3)
-            
-            result, filename, password_role = vault.retrieve_with_policy(pw, user_gesture_seq, mode=gate.MODES[0])
+            show_loading("Verifying protected entry", 3)
+
+            result, filename, password_role = vault.retrieve_with_policy(
+                pw,
+                user_gesture_seq,
+                mode=gate.MODES[0],
+            )
             accessed_mode = gate.MODES[0]
 
             if result is None:
-                result, filename, password_role = vault.retrieve_with_policy(pw, user_gesture_seq, mode=gate.MODES[1])
+                result, filename, password_role = vault.retrieve_with_policy(
+                    pw,
+                    user_gesture_seq,
+                    mode=gate.MODES[1],
+                )
                 accessed_mode = gate.MODES[1]
 
             if result is not None:
                 ui.show_alert("ACCESS GRANTED")
-                
-                show_loading("Reconstructing secure data streams", 2)
+
+                show_loading("Preparing recovered payload", 2)
                 print(f"\n[ACCESS GRANTED] Decrypted {len(result)} bytes.")
-                
+
                 if args.out:
                     with open(args.out, "wb") as f:
                         f.write(result)
@@ -293,7 +323,12 @@ def main():
                     except UnicodeDecodeError:
                         print("[INFO] Binary payload detected.")
 
-                audit_event("payload_retrieved", entry="local_entry", filename=filename, bytes=len(result))
+                audit_event(
+                    "payload_retrieved",
+                    entry="local_entry",
+                    filename=filename,
+                    bytes=len(result),
+                )
                 if password_role == GhostVault.PURGE_ROLE:
                     vault.purge_other_mode(accessed_mode)
                     audit_event(
@@ -321,7 +356,7 @@ def main():
                     audit_event("restricted_local_update", accessed_entry="local_entry")
                     print("\n(SYSTEM: Operation completed.)")
                 else:
-                    print("\n(SYSTEM: Local entry state preserved.)")
+                    print("\n(SYSTEM: Operation completed.)")
             else:
                 ui.show_alert("ACCESS DENIED\nINVALID CREDENTIALS")
                 audit_event("retrieve_failed")
@@ -336,8 +371,10 @@ def main():
             if not _confirm_face_lock_reset():
                 print("[ABORTED] Face UI lock reset cancelled.")
                 return
-            success, object_message, face_message, enroll_message = _reset_face_lock_and_container(vault)
-            print(f"[+] Container initialized: vault.bin is empty.")
+            success, object_message, face_message, enroll_message = (
+                _reset_face_lock_and_container(vault)
+            )
+            print("[+] Container initialized: vault.bin is empty.")
             print(f"[+] Object bindings: {object_message}")
             print(f"[+] Face UI lock: {face_message}")
             print(f"[+] Face enrollment: {enroll_message}")
@@ -353,6 +390,7 @@ def main():
             ui.close()
         except Exception:
             pass
+
 
 if __name__ == "__main__":
     main()

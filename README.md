@@ -1,6 +1,6 @@
 # Phantasm
 
-Phantasm is a local-only, coercion-aware secure-storage prototype. It explores how visible disclosure and protected local state can diverge when device seizure and compelled access are practical risks.
+Phantasm is a field-evaluation prototype for local-only coercion-aware storage. It explores how visible disclosure and protected local state can diverge when device seizure and compelled access are practical risks.
 
 Phantasm is research software. It is not a replacement for full-disk encryption, hardware-backed key storage, an audited classified-data handling system, or a complete solution to compelled disclosure.
 
@@ -22,6 +22,79 @@ Phantasm does not promise perfect deniability. It reduces operational damage in 
 Phantasm follows a simple rule: no lies, no unnecessary truth.
 
 The interface should report what the user needs to complete the current operation, but it should not reveal the internal disclosure model, storage structure, trial order, or restricted recovery behavior.
+
+Honest interface. Silent structure.
+
+Phantasm is not field-proven until it has been validated on target hardware with the Field Test Procedure and Seizure Review Checklist.
+
+## When to Use Phantasm
+
+Use Phantasm when the problem is not merely file encryption, but compelled access, device seizure, over-disclosure, metadata risk, or local UI/log leakage.
+
+If your only requirement is normal file encryption on a trusted device, a mature full-disk encryption system, password manager, or audited file-encryption tool may be more appropriate.
+
+Phantasm is intentionally specialized. It is not designed to be the simplest way to encrypt files.
+
+## Safe Use Boundary
+
+Phantasm is intended for lawful local protection of sensitive material where device seizure, compelled access, or over-disclosure are realistic risks.
+
+It is appropriate for:
+
+- source-protection workflows,
+- temporary field notes,
+- research material,
+- travel-sensitive files,
+- local-only controlled disclosure experiments,
+- defensive security research.
+
+It is not intended for:
+
+- covert communication,
+- surveillance evasion,
+- censorship bypass,
+- remote wipe,
+- remote unlock,
+- offensive operations,
+- malware storage,
+- illegal concealment,
+- replacing organizational classified-data systems.
+
+## Government and Organizational Use Boundary
+
+Phantasm is not approved classified-data handling infrastructure. It does not replace organizational records-management systems, certified encryption products, HSM-backed key management, full-disk encryption, or formal classified-data procedures.
+
+Use of Phantasm in government or organizational environments must follow applicable law, policy, records-retention requirements, and classification rules. Phantasm is intended for local field-evaluation and harm-reduction workflows, not as a substitute for approved systems of record.
+
+## Reviewer Notes and Known Limits
+
+Phantasm is intentionally narrow.
+
+It does not provide:
+
+- perfect deniability,
+- guaranteed secure deletion,
+- protection against compromised hosts,
+- protection against malware or keyloggers,
+- protection against live memory capture,
+- protection against camera observation,
+- protection against coercion after disclosure,
+- certified classified-data handling,
+- remote management,
+- communications security,
+- anonymity,
+- censorship bypass,
+- surveillance evasion.
+
+It focuses on:
+
+- local-only storage,
+- reduced semantic leakage,
+- controlled disclosure workflows,
+- key-path invalidation,
+- metadata risk awareness,
+- source-safe operational separation,
+- field evaluation on constrained hardware.
 
 ## Repository Layout
 
@@ -115,7 +188,11 @@ Field Mode reduces Maintenance detail and other operational hints:
 PHANTASM_FIELD_MODE=1 PYTHONPATH=src python3 -m phantasm.web_server
 ```
 
-Field Mode is recommended for high-risk local appliance deployments. It reduces casual leakage but is not a security boundary.
+Field Mode is recommended for high-risk local appliance deployments. Field Mode is not a security boundary.
+
+Field Mode reduces casual local exposure in the WebUI and maintenance APIs. It does not prevent forensic inspection, filesystem analysis, memory capture, host compromise, browser compromise, physical coercion, or lawful compulsory process.
+
+Hidden Emergency routes are UX concealment only. They are not access control by themselves. Server-side confirmation, local tokens, UI unlock state, and typed confirmation are still required.
 
 Optional UI face lock:
 
@@ -143,7 +220,9 @@ Matching can fail because of lighting, camera quality, object orientation, motio
 
 The Store screen includes a local metadata risk check. It can warn when a file appears to contain GPS-like fields, camera or author metadata, creator application fields, embedded thumbnails, local path leakage, or original filename context.
 
-The optional metadata reduction path is best-effort, local-only, and conservative. It does not overwrite the original file and does not claim forensic-grade sanitization.
+The optional metadata reduction path is best-effort, local-only, and conservative. It does not overwrite the original file and does not claim complete metadata removal.
+
+Metadata detection and reduction are best-effort. Metadata reduction may not remove every embedded identifier from every file format. Unsupported file types fail safely. Users should not treat metadata-reduced files as formal sanitization.
 
 ## Runtime State
 
@@ -190,11 +269,13 @@ Restricted local data-loss behavior should be understood primarily as key-materi
 
 For high-risk deployments, do not store all recovery conditions on the same physical medium. Phantasm is strongest when the encrypted container, local state, memorized password, physical-object cue, and optional external key material are separated.
 
-## Test
+## Test Command
 
 ```bash
 python3 -m unittest discover -s tests
 ```
+
+Passing automated tests do not prove field safety. They verify expected local behavior, terminology boundaries, Field Mode behavior, metadata route behavior, and WebUI contract behavior. Field evaluation still requires the Field Test Procedure and Seizure Review Checklist.
 
 KDF benchmark:
 
@@ -211,6 +292,7 @@ python3 scripts/bench_kdf.py
 - [Source-Safe Storage Workflow](docs/SOURCE_SAFE_WORKFLOW.md)
 - [Seizure Review Checklist](docs/SEIZURE_REVIEW_CHECKLIST.md)
 - [Field Test Procedure](docs/FIELD_TEST_PROCEDURE.md)
+- [Review Validation Record](docs/REVIEW_VALIDATION_RECORD.md)
 
 ## Security Notes
 

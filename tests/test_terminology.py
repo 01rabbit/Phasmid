@@ -17,6 +17,7 @@ USER_FACING_FILES = [
     "docs/SOURCE_SAFE_WORKFLOW.md",
     "docs/SEIZURE_REVIEW_CHECKLIST.md",
     "docs/FIELD_TEST_PROCEDURE.md",
+    "docs/REVIEW_VALIDATION_RECORD.md",
     "contrib/systemd/phantasm.service",
 ]
 
@@ -53,7 +54,13 @@ FORBIDDEN_PATTERNS = [
     r"\bRegistered keys\b",
     r"\bself-destruct\b",
     r"\bkill profile\b",
+    r"\bkill secret\b",
     r"\berase truth\b",
+    r"\bclean metadata\b",
+    r"\bfully scrubbed\b",
+    r"\bmetadata-free\b",
+    r"\bfield-proof\b",
+    r"\bforensic-proof\b",
     r"\bpurge_password\b",
     r"\bX-Local-State-Updated\b",
     r"\bX-Purge-Applied\b",

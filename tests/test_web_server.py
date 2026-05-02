@@ -547,6 +547,35 @@ class WebServerBoundaryTests(unittest.TestCase):
 
         asyncio.run(run())
 
+    def test_metadata_scrub_ignores_scrubber_filename_for_headers(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                url=SimpleNamespace(path="/metadata/scrub"),
+            )
+            upload = UploadFile(
+                filename="original-name.txt",
+                file=_BytesFile(b"payload"),
+            )
+            with mock.patch.object(
+                web_server,
+                "scrub_metadata",
+                return_value={
+                    "success": True,
+                    "filename": "revealing-result-name.txt",
+                    "data": b"payload",
+                    "message": "ok",
+                    "limitation": "best-effort",
+                },
+            ):
+                response = await web_server.metadata_scrub(request, upload)
+            headers = str(response.headers).lower()
+            self.assertIn("metadata_reduced_payload.bin", headers)
+            self.assertNotIn("revealing-result-name", headers)
+            self.assertNotIn("original-name", headers)
+
+        asyncio.run(run())
+
     def test_metadata_routes_require_web_token_and_ui_unlock(self):
         for path in {"/metadata/check", "/metadata/scrub"}:
             route = next(route for route in web_server.app.routes if getattr(route, "path", None) == path)

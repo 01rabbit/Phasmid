@@ -2,7 +2,7 @@
 
 This procedure evaluates local leakage, operational clarity, recovery behavior, key separation, and user-error resistance.
 
-Physical shock resistance is out of scope for Raspberry Pi Zero 2 W prototype evaluation.
+Physical shock resistance and tamper-resistant casing are out of scope for the Raspberry Pi Zero 2 W prototype. This procedure evaluates local leakage, offline operation, key separation, power-loss behavior, response headers, logs, and user-error resistance.
 
 ## Boot and Service
 
@@ -56,6 +56,10 @@ Physical shock resistance is out of scope for Raspberry Pi Zero 2 W prototype ev
 
 - Test sudden power loss during idle.
 - Test sudden power loss during Store.
+- Test sudden power loss during Retrieve.
+- Test sudden power loss after restricted recovery.
+- Review the systemd journal after each power-loss case.
+- Review temporary upload directories after each power-loss case.
 - Test no network availability.
 - Test camera unavailable.
 - Test USB gadget-only access.

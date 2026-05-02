@@ -27,7 +27,20 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("docs/SOURCE_SAFE_WORKFLOW.md", readme)
         self.assertIn("docs/SEIZURE_REVIEW_CHECKLIST.md", readme)
         self.assertIn("docs/FIELD_TEST_PROCEDURE.md", readme)
+        self.assertIn("docs/REVIEW_VALIDATION_RECORD.md", readme)
         self.assertIn("metadata risk check", readme)
+
+    def test_readme_addresses_reviewer_and_use_boundaries(self):
+        readme = read_text("README.md")
+        self.assertIn("Reviewer Notes and Known Limits", readme)
+        self.assertIn("Safe Use Boundary", readme)
+        self.assertIn("Government and Organizational Use Boundary", readme)
+        self.assertIn("When to Use Phantasm", readme)
+        self.assertIn("Test Command", readme)
+        self.assertIn("not approved classified-data handling infrastructure", readme)
+        self.assertIn("Field Mode is not a security boundary", readme)
+        self.assertIn("Metadata detection and reduction are best-effort", readme)
+        self.assertIn("field-evaluation prototype", readme)
 
     def test_specification_defines_field_mode_and_metadata_routes(self):
         spec = read_text("docs/SPECIFICATION.md")
@@ -36,6 +49,9 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("/metadata/scrub", spec)
         self.assertIn("no disk", spec.lower())
         self.assertIn("neutral filename", spec.lower())
+        self.assertIn("Capture-Visible Surface Rule", spec)
+        self.assertIn("Stress-Use UX Principle", spec)
+        self.assertIn("Field Mode is not a security boundary", spec)
 
     def test_threat_model_names_leakage_surfaces(self):
         threat = read_text("docs/THREAT_MODEL.md")
@@ -44,6 +60,27 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("camera overlay", threat)
         self.assertIn("CLI output", threat)
         self.assertIn("systemd logs", threat)
+        self.assertIn("Capture-visible surfaces include", threat)
+        self.assertIn("Hidden routes are not access control", threat)
+
+    def test_source_safe_workflow_addresses_mixing_and_labels(self):
+        doc = read_text("docs/SOURCE_SAFE_WORKFLOW.md")
+        self.assertIn("Do not store source identity", doc)
+        self.assertIn("Avoid local labels that reveal", doc)
+        self.assertIn("Before travel", doc)
+
+    def test_field_test_procedure_addresses_field_use_limits(self):
+        doc = read_text("docs/FIELD_TEST_PROCEDURE.md")
+        self.assertIn("Physical shock resistance and tamper-resistant casing are out of scope", doc)
+        self.assertIn("Test sudden power loss during Retrieve", doc)
+        self.assertIn("Review the systemd journal after each power-loss case", doc)
+
+    def test_review_validation_record_exists(self):
+        record = read_text("docs/REVIEW_VALIDATION_RECORD.md")
+        self.assertIn("Review Validation Record", record)
+        self.assertIn("93 tests passed", record)
+        self.assertIn("Target-hardware validation result", record)
+        self.assertIn("Not field-proven", record)
 
 
 if __name__ == "__main__":

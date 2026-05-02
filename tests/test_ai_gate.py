@@ -38,6 +38,7 @@ class AIGateTemplateTests(unittest.TestCase):
         self.assertIn("Object cue matched", source)
         self.assertIn("Ambiguous object cue", source)
         self.assertIn("No object cue match", source)
+        self.assertIn("Present a bound object to continue", source)
         self.assertNotIn("IMAGE KEY", source)
         self.assertNotIn("Registered keys", source)
         self.assertNotIn("No reference match", source)

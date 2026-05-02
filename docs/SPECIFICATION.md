@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Phantasm is a local-only, coercion-aware secure-storage prototype. It stores encrypted payloads in `vault.bin` and requires a password plus a camera-recognized physical object cue before recovery.
+Phantasm is a field-evaluation prototype for local-only coercion-aware storage. It stores encrypted payloads in `vault.bin` and requires a password plus a camera-recognized physical object cue before recovery.
 
 The project is intended for USB gadget mode or localhost access. It is not a replacement for full-disk encryption, hardware-backed key storage, audited classified-data handling, or a complete solution to compelled disclosure.
 
@@ -141,6 +141,10 @@ The restricted action view is available only by direct route and is not shown in
 
 `PHANTASM_FIELD_MODE=1` reduces normal Maintenance detail for appliance use. Before restricted confirmation, Maintenance shows only general health, local-only posture, UI lock state, and a confirmation requirement for sensitive maintenance. It hides state paths, audit export, token rotation, and detailed diagnostics until a fresh restricted confirmation is active.
 
+Field Mode is not a security boundary. It reduces casual local exposure in the WebUI and maintenance APIs. It does not prevent forensic inspection, filesystem analysis, memory capture, host compromise, browser compromise, physical coercion, or lawful compulsory process.
+
+Hidden restricted routes are UX concealment only. They are not access control by themselves. Server-side confirmation, local tokens, UI unlock state, and typed confirmation are still required.
+
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/` | Home |
@@ -184,7 +188,25 @@ Optional UI face lock is enabled with `PHANTASM_UI_FACE_LOCK=1`. It gates access
 
 First-time face enrollment is disabled unless the WebUI process is started with `PHANTASM_UI_FACE_ENROLL=1` or a valid `.state/face.enroll` request exists. The setup flag is intended for device provisioning only. The enrollment request is created by `python3 main.py reset-face-lock`, is checked when `/ui-lock` is reloaded, and is removed after successful enrollment.
 
-## 8. Metadata and Data Minimization
+## 8. Capture-Visible Surface Rule
+
+No capture-visible surface should reveal the internal disclosure model, internal trial order, slot purpose, restricted recovery side effects, or the existence of an alternate protected state.
+
+Capture-visible surfaces include the WebUI, rendered HTML, browser history, browser cache, JavaScript console, response headers, download filenames, CLI output, shell history, systemd stdout/stderr, audit logs, state-directory filenames, screenshots, and documentation copied to the device.
+
+## 9. Stress-Use UX Principle
+
+Phantasm must prefer simple, low-choice flows under stress.
+
+Normal operation should remain:
+
+1. Store
+2. Retrieve
+3. Maintenance
+
+Restricted actions must remain separated. Field Mode should reduce diagnostic noise. The UI should avoid forcing the user to reason about internal slots, trial order, recovery side effects, or disclosure structure during stressful conditions.
+
+## 10. Metadata and Data Minimization
 
 Store provides a local-only metadata risk check. It does not call cloud services and does not send telemetry.
 
@@ -208,7 +230,7 @@ Best-effort metadata reduction is conservative. It never overwrites the original
 
 The Store screen includes a short reminder: store only what is needed and separate identities, evidence, notes, and operational context when possible.
 
-## 9. Cryptography
+## 11. Cryptography
 
 The current format is GhostVault v3.
 
@@ -241,7 +263,7 @@ Recommended field hierarchy:
 
 For high-risk deployments, do not store all recovery conditions on the same physical medium. Phantasm is strongest when the encrypted container, local state, memorized password, physical-object cue, and optional external key material are separated.
 
-## 10. Physical-Key Matching
+## 12. Physical-Key Matching
 
 Phantasm extracts ORB features from camera frames.
 
@@ -263,7 +285,7 @@ Retrieval:
 
 The physical object is an operational cue, not a high-entropy cryptographic factor.
 
-## 11. Runtime Policy
+## 13. Runtime Policy
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
@@ -287,7 +309,7 @@ The physical object is an operational cue, not a high-entropy cryptographic fact
 | `PHANTASM_AUDIT` | Enable audit logging | `0` |
 | `PHANTASM_AUDIT_FILENAMES` | Record filename hashes | unset |
 
-## 12. Mission Presets and Retention
+## 14. Mission Presets and Retention
 
 Phantasm documentation defines neutral mission presets rather than role-revealing UI labels. Examples include:
 
@@ -302,19 +324,21 @@ Presets should influence guidance such as metadata warning, external key materia
 
 Retention principle: the safest sensitive data is data not carried. Users should remove stale entries after the task or trip, avoid old contact lists, avoid mixing unrelated work in one local entry, and review contents before checkpoints or inspection events.
 
-## 13. Restricted Recovery and Key Destruction
+## 15. Restricted Recovery and Key Destruction
 
 On flash media, complete overwrite-based deletion cannot be guaranteed across every storage layer. Phantasm therefore treats restricted recovery primarily as key-path invalidation and key-material destruction, with best-effort overwrite as a secondary measure.
 
 Restricted recovery must not be represented as guaranteed secure deletion. User-facing surfaces should use neutral terms such as restricted local update, local access path, key material, and best-effort overwrite.
 
-## 14. Appliance and Seizure Review
+## 16. Appliance and Seizure Review
 
 Raspberry Pi Zero 2 W appliance assumptions are documented in `docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md`. The recommended appliance posture is local-only binding, USB gadget access, SSH disabled after provisioning, Wi-Fi and Bluetooth disabled unless explicitly needed, dedicated service user, systemd hardening, Field Mode, audit disabled by default, debug disabled by default, no telemetry, no cloud dependency, no remote management, and external key-material separation.
 
 Seizure review requirements are documented in `docs/SEIZURE_REVIEW_CHECKLIST.md`. Review normal screens, restricted pages before and after confirmation, browser history, cache, HTML source, JavaScript console, HTTP response headers, download filenames, optional audit logs, `.state/` names, temporary files, shell history, systemd logs, CLI output, environment variables, and service unit files.
 
-## 15. Testing
+Operational guidance documents include `docs/SOURCE_SAFE_WORKFLOW.md`, `docs/SEIZURE_REVIEW_CHECKLIST.md`, `docs/FIELD_TEST_PROCEDURE.md`, and `docs/REVIEW_VALIDATION_RECORD.md`.
+
+## 17. Testing
 
 ```bash
 python3 -m unittest discover -s tests
@@ -326,10 +350,10 @@ KDF benchmark:
 python3 scripts/bench_kdf.py
 ```
 
-## 12. Compatibility
+## 18. Compatibility
 
 This build reads and writes GhostVault v3 only. Older v1/v2 containers must be retrieved with an older build and then stored again with this build.
 
-## 13. Limits
+## 19. Limits
 
 Phantasm does not guarantee protection against a compromised OS, live memory capture, keylogging, camera observation, forced disclosure, complete secure deletion, deniability, or unsafe network exposure.

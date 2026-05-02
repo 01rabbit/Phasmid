@@ -2,7 +2,7 @@
 
 ## Scope
 
-Phantasm is a local-only, coercion-aware secure-storage prototype. It protects payloads in `vault.bin` with password-based cryptographic recovery, a camera-matched physical object cue, a local access key, and authenticated encryption.
+Phantasm is a field-evaluation prototype for local-only coercion-aware storage. It protects payloads in `vault.bin` with password-based cryptographic recovery, a camera-matched physical object cue, a local access key, and authenticated encryption.
 
 It is not a substitute for audited full-disk encryption, hardware-backed key storage, classified-data handling procedures, or a complete answer to compelled disclosure.
 
@@ -29,6 +29,7 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - Device capture is realistic, so rendered UI and documentation should avoid explaining the internal disclosure model during normal use.
 - Field Mode reduces normal information exposure, but it is not a security boundary.
 - Hidden restricted routes reduce casual exposure, but they are not security boundaries.
+- Hidden routes are not access control by themselves; server-side token checks, UI unlock state, restricted confirmation, and typed confirmation remain required.
 
 ## Current Defenses
 
@@ -49,6 +50,12 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - Field Mode (`PHANTASM_FIELD_MODE=1`) hides Maintenance paths, audit export, token rotation, and detailed diagnostics until restricted confirmation is active.
 - Store includes a local metadata risk check and limited best-effort metadata reduction for supported file types.
 - Documentation includes seizure review, source-safe storage separation, field testing, and Raspberry Pi Zero 2 W appliance deployment guidance.
+
+## Capture-Visible Surfaces
+
+Capture-visible surfaces include the WebUI, rendered HTML, browser history, browser cache, JavaScript console, response headers, download filenames, CLI output, shell history, systemd stdout/stderr, audit logs, state-directory filenames, screenshots, and documentation copied to the device.
+
+These surfaces should not reveal the internal disclosure model, internal trial order, slot purpose, restricted recovery side effects, or the existence of an alternate protected state.
 
 ## Residual Risks
 
