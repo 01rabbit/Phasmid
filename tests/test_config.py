@@ -37,6 +37,14 @@ class ConfigTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"PHANTASM_UI_FACE_ENROLL": "1"}, clear=True):
             self.assertTrue(config.ui_face_enrollment_enabled())
 
+    def test_field_mode_can_be_enabled(self):
+        with mock.patch.dict(os.environ, {"PHANTASM_FIELD_MODE": "1"}, clear=True):
+            self.assertTrue(config.field_mode_enabled())
+
+    def test_field_mode_defaults_to_disabled(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(config.field_mode_enabled())
+
 
 if __name__ == "__main__":
     unittest.main()

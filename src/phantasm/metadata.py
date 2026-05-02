@@ -12,6 +12,7 @@ SCRUB_LIMITATION = (
     "Metadata removal is best-effort and may not remove every embedded "
     "identifier from every file format."
 )
+DETECTION_LIMITATION = "Metadata detection is best-effort."
 
 
 def metadata_risk_report(filename, data):
@@ -52,11 +53,11 @@ def metadata_risk_report(filename, data):
 
     unique_risks = sorted(set(risks))
     return {
-        "risk": bool(unique_risks),
+        "risk": _risk_level(unique_risks),
         "warning": METADATA_WARNING if unique_risks else "",
         "findings": unique_risks,
         "scrub_supported": _scrub_supported(lower_name, data),
-        "limitation": SCRUB_LIMITATION,
+        "limitation": DETECTION_LIMITATION,
     }
 
 
@@ -72,7 +73,7 @@ def scrub_metadata(filename, data):
         )
         return {
             "success": True,
-            "filename": "metadata_reduced_payload.txt",
+            "filename": "metadata_reduced_payload.bin",
             "data": scrubbed.encode("utf-8"),
             "message": "Best-effort metadata removal completed.",
             "limitation": SCRUB_LIMITATION,
@@ -139,3 +140,11 @@ def _office_zip_risks(data):
 
 def _scrub_supported(lower_name, data):
     return _looks_like_text(data) and lower_name.endswith((".txt", ".md", ".csv", ".log"))
+
+
+def _risk_level(risks):
+    if not risks:
+        return "low"
+    if len(risks) >= 3:
+        return "high"
+    return "medium"

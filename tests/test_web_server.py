@@ -357,6 +357,21 @@ class WebServerBoundaryTests(unittest.TestCase):
 
         asyncio.run(run())
 
+    def test_field_mode_rejects_token_rotation_without_restricted_confirmation(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+                url=SimpleNamespace(path="/maintenance/rotate_token"),
+            )
+            with mock.patch.object(web_server, "field_mode_enabled", return_value=True), \
+                 mock.patch.object(web_server, "_restricted_session_valid", return_value=False):
+                with self.assertRaises(HTTPException) as ctx:
+                    await web_server.rotate_token(request)
+            self.assertEqual(ctx.exception.status_code, 403)
+
+        asyncio.run(run())
+
     def test_field_mode_rejects_session_reset_without_restricted_confirmation(self):
         async def run():
             request = SimpleNamespace(
@@ -509,8 +524,9 @@ class WebServerBoundaryTests(unittest.TestCase):
                 file=_BytesFile(b"author: Alice\npath: /Users/alice/source.txt\n"),
             )
             response = await web_server.metadata_check(request, upload)
-            self.assertTrue(response["risk"])
+            self.assertEqual(response["risk"], "high")
             self.assertIn("local path leakage", response["findings"])
+            self.assertIn("best-effort", response["limitation"])
 
         asyncio.run(run())
 
@@ -526,8 +542,33 @@ class WebServerBoundaryTests(unittest.TestCase):
             )
             response = await web_server.metadata_scrub(request, upload)
             headers = str(response.headers).lower()
-            self.assertIn("metadata_reduced_payload.txt", headers)
+            self.assertIn("metadata_reduced_payload.bin", headers)
             self.assertNotIn("revealing-name", headers)
+
+        asyncio.run(run())
+
+    def test_metadata_routes_require_web_token_and_ui_unlock(self):
+        for path in {"/metadata/check", "/metadata/scrub"}:
+            route = next(route for route in web_server.app.routes if getattr(route, "path", None) == path)
+            dependency_names = {item.call.__name__ for item in route.dependant.dependencies}
+            self.assertIn("require_web_token", dependency_names)
+            self.assertIn("require_ui_unlock", dependency_names)
+
+    def test_metadata_scrub_unsupported_type_fails_safely(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                url=SimpleNamespace(path="/metadata/scrub"),
+            )
+            upload = UploadFile(
+                filename="image.jpg",
+                file=_BytesFile(b"\xff\xd8Exif\x00\x00GPS"),
+            )
+            response = await web_server.metadata_scrub(request, upload)
+            self.assertEqual(response.status_code, 422)
+            body = response.body.decode("utf-8")
+            self.assertIn("not supported", body)
+            self.assertIn("best-effort", body)
 
         asyncio.run(run())
 

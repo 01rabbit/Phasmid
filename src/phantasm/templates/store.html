@@ -39,7 +39,7 @@
             <input type="hidden" name="overwrite_confirmation" id="overwriteConfirmation">
             <div class="actions">
                 <button type="button" class="secondary" id="metadataCheckButton">Check metadata risk</button>
-                <button type="button" class="secondary" id="metadataScrubButton">Download reduced copy</button>
+                <button type="button" class="secondary" id="metadataScrubButton">Download metadata-reduced copy</button>
                 <button type="button" class="secondary" id="captureButton">Capture object</button>
                 <button type="submit">Save entry</button>
                 <a class="button secondary" href="/">Cancel</a>
@@ -48,7 +48,7 @@
         <section id="metadataPanel" class="panel hidden" style="margin-top: 16px;">
             <h2>Metadata Risk</h2>
             <p id="metadataOutput" class="copy">No metadata check has been run.</p>
-            <p class="copy">Metadata removal is best-effort and may not remove every embedded identifier from every file format.</p>
+            <p class="copy">Metadata detection and reduction are best-effort. Metadata removal may not remove every embedded identifier from every file format.</p>
         </section>
         <section id="overwritePanel" class="panel hidden" style="margin-top: 16px;">
             <h2>Replace Local Entry</h2>

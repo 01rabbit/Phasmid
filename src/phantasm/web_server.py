@@ -616,7 +616,7 @@ async def metadata_scrub(request: Request, file: UploadFile = File(...)):
     if not result["success"]:
         return JSONResponse(
             {"error": result["message"], "limitation": result["limitation"]},
-            status_code=400,
+            status_code=422,
         )
     safe_filename = urllib.parse.quote(result["filename"])
     return StreamingResponse(

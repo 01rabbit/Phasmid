@@ -16,6 +16,7 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - Web UI mutation token created at process start or supplied through `PHANTASM_WEB_TOKEN`.
 - Browser-visible surfaces such as rendered HTML, console output, response headers, filenames, and cached pages.
 - CLI output, shell history, application stdout/stderr, and systemd logs.
+- camera overlay text and Maintenance diagnostics output.
 - Source identity, notes, evidence metadata, temporary field data, and local operational context.
 
 ## Assumptions

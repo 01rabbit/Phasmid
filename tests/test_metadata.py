@@ -12,16 +12,17 @@ class MetadataTests(unittest.TestCase):
     def test_text_path_and_author_metadata_are_reported(self):
         data = b"author: Alice\nsource path: /Users/alice/interview.txt\n"
         report = metadata_risk_report("interview.txt", data)
-        self.assertTrue(report["risk"])
+        self.assertEqual(report["risk"], "high")
         self.assertIn("local path leakage", report["findings"])
         self.assertIn("author or modification metadata", report["findings"])
         self.assertTrue(report["scrub_supported"])
+        self.assertIn("best-effort", report["limitation"])
 
     def test_metadata_scrub_returns_neutral_filename_without_overwriting_original(self):
         data = b"author: Alice\npath=/home/alice/source.txt\nbody\n"
         result = scrub_metadata("revealing-name.txt", data)
         self.assertTrue(result["success"])
-        self.assertEqual(result["filename"], "metadata_reduced_payload.txt")
+        self.assertEqual(result["filename"], "metadata_reduced_payload.bin")
         self.assertNotEqual(result["data"], data)
         self.assertIn("best-effort", result["limitation"].lower())
 

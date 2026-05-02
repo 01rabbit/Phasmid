@@ -188,6 +188,8 @@ First-time face enrollment is disabled unless the WebUI process is started with 
 
 Store provides a local-only metadata risk check. It does not call cloud services and does not send telemetry.
 
+`/metadata/check` and `/metadata/scrub` enforce the normal Web mutation token, UI unlock state, rate limiting, and upload size limit. Uploaded data is processed in memory; these routes do not require writing the uploaded file to disk, and the intended implementation property is no disk write for uploaded metadata inspection.
+
 The initial checker warns about common risks:
 
 - GPS-like image metadata;
@@ -202,7 +204,7 @@ The initial checker warns about common risks:
 
 Storage is not blocked by default. The UI offers continue, best-effort metadata reduction when supported, or cancel.
 
-Best-effort metadata reduction is conservative. It never overwrites the original file unless a future explicit option is added. Unsupported file types fail safely. Metadata removal is best-effort and may not remove every embedded identifier from every file format.
+Best-effort metadata reduction is conservative. It never overwrites the original file unless a future explicit option is added. Unsupported file types fail safely. Downloads use a neutral filename and must not expose the original filename in response headers. Metadata removal is best-effort and may not remove every embedded identifier from every file format.
 
 The Store screen includes a short reminder: store only what is needed and separate identities, evidence, notes, and operational context when possible.
 

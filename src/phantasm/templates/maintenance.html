@@ -58,7 +58,7 @@
             <h2>Device Health</h2>
             <span class="badge">Local-only</span>
         </div>
-        <p class="copy">General device health is available from Home. Detailed diagnostics require restricted confirmation.</p>
+        <p class="copy">General device health is available from Home. Restricted confirmation is required for maintenance details.</p>
     </section>
     {% endif %}
     <section class="panel">
@@ -73,6 +73,13 @@
 
 {% block scripts %}
 <script>
+    document.querySelector('[data-action="confirm-restricted"]').addEventListener('click', async () => {
+        if (await confirmRestrictedAction(document.getElementById('restrictedConfirmation').value)) {
+            window.location.reload();
+        }
+    });
+
+    {% if not field_mode or restricted_confirmed %}
     async function runDiagnostics() {
         const res = await apiFetch('/maintenance/diagnostics');
         const data = await res.json();
@@ -81,12 +88,6 @@
 
     const diagnosticsButton = document.querySelector('[data-action="diagnostics"]');
     if (diagnosticsButton) diagnosticsButton.addEventListener('click', runDiagnostics);
-
-    document.querySelector('[data-action="confirm-restricted"]').addEventListener('click', async () => {
-        if (await confirmRestrictedAction(document.getElementById('restrictedConfirmation').value)) {
-            window.location.reload();
-        }
-    });
 
     const rotateTokenButton = document.querySelector('[data-action="rotate-token"]');
     if (rotateTokenButton) rotateTokenButton.addEventListener('click', async () => {
@@ -142,5 +143,6 @@
         a.remove();
         window.URL.revokeObjectURL(url);
     });
+    {% endif %}
 </script>
 {% endblock %}
