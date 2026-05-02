@@ -57,6 +57,38 @@ INITIALIZE_CONTAINER_PHRASE = "INITIALIZE LOCAL CONTAINER"
 EMERGENCY_BRICK_PHRASE = "CLEAR LOCAL ACCESS PATH"
 RESTRICTED_CONFIRMATION_PHRASE = "CONFIRM LOCAL CONTROL"
 OVERWRITE_CONFIRMATION_PHRASE = "REPLACE LOCAL ENTRY"
+SECURITY_HEADERS = {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0",
+    "Content-Security-Policy": (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: blob:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "form-action 'self'; "
+        "base-uri 'self'"
+    ),
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(self), microphone=(), geolocation=(), payment=(), usb=()",
+    "Cross-Origin-Opener-Policy": "same-origin",
+}
+
+
+def _apply_security_headers(response):
+    for name, value in SECURITY_HEADERS.items():
+        response.headers[name] = value
+    return response
+
+
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    return _apply_security_headers(response)
 
 
 def display_entry_label(entry_id):

@@ -145,6 +145,8 @@ Field Mode is not a security boundary. It reduces casual local exposure in the W
 
 Hidden restricted routes are UX concealment only. They are not access control by themselves. Server-side confirmation, local tokens, UI unlock state, and typed confirmation are still required.
 
+WebUI responses include conservative browser hardening headers such as no-store cache control, frame denial, MIME-sniffing protection, a local-only content security policy, no-referrer policy, and limited browser permissions. These headers reduce browser-visible residue and common embedding or caching risks. They do not make the WebUI suitable for untrusted networks and are not a substitute for local-only binding, host integrity, or operator discipline.
+
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/` | Home |

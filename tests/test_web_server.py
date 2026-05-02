@@ -6,6 +6,7 @@ from unittest import mock
 from types import SimpleNamespace
 
 from fastapi import HTTPException, UploadFile
+from fastapi.responses import JSONResponse
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
@@ -28,6 +29,15 @@ class WebServerBoundaryTests(unittest.TestCase):
 
     def test_fastapi_debug_is_disabled_by_default(self):
         self.assertFalse(web_server.app.debug)
+
+    def test_security_headers_are_applied_to_responses(self):
+        response = web_server._apply_security_headers(JSONResponse({"ok": True}))
+        self.assertEqual(response.headers["cache-control"], "no-store, no-cache, must-revalidate, max-age=0")
+        self.assertEqual(response.headers["x-frame-options"], "DENY")
+        self.assertEqual(response.headers["x-content-type-options"], "nosniff")
+        self.assertEqual(response.headers["referrer-policy"], "no-referrer")
+        self.assertIn("frame-ancestors 'none'", response.headers["content-security-policy"])
+        self.assertIn("camera=(self)", response.headers["permissions-policy"])
 
     def test_rate_limit_blocks_after_configured_limit(self):
         request = SimpleNamespace(

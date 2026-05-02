@@ -42,6 +42,7 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - Reference keys are stored together in a single AES-GCM encrypted ORB state blob under the configured state directory, not as raw reference photos or semantic per-entry template filenames.
 - Image-key matching requires stable results across a short frame window rather than accepting a single-frame match.
 - Web mutation endpoints require `X-Phantasm-Token`, apply a simple per-client rate limit, and enforce upload size limits.
+- Web responses include no-store cache headers, frame denial, MIME-sniffing protection, no-referrer policy, constrained browser permissions, and a local-only content security policy. These reduce browser residue and common Web embedding risks but do not make the WebUI safe for untrusted networks.
 - Sensitive Web actions require a fresh restricted confirmation session in addition to the Web token and UI unlock state. Restricted action pages and entry maintenance details are withheld until that confirmation is active.
 - Optional UI face lock (`PHANTASM_UI_FACE_LOCK=1`) can gate normal WebUI routes with a short-lived local session. This is a UI access control only and is not used for vault encryption.
 - When UI face lock is enabled, the normal object-matching preview and object-match state are withheld until the UI is unlocked. The lock screen shows a separate camera preview for enrollment and verification alignment.
