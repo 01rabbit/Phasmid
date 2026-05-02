@@ -1,185 +1,120 @@
 ---
-name: "🔍 Security Analysis (脅威分析)"
-about: "STRIDE等の脅威フレームワークを用いたセキュリティ分析"
+name: "Security Analysis"
+about: "Analyze a Phantasm component or workflow using a structured threat model"
 title: "[ANALYSIS] "
 labels: ["security", "threat-analysis"]
 assignees: []
 ---
 
-## 脅威分析対象 / Threat Analysis Target
+## Analysis Target
 
-<!--
-分析対象となるコンポーネント、機能、またはシステム領域
--->
+**Target**:
+**Scope**:
+**Out of scope**:
 
-**対象**: <!-- 例: UI顔認証フロー -->
-**スコープ**: <!-- 例: 初回登録～認証～ダッシュボードアクセス -->
+## STRIDE Analysis
 
----
+### Spoofing
 
-## STRIDE 分析 / STRIDE Analysis
+**Scenario**:
 
-### S - Spoofing（偽装）
+**Current controls**:
 
-**脅威シナリオ**:
-```
-...
-```
+**Residual risk**: High / Medium / Low
 
-**現在の対策**:
-- [ ] 認証メカニズム: ___
-- [ ] 識別メカニズム: ___
+### Tampering
 
-**残存リスク**: 高 / 中 / 低
+**Scenario**:
 
----
+**Current controls**:
 
-### T - Tampering（改ざん）
+**Residual risk**: High / Medium / Low
 
-**脅威シナリオ**:
-```
-...
-```
+### Repudiation
 
-**現在の対策**:
-- [ ] 整合性検証: ___
-- [ ] 暗号的保護: ___
+**Scenario**:
 
-**残存リスク**: 高 / 中 / 低
+**Current controls**:
 
----
+**Residual risk**: High / Medium / Low
 
-### R - Repudiation（否認）
+### Information Disclosure
 
-**脅威シナリオ**:
-```
-...
-```
+**Scenario**:
 
-**現在の対策**:
-- [ ] 監査ログ: ___
-- [ ] デジタル署名: ___
+**Current controls**:
 
-**残存リスク**: 高 / 中 / 低
+**Residual risk**: High / Medium / Low
 
----
+### Denial of Service
 
-### I - Information Disclosure（情報漏洩）
+**Scenario**:
 
-**脅威シナリオ**:
-```
-...
-```
+**Current controls**:
 
-**現在の対策**:
-- [ ] 暗号化: ___
-- [ ] アクセス制御: ___
+**Residual risk**: High / Medium / Low
 
-**残存リスク**: 高 / 中 / 低
+### Elevation of Privilege
 
----
+**Scenario**:
 
-### D - Denial of Service（サービス拒否）
+**Current controls**:
 
-**脅威シナリオ**:
-```
-...
+**Residual risk**: High / Medium / Low
+
+## Attack Tree
+
+```text
+Goal: [attacker objective]
+|
++-- Path A: [attack vector]
+|   +-- Preconditions:
+|   +-- Cost: Low / Medium / High
+|   +-- Likelihood:
+|   +-- Impact:
+|
++-- Path B: [attack vector]
+    +-- Preconditions:
+    +-- Cost: Low / Medium / High
+    +-- Likelihood:
+    +-- Impact:
 ```
 
-**現在の対策**:
-- [ ] レート制限: ___
-- [ ] リソース管理: ___
+## Risk Matrix
 
-**残存リスク**: 高 / 中 / 低
+| # | Threat | Likelihood | Impact | Risk | Priority | Proposed mitigation |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | | Low / Medium / High | Low / Medium / High | Low / Medium / High | Critical / High / Medium / Low | |
 
----
+## Known Limits
 
-### E - Elevation of Privilege（権限昇格）
+List threats this analysis does not resolve.
 
-**脅威シナリオ**:
-```
-...
-```
+## Recommended Mitigations
 
-**現在の対策**:
-- [ ] 権限分離: ___
-- [ ] 入力検証: ___
+### Short Term
 
-**残存リスク**: 高 / 中 / 低
+- [ ] 
 
----
+### Medium Term
 
-## 攻撃ツリー / Attack Tree
+- [ ] 
 
-```
-目標: [目的]
-│
-├─ 路線A: [攻撃ベクトル1]
-│  ├─ 前提条件: [条件]
-│  ├─ 攻撃コスト: 低 / 中 / 高
-│  ├─ 成功確率: [パーセンテージ]
-│  └─ 影響度: [スケール]
-│
-├─ 路線B: [攻撃ベクトル2]
-│  ├─ 前提条件: [条件]
-│  ├─ 攻撃コスト: 低 / 中 / 高
-│  ├─ 成功確率: [パーセンテージ]
-│  └─ 影響度: [スケール]
-│
-└─ 路線C: [攻撃ベクトル3]
-   └─ ...
-```
+### Long Term
 
----
+- [ ] 
 
-## リスク評価マトリクス / Risk Assessment Matrix
-
-| # | 脅威 | 尤度 | 影響 | リスク | 優先度 | 対策案 |
-|---|------|------|------|--------|--------|--------|
-| 1 | | 低/中/高 | 低/中/高 | 低/中/高 | 最高/高/中/低 | |
-| 2 | | | | | | |
-
----
-
-## 既知の制限事項 / Known Limitations
-
-<!--
-この分析では考慮しない脅威、または未評価のリスク
--->
-
-- [ ] 物理的アクセス攻撃
-- [ ] 内部脅威（インサイダー）
-- [ ] サプライチェーン攻撃
-- [ ] ポスト量子暗号脅威
-
----
-
-## 推奨改善 / Recommended Mitigations
-
-### 短期（Phase 1-2）
-- [ ] ...
-
-### 中期（Phase 3）
-- [ ] ...
-
-### 長期（Phase 4+）
-- [ ] ...
-
----
-
-## 参考資料 / References
+## References
 
 - NIST SP 800-30: Risk Assessment
 - NIST SP 800-53: Security and Privacy Controls
-- Microsoft STRIDE Threat Analysis
-- [STRIDE チートシート](https://cheatsheetseries.owasp.org/cheatsheets/Threat_Modeling_Cheat_Sheet.html)
+- Microsoft STRIDE Threat Modeling
+- OWASP Threat Modeling Cheat Sheet
 
----
+## Checklist
 
-## チェックリスト / Checklist
-
-- [ ] STRIDE 分析完了
-- [ ] 攻撃ツリー構築完了
-- [ ] リスク評価マトリクス作成完了
-- [ ] 対策案の優先順位付け完了
-- [ ] セキュリティチーム確認済み
+- [ ] STRIDE analysis complete
+- [ ] Attack tree complete
+- [ ] Risk matrix complete
+- [ ] Mitigations prioritized
+- [ ] Documentation updates identified

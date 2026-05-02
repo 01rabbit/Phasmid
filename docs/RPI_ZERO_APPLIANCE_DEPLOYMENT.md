@@ -19,12 +19,29 @@ This deployment plan reduces exposed services and local leakage for Raspberry Pi
 - Use `tmpfs` for uploads and temporary files when practical.
 - Do not add cloud dependencies, telemetry, analytics, remote unlock, or remote management.
 
+## Camera Module
+
+Recommended camera for the Raspberry Pi Zero 2 W prototype:
+
+- Raspberry Pi Camera Module 3 NoIR Wide
+- Sony IMX708 12MP sensor
+- Mechanical autofocus
+- Wide FoV
+- NoIR support for optional infrared illumination
+- CSI connection
+
+Raspberry Pi Zero 2 W requires a 22-pin to 15-pin Raspberry Pi Zero camera cable. The standard 15-pin camera cable is not compatible with the Pi Zero camera connector.
+
+The camera is used as an operational object-cue capture device. It is not treated as cryptographic key material, biometric identity proof, or a tamper-resistant sensor.
+
 ## Physical Signature Reduction (Stealth)
 
 To prevent the device from drawing attention via LEDs or serial console activity:
 
 ### Disable LEDs
+
 Add the following to `/boot/config.txt`:
+
 ```text
 # Disable Power LED
 dtparam=pwr_led_trigger=none
@@ -35,6 +52,7 @@ dtparam=act_led_activelow=off
 ```
 
 ### Suppress Boot Console
+
 In `/boot/cmdline.txt`, add `consoleblank=0 loglevel=1 quiet` and remove `console=tty1` to ensure no text is emitted to a connected display during boot.
 
 ## Local-Only Network Posture
