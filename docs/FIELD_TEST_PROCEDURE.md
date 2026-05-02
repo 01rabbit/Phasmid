@@ -12,6 +12,8 @@ Physical shock resistance and tamper-resistant casing are out of scope for the R
 - Confirm audit is disabled by default.
 - Confirm debug is disabled by default.
 - Confirm Field Mode is enabled for appliance evaluation.
+- If the optional LUKS storage layer is used, confirm the encrypted volume opens and mounts before Phantasm starts.
+- If the optional LUKS storage layer is used, confirm Phantasm fails closed when the encrypted volume is not mounted.
 
 ## Store and Retrieve
 
@@ -61,6 +63,7 @@ Physical shock resistance and tamper-resistant casing are out of scope for the R
 - Review the systemd journal after each power-loss case.
 - Review temporary upload directories after each power-loss case.
 - Test no network availability.
+- Test no-network boot with the optional LUKS storage layer if used.
 - Test camera unavailable.
 - Test USB gadget-only access.
 

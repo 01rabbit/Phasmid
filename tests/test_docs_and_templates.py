@@ -29,6 +29,9 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("docs/FIELD_TEST_PROCEDURE.md", readme)
         self.assertIn("docs/REVIEW_VALIDATION_RECORD.md", readme)
         self.assertIn("docs/SOLUTION_READINESS_PLAN.md", readme)
+        self.assertIn("docs/OPERATIONS.md", readme)
+        self.assertIn("docs/RESTRICTED_ACTIONS.md", readme)
+        self.assertIn("docs/STATE_RECOVERY.md", readme)
         self.assertIn("authoritative appliance deployment guide", readme)
         self.assertIn("metadata risk check", readme)
 
@@ -82,7 +85,8 @@ class DocsAndTemplateTests(unittest.TestCase):
     def test_review_validation_record_exists(self):
         record = read_text("docs/REVIEW_VALIDATION_RECORD.md")
         self.assertIn("Review Validation Record", record)
-        self.assertIn("95 tests passed", record)
+        self.assertRegex(record, r"\d+ tests passed")
+        self.assertIn("tests/scenarios/restricted_flows.json", record)
         self.assertIn("Target-hardware validation result", record)
         self.assertIn("Not field-proven", record)
         self.assertIn("Solution Readiness", record)
@@ -99,6 +103,8 @@ class DocsAndTemplateTests(unittest.TestCase):
         appliance = read_text("docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md")
         self.assertIn("authoritative appliance deployment guide", summary)
         self.assertIn("authoritative Raspberry Pi Zero 2 W appliance deployment guide", appliance)
+        self.assertIn("optional LUKS2 storage-layer procedure", summary)
+        self.assertIn("Optional LUKS Storage Layer", appliance)
 
 
 if __name__ == "__main__":
