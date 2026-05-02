@@ -30,6 +30,7 @@ class AIGate:
     MATCH_HISTORY_FRAMES = 5
     MATCH_HISTORY_REQUIRED = 3
     REFERENCE_CAPTURE_SAMPLES = 3
+    TARGET_FPS = 5
 
     def __init__(self, reference_dir=None):
         self.cap = None
@@ -482,7 +483,9 @@ class AIGate:
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.FRAME_SIZE[0])
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.FRAME_SIZE[1])
 
+        frame_delay = 1.0 / self.TARGET_FPS
         while not self._stop_event.is_set():
+            loop_start = time.time()
             success, frame = self.cap.read()
             if not success:
                 continue
@@ -509,6 +512,10 @@ class AIGate:
                 b"--frame\r\n"
                 b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
             )
+
+            elapsed = time.time() - loop_start
+            if elapsed < frame_delay:
+                time.sleep(frame_delay - elapsed)
 
     def close(self):
         self._stop_event.set()

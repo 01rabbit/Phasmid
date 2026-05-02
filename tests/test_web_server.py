@@ -152,7 +152,7 @@ class WebServerBoundaryTests(unittest.TestCase):
 
         asyncio.run(run())
 
-    def test_initial_face_enroll_requires_bootstrap_flag(self):
+    def test_initial_face_enroll_allows_first_time_registration(self):
         async def run():
             request = SimpleNamespace(
                 client=SimpleNamespace(host="127.0.0.1"),
@@ -163,10 +163,12 @@ class WebServerBoundaryTests(unittest.TestCase):
                  mock.patch.object(web_server, "ui_face_enrollment_enabled", return_value=False), \
                  mock.patch.object(web_server.face_lock, "enrollment_pending", return_value=False), \
                  mock.patch.object(web_server.face_lock, "is_enrolled", return_value=False), \
-                 mock.patch.object(web_server.face_lock, "enroll_from_frames") as enroll:
+                 mock.patch.object(web_server.face_lock, "enroll_from_frames", return_value=(True, "ok")) as enroll, \
+                 mock.patch.object(web_server.face_lock, "clear_enrollment_request") as clear:
                 response = await web_server.face_enroll(request)
-            enroll.assert_not_called()
-            self.assertIn("disabled", response["error"])
+            enroll.assert_called_once()
+            clear.assert_called_once_with()
+            self.assertIn("status", response)
 
         asyncio.run(run())
 

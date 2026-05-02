@@ -19,6 +19,24 @@ This deployment plan reduces exposed services and local leakage for Raspberry Pi
 - Use `tmpfs` for uploads and temporary files when practical.
 - Do not add cloud dependencies, telemetry, analytics, remote unlock, or remote management.
 
+## Physical Signature Reduction (Stealth)
+
+To prevent the device from drawing attention via LEDs or serial console activity:
+
+### Disable LEDs
+Add the following to `/boot/config.txt`:
+```text
+# Disable Power LED
+dtparam=pwr_led_trigger=none
+dtparam=pwr_led_activelow=off
+# Disable Activity LED
+dtparam=act_led_trigger=none
+dtparam=act_led_activelow=off
+```
+
+### Suppress Boot Console
+In `/boot/cmdline.txt`, add `consoleblank=0 loglevel=1 quiet` and remove `console=tty1` to ensure no text is emitted to a connected display during boot.
+
 ## Local-Only Network Posture
 
 - Bind the WebUI to `127.0.0.1` by default.

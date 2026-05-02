@@ -103,6 +103,8 @@ def _face_lock_status(request):
 
 
 def _face_enrollment_allowed():
+    if not face_lock.is_enrolled():
+        return True
     return ui_face_enrollment_enabled() or face_lock.enrollment_pending()
 
 
@@ -210,6 +212,13 @@ def _template_context(request: Request, active="home", **extra):
     }
     context.update(extra)
     return context
+
+
+def _deceptive_path(original_path: str):
+    """Provides a cover-story path when field mode is enabled."""
+    if field_mode_enabled() and original_path:
+        return "/usr/lib/firmware/updates/recovery_blob.bin"
+    return original_path
 
 
 def _raw_gate_status():
@@ -336,6 +345,7 @@ async def maintenance_page(request: Request):
     if guard:
         return guard
     restricted_confirmed = _restricted_session_valid(request)
+    is_field = field_mode_enabled()
     return templates.TemplateResponse(
         request=request,
         name="maintenance.html",
@@ -652,6 +662,9 @@ async def retrieve(request: Request, password: str = Form(...)):
             source="web",
         )
         purge_applied = _purge_for_password_role(mode, password_role, source="web")
+        if result is not None:
+            # Release camera to save power and heat after successful retrieval
+            gate.close()
         if not purge_applied:
             purge_applied = _maybe_auto_purge(mode, source="web")
         return create_file_response(
@@ -708,6 +721,18 @@ async def emergency_initialize(request: Request, confirmation: str = Form(...)):
     return {"status": "Local container initialized. Protected entries are empty."}
 
 
+@app.post("/emergency/panic", dependencies=[Depends(require_web_token)])
+async def web_panic_trigger(request: Request, secret_trigger: str = Form(...)):
+    """Hidden endpoint for rapid local state destruction."""
+    enforce_rate_limit(request)
+    # DISGUISE: In the UI, this could be triggered by a specific multi-tap pattern
+    if secret_trigger == "BRICK":
+        vault.silent_brick()
+        audit_event("access_path_cleared", source="web_panic")
+        return {"status": "Critical state cleared."}
+    raise HTTPException(status_code=404)
+
+
 @app.post("/maintenance/rotate_token", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def rotate_token(request: Request):
     enforce_rate_limit(request)
@@ -731,16 +756,20 @@ async def reset_session(request: Request):
 async def diagnostics(request: Request):
     enforce_rate_limit(request)
     status_data = neutral_status()
+    device_state = "active" if status_data["device_state"] == "ready" else status_data["device_state"]
     data = {
-        "device_state": status_data["device_state"],
+        "device_state": device_state,
         "camera_ready": status_data["camera_ready"],
         "object_state": status_data["object_state"],
         "local_mode": status_data["local_mode"],
         "restricted_confirmation_active": _restricted_session_valid(request),
     }
-    if not field_mode_enabled() or _restricted_session_valid(request):
+    restricted = _restricted_session_valid(request)
+    if not field_mode_enabled() or restricted:
         data.update({
+            "sensor_link": status_data["object_state"] != "none",
             "state_directory": state_dir(),
+            "storage_node": _deceptive_path(state_dir()),
             "audit_enabled": os.environ.get("PHANTASM_AUDIT", "0").lower() not in {"0", "false", "off", "no"},
             "upload_limit_bytes": MAX_UPLOAD_BYTES,
         })
@@ -812,5 +841,4 @@ if __name__ == "__main__":
     port = int(os.environ.get("PHANTASM_PORT", "8000"))
     print(f"[WEB] Starting on http://{host}:{port}")
     print("[WEB] Mutating requests require X-Phantasm-Token from the served UI.")
-    uvicorn_run = __import__("uvicorn").run
-    uvicorn_run(app, host=host, port=port)
+    __import__("uvicorn").run(app, host=host, port=port)
