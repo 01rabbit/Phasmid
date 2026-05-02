@@ -24,7 +24,14 @@ python3 -m unittest discover -s tests
 Result:
 
 ```text
-2026-05-02, macOS Darwin arm64, python3 -m unittest discover -s tests, 95 tests passed.
+2026-05-02, macOS Darwin arm64, python3 -m unittest discover -s tests, 123 tests passed.
+```
+
+Restricted-flow scenario matrix:
+
+```text
+Covered by tests/scenarios/restricted_flows.json and tests/test_scenarios.py.
+Included in the automated test result above.
 ```
 
 Target-hardware validation result:
