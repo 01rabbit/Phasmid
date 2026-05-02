@@ -87,7 +87,9 @@ class AIGate:
             "kp": kp,
             "des": des,
             "shape": (h, w),
-            "pts": np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2),
+            "pts": np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(
+                -1, 1, 2
+            ),
             "path": None,
         }
 
@@ -116,7 +118,9 @@ class AIGate:
             "kp": kp,
             "des": des,
             "shape": shape,
-            "pts": np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2),
+            "pts": np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(
+                -1, 1, 2
+            ),
             "path": self.state_blob_path,
         }
 
@@ -155,8 +159,12 @@ class AIGate:
         if len(good_matches) <= self.MIN_GOOD_MATCHES:
             return None
 
-        src_pts = np.float32([ref_kp[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
-        dst_pts = np.float32([kp[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+        src_pts = np.float32([ref_kp[m.queryIdx].pt for m in good_matches]).reshape(
+            -1, 1, 2
+        )
+        dst_pts = np.float32([kp[m.trainIdx].pt for m in good_matches]).reshape(
+            -1, 1, 2
+        )
         homography, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
         if homography is None or mask is None:
             return None
@@ -176,7 +184,12 @@ class AIGate:
         if other_state["des"] is None:
             return False
 
-        return self._match_descriptors(candidate_state, other_state["kp"], other_state["des"]) is not None
+        return (
+            self._match_descriptors(
+                candidate_state, other_state["kp"], other_state["des"]
+            )
+            is not None
+        )
 
     def _state_to_arrays(self, state):
         kp_data = np.array(
@@ -235,7 +248,10 @@ class AIGate:
             return references
 
         try:
-            with np.load(io.BytesIO(self._read_encrypted_template(self.state_blob_path)), allow_pickle=False) as template:
+            with np.load(
+                io.BytesIO(self._read_encrypted_template(self.state_blob_path)),
+                allow_pickle=False,
+            ) as template:
                 for mode in self.MODES:
                     if int(template[f"{mode}_present"][0]) != 1:
                         continue
@@ -298,7 +314,7 @@ class AIGate:
     def _update_match_result(self, matches):
         active_modes = [mode for mode, result in matches.items() if result is not None]
         self.match_history.append(tuple(active_modes))
-        self.match_history = self.match_history[-self.MATCH_HISTORY_FRAMES:]
+        self.match_history = self.match_history[-self.MATCH_HISTORY_FRAMES :]
 
         stable_modes = []
         for mode in self.MODES:
@@ -346,7 +362,10 @@ class AIGate:
             return False, "Image too simple. Use a textured object."
 
         if self._references_too_similar(mode, candidate_state):
-            return False, "This object is too similar to an existing access cue. Use a different physical object."
+            return (
+                False,
+                "This object is too similar to an existing access cue. Use a different physical object.",
+            )
 
         try:
             updated_references = dict(self.reference_data)
@@ -385,7 +404,8 @@ class AIGate:
             "matched_mode": self.last_match_mode,
             "match_states": dict(self.match_states),
             "registered_modes": {
-                mode: self.reference_data[mode]["des"] is not None for mode in self.MODES
+                mode: self.reference_data[mode]["des"] is not None
+                for mode in self.MODES
             },
         }
 
@@ -408,11 +428,27 @@ class AIGate:
     def _draw_match_status(self, image):
         h, w, _ = image.shape
         cv2.rectangle(image, (0, 0), (w, 50), (0, 0, 0), -1)
-        cv2.putText(image, "PHANTASM: ACTIVE", (20, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 165, 255), 2)
+        cv2.putText(
+            image,
+            "PHANTASM: ACTIVE",
+            (20, 28),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            (0, 165, 255),
+            2,
+        )
 
         if self.last_match_mode in self.AUTH_TOKENS:
             cv2.circle(image, (w - 15, 15), 8, (0, 255, 0), -1)
-            cv2.putText(image, "MATCH", (w - 80, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+            cv2.putText(
+                image,
+                "MATCH",
+                (w - 80, 28),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (0, 255, 0),
+                2,
+            )
             cv2.rectangle(image, (5, 55), (w - 5, h - 5), (0, 255, 0), 3)
             cv2.putText(
                 image,
@@ -436,7 +472,15 @@ class AIGate:
 
         if self.last_match_mode == self.MATCH_AMBIGUOUS:
             cv2.circle(image, (w - 15, 15), 8, (0, 165, 255), -1)
-            cv2.putText(image, "AMBIG", (w - 85, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2)
+            cv2.putText(
+                image,
+                "AMBIG",
+                (w - 85, 28),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (0, 165, 255),
+                2,
+            )
             cv2.rectangle(image, (5, 55), (w - 5, h - 5), (0, 165, 255), 3)
             cv2.putText(
                 image,
@@ -492,7 +536,9 @@ class AIGate:
 
             with self.lock:
                 self.latest_frame = frame.copy()
-                reference_data = {mode: dict(state) for mode, state in self.reference_data.items()}
+                reference_data = {
+                    mode: dict(state) for mode, state in self.reference_data.items()
+                }
 
             image = cv2.flip(frame, 1)
 

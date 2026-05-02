@@ -21,10 +21,12 @@ class FaceUILockTests(unittest.TestCase):
     def test_template_round_trip_supports_multiple_samples(self):
         with tempfile.TemporaryDirectory() as tmp:
             lock = self.make_lock(tmp)
-            samples = np.stack([
-                np.full(lock.FACE_SIZE, 80, dtype=np.float32),
-                np.full(lock.FACE_SIZE, 92, dtype=np.float32),
-            ])
+            samples = np.stack(
+                [
+                    np.full(lock.FACE_SIZE, 80, dtype=np.float32),
+                    np.full(lock.FACE_SIZE, 92, dtype=np.float32),
+                ]
+            )
 
             lock._write_templates(samples)
 

@@ -12,7 +12,9 @@ from phantasm import strings
 class UserVisibleStringTests(unittest.TestCase):
     def test_restricted_action_messages_match_policy_contract(self):
         self.assertEqual(strings.OPERATION_UNAVAILABLE, "operation unavailable")
-        self.assertEqual(strings.RESTRICTED_CONFIRMATION_REQUIRED, "restricted confirmation required")
+        self.assertEqual(
+            strings.RESTRICTED_CONFIRMATION_REQUIRED, "restricted confirmation required"
+        )
         self.assertEqual(strings.CONFIRMATION_REJECTED, "confirmation rejected")
         self.assertEqual(strings.OPERATION_REJECTED, "operation rejected")
 

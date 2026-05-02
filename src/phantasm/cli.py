@@ -82,7 +82,9 @@ def _register_reference_key(mode):
     if not success:
         return False, msg
 
-    print(f"[LOCAL] {display_mode_label(mode)} object cue captured. Validating match quality...")
+    print(
+        f"[LOCAL] {display_mode_label(mode)} object cue captured. Validating match quality..."
+    )
     if not _wait_for_reference_match(expected_mode=mode):
         return (
             False,
@@ -114,7 +116,7 @@ def _confirm_purge_other_mode(accessed_mode):
 
     confirmation = "CLEAR UNMATCHED LOCAL ENTRY"
     answer = input(
-        f'[LOCAL STATE] Clear unmatched local entry after access? '
+        f"[LOCAL STATE] Clear unmatched local entry after access? "
         f'Type "{confirmation}" to confirm: '
     ).strip()
     return answer == confirmation
@@ -130,7 +132,9 @@ def _auto_purge_reason(accessed_mode):
 
 def _prompt_store_passwords():
     open_password = getpass.getpass("[AUTH] Enter access password: ")
-    restricted_recovery_password = getpass.getpass("[AUTH] Enter restricted recovery password: ")
+    restricted_recovery_password = getpass.getpass(
+        "[AUTH] Enter restricted recovery password: "
+    )
     if not open_password:
         raise ValueError("access password must not be empty")
     if not restricted_recovery_password:
@@ -142,7 +146,9 @@ def _prompt_store_passwords():
 
 def _confirm_face_lock_reset(input_func=input):
     print("\n[!] CAUTION: FACE UI LOCK RESET")
-    print("[!] This clears the enrolled face lock and initializes all stored vault data.")
+    print(
+        "[!] This clears the enrolled face lock and initializes all stored vault data."
+    )
     print("[!] Physical object bindings are also cleared.")
     answer = input_func(f'Type "{FACE_RESET_CONFIRMATION}" to continue: ').strip()
     return answer == FACE_RESET_CONFIRMATION
@@ -158,9 +164,13 @@ def _reset_face_lock_and_container(vault):
         else (False, "Face enrollment was not armed.")
     )
     audit_event("container_reinitialized", source="cli_face_reset")
-    audit_event("object_bindings_cleared", source="cli_face_reset", success=object_success)
+    audit_event(
+        "object_bindings_cleared", source="cli_face_reset", success=object_success
+    )
     audit_event("ui_face_lock_cleared", source="cli_face_reset", success=face_success)
-    audit_event("ui_face_enrollment_armed", source="cli_face_reset", success=enroll_success)
+    audit_event(
+        "ui_face_enrollment_armed", source="cli_face_reset", success=enroll_success
+    )
     return (
         object_success and face_success and enroll_success,
         object_message,
@@ -270,7 +280,9 @@ def main():
                 return
 
             print(f"\n[LOCAL] Calibrating object cue for {entry_label}...")
-            print("[INFO] The captured object will be stored as the local access cue for this entry.")
+            print(
+                "[INFO] The captured object will be stored as the local access cue for this entry."
+            )
             success, msg = _register_reference_key(selected_mode)
             if not success:
                 print(f"[!] Error: {msg}")
@@ -413,7 +425,9 @@ def main():
             print(f"[+] Face UI lock: {face_message}")
             print(f"[+] Face enrollment: {enroll_message}")
             if success:
-                print("[+] Reset complete. Reload /ui-lock in the WebUI to register a new face lock.")
+                print(
+                    "[+] Reset complete. Reload /ui-lock in the WebUI to register a new face lock."
+                )
             else:
                 print("[!] Reset completed with warnings. Review the messages above.")
     finally:

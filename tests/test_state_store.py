@@ -29,7 +29,9 @@ class LocalStateStoreTests(unittest.TestCase):
 
     def test_malformed_record_returns_corrupt(self):
         tmpdir = tempfile.mkdtemp()
-        with open(os.path.join(tmpdir, STATE_INDEX_NAME), "w", encoding="utf-8") as handle:
+        with open(
+            os.path.join(tmpdir, STATE_INDEX_NAME), "w", encoding="utf-8"
+        ) as handle:
             handle.write("{broken\n")
         store = LocalStateStore(tmpdir)
 

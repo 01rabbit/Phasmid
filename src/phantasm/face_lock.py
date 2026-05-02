@@ -32,7 +32,9 @@ class FaceUILock:
         self.template_path = os.path.join(self.state_dir, FACE_TEMPLATE_NAME)
         self.enrollment_path = os.path.join(self.state_dir, FACE_ENROLL_FLAG_NAME)
         self.state_key_path = os.path.join(self.state_dir, STATE_KEY_NAME)
-        cascade_path = os.path.join(cv2.data.haarcascades, "haarcascade_frontalface_default.xml")
+        cascade_path = os.path.join(
+            cv2.data.haarcascades, "haarcascade_frontalface_default.xml"
+        )
         self.detector = cv2.CascadeClassifier(cascade_path)
         self.sessions = {}
         self.failures = {}
@@ -83,7 +85,12 @@ class FaceUILock:
     def create_session(self, client_id, token):
         self.sessions[token] = {
             "client_id": client_id,
-            "expires_at": time.time() + int(os.environ.get("PHANTASM_UI_FACE_SESSION_SECONDS", self.SESSION_TTL_SECONDS)),
+            "expires_at": time.time()
+            + int(
+                os.environ.get(
+                    "PHANTASM_UI_FACE_SESSION_SECONDS", self.SESSION_TTL_SECONDS
+                )
+            ),
         }
 
     def session_valid(self, client_id, token):
@@ -137,7 +144,11 @@ class FaceUILock:
             created_at = os.path.getmtime(self.enrollment_path)
         except OSError:
             return False
-        if now - created_at > int(os.environ.get("PHANTASM_UI_FACE_ENROLL_SECONDS", self.ENROLLMENT_TTL_SECONDS)):
+        if now - created_at > int(
+            os.environ.get(
+                "PHANTASM_UI_FACE_ENROLL_SECONDS", self.ENROLLMENT_TTL_SECONDS
+            )
+        ):
             self.clear_enrollment_request()
             return False
         return True
@@ -155,7 +166,9 @@ class FaceUILock:
         return {
             "enabled": True,
             "enrolled": self.is_enrolled(),
-            "unlocked": self.session_valid(client_id, token) if client_id is not None else False,
+            "unlocked": (
+                self.session_valid(client_id, token) if client_id is not None else False
+            ),
             "max_failures": self.VERIFY_MAX_FAILURES,
             "failures": self.failures.get(client_id, 0) if client_id is not None else 0,
         }
@@ -175,7 +188,9 @@ class FaceUILock:
 
     def _face_sample(self, frame):
         gray = cv2.equalizeHist(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))
-        faces = self.detector.detectMultiScale(gray, scaleFactor=1.08, minNeighbors=4, minSize=(64, 64))
+        faces = self.detector.detectMultiScale(
+            gray, scaleFactor=1.08, minNeighbors=4, minSize=(64, 64)
+        )
         if len(faces) < 1:
             return None
         faces = sorted(faces, key=lambda item: item[2] * item[3], reverse=True)
@@ -211,7 +226,9 @@ class FaceUILock:
             raise ValueError("face template is too short")
         nonce, ciphertext = data[:12], data[12:]
         try:
-            plaintext = AESGCM(self._state_encryption_key()).decrypt(nonce, ciphertext, self._aad())
+            plaintext = AESGCM(self._state_encryption_key()).decrypt(
+                nonce, ciphertext, self._aad()
+            )
         except InvalidTag as exc:
             raise ValueError("face template authentication failed") from exc
         with np.load(io.BytesIO(plaintext), allow_pickle=False) as payload:
@@ -224,13 +241,17 @@ class FaceUILock:
 
     def _encrypt(self, plaintext):
         nonce = os.urandom(12)
-        return nonce + AESGCM(self._state_encryption_key()).encrypt(nonce, plaintext, self._aad())
+        return nonce + AESGCM(self._state_encryption_key()).encrypt(
+            nonce, plaintext, self._aad()
+        )
 
     def _state_encryption_key(self):
         external_value = os.environ.get("PHANTASM_STATE_SECRET")
         if external_value:
             return hashlib.sha256(external_value.encode("utf-8")).digest()
-        return hashlib.sha256(self._load_or_create_local_state_key() + b":face-ui-lock").digest()
+        return hashlib.sha256(
+            self._load_or_create_local_state_key() + b":face-ui-lock"
+        ).digest()
 
     def _load_or_create_local_state_key(self):
         if os.path.exists(self.state_key_path):
@@ -266,7 +287,9 @@ class FaceUILock:
             mse = float(np.mean((sample - template) ** 2))
             corr = self._correlation(sample, template)
             hist = self._histogram_similarity(sample, template)
-            if mse <= self.MSE_THRESHOLD and (corr >= self.CORRELATION_THRESHOLD or hist >= self.HIST_THRESHOLD):
+            if mse <= self.MSE_THRESHOLD and (
+                corr >= self.CORRELATION_THRESHOLD or hist >= self.HIST_THRESHOLD
+            ):
                 return True
         return False
 

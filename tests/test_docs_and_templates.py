@@ -43,6 +43,8 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("When to Use Phantasm", readme)
         self.assertIn("Test Command", readme)
         self.assertIn("Release Review Artifacts", readme)
+        self.assertIn("python3 -m black --check src tests scripts", readme)
+        self.assertIn("python3 -m bandit -r src", readme)
         self.assertIn("not approved classified-data handling infrastructure", readme)
         self.assertIn("Field Mode is not a security boundary", readme)
         self.assertIn("Metadata detection and reduction are best-effort", readme)
@@ -79,7 +81,10 @@ class DocsAndTemplateTests(unittest.TestCase):
 
     def test_field_test_procedure_addresses_field_use_limits(self):
         doc = read_text("docs/FIELD_TEST_PROCEDURE.md")
-        self.assertIn("Physical shock resistance and tamper-resistant casing are out of scope", doc)
+        self.assertIn(
+            "Physical shock resistance and tamper-resistant casing are out of scope",
+            doc,
+        )
         self.assertIn("Test sudden power loss during Retrieve", doc)
         self.assertIn("Review the systemd journal after each power-loss case", doc)
 
@@ -98,13 +103,16 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("readiness gates", plan)
         self.assertIn("target-hardware validation", plan)
         self.assertIn("README claims match the validation record", plan)
+        self.assertIn("formatting and static-analysis result", plan)
         self.assertIn("release manifest and SBOM generation result", plan)
 
     def test_rpi_appliance_doc_is_authoritative(self):
         summary = read_text("docs/RPI_ZERO_DEPLOYMENT.md")
         appliance = read_text("docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md")
         self.assertIn("authoritative appliance deployment guide", summary)
-        self.assertIn("authoritative Raspberry Pi Zero 2 W appliance deployment guide", appliance)
+        self.assertIn(
+            "authoritative Raspberry Pi Zero 2 W appliance deployment guide", appliance
+        )
         self.assertIn("optional LUKS2 storage-layer procedure", summary)
         self.assertIn("Optional LUKS Storage Layer", appliance)
 

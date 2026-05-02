@@ -309,6 +309,15 @@ python3 -m unittest discover -s tests
 
 Passing automated tests do not prove field safety. They verify expected local behavior, terminology boundaries, Field Mode behavior, metadata route behavior, and WebUI contract behavior. Field evaluation still requires the Field Test Procedure and Seizure Review Checklist.
 
+Local static checks used by CI:
+
+```bash
+python3 -m pip install -r requirements-dev.txt
+python3 -m black --check src tests scripts
+python3 -m compileall -q src tests scripts
+python3 -m bandit -r src -q --severity-level medium --confidence-level high
+```
+
 ## Release Review Artifacts
 
 Generate local release-review artifacts:

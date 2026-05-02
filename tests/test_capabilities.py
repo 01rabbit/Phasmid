@@ -28,7 +28,9 @@ class CapabilityPolicyTests(unittest.TestCase):
             self.assertFalse(capability_enabled(Capability.RAPID_LOCAL_CLEAR))
 
     def test_maintenance_mode_rejects_storage_workflow_capabilities(self):
-        with mock.patch.dict(os.environ, {"PHANTASM_PROFILE": "maintenance"}, clear=True):
+        with mock.patch.dict(
+            os.environ, {"PHANTASM_PROFILE": "maintenance"}, clear=True
+        ):
             self.assertEqual(active_policy().name, "maintenance")
             self.assertFalse(capability_enabled(Capability.METADATA_CHECK))
             self.assertFalse(capability_enabled(Capability.METADATA_REDUCE))

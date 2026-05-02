@@ -30,7 +30,9 @@ class AuditTests(unittest.TestCase):
                     profile="Profile A",
                 )
 
-            with open(os.path.join(tmp, AUDIT_LOG_NAME), "r", encoding="utf-8") as handle:
+            with open(
+                os.path.join(tmp, AUDIT_LOG_NAME), "r", encoding="utf-8"
+            ) as handle:
                 record = json.loads(handle.readline())
 
             self.assertEqual(record["event"], "payload_stored")
@@ -51,10 +53,14 @@ class AuditTests(unittest.TestCase):
 
     def test_audit_omits_filename_hash_by_default_when_enabled(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with mock.patch.dict(os.environ, {"PHANTASM_STATE_DIR": tmp, "PHANTASM_AUDIT": "1"}):
+            with mock.patch.dict(
+                os.environ, {"PHANTASM_STATE_DIR": tmp, "PHANTASM_AUDIT": "1"}
+            ):
                 audit.audit_event("payload_stored", filename="payload-name.txt")
 
-            with open(os.path.join(tmp, AUDIT_LOG_NAME), "r", encoding="utf-8") as handle:
+            with open(
+                os.path.join(tmp, AUDIT_LOG_NAME), "r", encoding="utf-8"
+            ) as handle:
                 record = json.loads(handle.readline())
 
             self.assertTrue(record["filename_present"])

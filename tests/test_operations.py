@@ -11,7 +11,12 @@ ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from phantasm import cli
-from phantasm.config import AUDIT_LOG_NAME, STATE_BLOB_NAME, STATE_KEY_NAME, VAULT_KEY_NAME
+from phantasm.config import (
+    AUDIT_LOG_NAME,
+    STATE_BLOB_NAME,
+    STATE_KEY_NAME,
+    VAULT_KEY_NAME,
+)
 from phantasm.operations import (
     export_redacted_log,
     verify_audit_log,
@@ -54,8 +59,7 @@ class LocalOperationTests(unittest.TestCase):
         audit_path = os.path.join(tmpdir, AUDIT_LOG_NAME)
         with open(audit_path, "w", encoding="utf-8") as handle:
             handle.write(
-                json.dumps({"ts": 1, "event": "startup", "source": "test"})
-                + "\n"
+                json.dumps({"ts": 1, "event": "startup", "source": "test"}) + "\n"
             )
 
         report = verify_audit_log(audit_path)
@@ -125,10 +129,12 @@ class LocalOperationTests(unittest.TestCase):
         tmpdir = tempfile.mkdtemp()
         output = io.StringIO()
 
-        with mock.patch.object(sys, "argv", ["phantasm", "verify-state"]), \
-             mock.patch.dict(os.environ, {"PHANTASM_STATE_DIR": tmpdir}), \
-             mock.patch.object(cli.EmergencyDaemon, "start") as start, \
-             contextlib.redirect_stdout(output):
+        with (
+            mock.patch.object(sys, "argv", ["phantasm", "verify-state"]),
+            mock.patch.dict(os.environ, {"PHANTASM_STATE_DIR": tmpdir}),
+            mock.patch.object(cli.EmergencyDaemon, "start") as start,
+            contextlib.redirect_stdout(output),
+        ):
             cli.main()
 
         start.assert_not_called()

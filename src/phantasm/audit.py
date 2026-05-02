@@ -27,7 +27,9 @@ def audit_event(event, **fields):
     }
     path = os.path.join(_state_dir(), AUDIT_LOG_NAME)
     with open(path, "a", encoding="utf-8") as handle:
-        handle.write(json.dumps(record, separators=(",", ":"), ensure_ascii=False) + "\n")
+        handle.write(
+            json.dumps(record, separators=(",", ":"), ensure_ascii=False) + "\n"
+        )
     try:
         os.chmod(path, 0o600)
     except OSError:
@@ -45,7 +47,9 @@ def _sanitize_fields(fields):
                 sanitized["filename_present"] = True
                 if os.environ.get("PHANTASM_AUDIT_FILENAMES") == "hash":
                     filename = os.path.basename(str(value))
-                    sanitized["filename_hash"] = hashlib.sha256(filename.encode("utf-8")).hexdigest()
+                    sanitized["filename_hash"] = hashlib.sha256(
+                        filename.encode("utf-8")
+                    ).hexdigest()
             else:
                 sanitized["filename_present"] = False
             continue

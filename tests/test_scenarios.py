@@ -105,8 +105,12 @@ class RestrictedFlowScenarioTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 cookies={},
             )
-            with mock.patch.object(web_server, "field_mode_enabled", return_value=True), \
-                 mock.patch.object(web_server, "_restricted_session_valid", return_value=False):
+            with (
+                mock.patch.object(web_server, "field_mode_enabled", return_value=True),
+                mock.patch.object(
+                    web_server, "_restricted_session_valid", return_value=False
+                ),
+            ):
                 response = await web_server.maintenance_page(request)
             self.assertTrue(response.context["field_mode"])
             self.assertFalse(response.context["restricted_confirmed"])
@@ -119,10 +123,18 @@ class RestrictedFlowScenarioTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 url=SimpleNamespace(path="/emergency"),
             )
-            with mock.patch.object(web_server, "_restricted_session_valid", return_value=True), \
-                 mock.patch.object(web_server.vault, "format_container") as format_container, \
-                 mock.patch.object(web_server.gate, "clear_references", return_value=(True, "ok")), \
-                 mock.patch.object(web_server.vault, "silent_brick") as silent_brick:
+            with (
+                mock.patch.object(
+                    web_server, "_restricted_session_valid", return_value=True
+                ),
+                mock.patch.object(
+                    web_server.vault, "format_container"
+                ) as format_container,
+                mock.patch.object(
+                    web_server.gate, "clear_references", return_value=(True, "ok")
+                ),
+                mock.patch.object(web_server.vault, "silent_brick") as silent_brick,
+            ):
                 init_response = await web_server.emergency_initialize(
                     request,
                     confirmation="INITIALIZE LOCAL CONTAINER",
@@ -135,7 +147,9 @@ class RestrictedFlowScenarioTests(unittest.TestCase):
             format_container.assert_called_once_with(rotate_access_key=True)
             silent_brick.assert_called_once()
             self.assertEqual(init_response["status"], strings.CONTAINER_INITIALIZED)
-            self.assertEqual(clear_response["status"], strings.LOCAL_ACCESS_PATH_CLEARED)
+            self.assertEqual(
+                clear_response["status"], strings.LOCAL_ACCESS_PATH_CLEARED
+            )
 
         asyncio.run(run())
 

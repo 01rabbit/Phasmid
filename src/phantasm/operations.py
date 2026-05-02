@@ -91,9 +91,7 @@ def verify_state(base_dir: str | None = None, vault_path: str = "vault.bin"):
     checks.append(
         OperationCheck(
             "state_permissions",
-            STATUS_READY
-            if layout["root_secure"]
-            else STATUS_ATTENTION,
+            STATUS_READY if layout["root_secure"] else STATUS_ATTENTION,
             "local state permissions are restricted",
         )
     )
@@ -102,21 +100,23 @@ def verify_state(base_dir: str | None = None, vault_path: str = "vault.bin"):
     checks.append(
         OperationCheck(
             "state_material",
-            STATUS_READY
-            if len(present_files) == len(EXPECTED_STATE_FILES)
-            else STATUS_ATTENTION,
-            "required local state material is present"
-            if len(present_files) == len(EXPECTED_STATE_FILES)
-            else "local state material is incomplete",
+            (
+                STATUS_READY
+                if len(present_files) == len(EXPECTED_STATE_FILES)
+                else STATUS_ATTENTION
+            ),
+            (
+                "required local state material is present"
+                if len(present_files) == len(EXPECTED_STATE_FILES)
+                else "local state material is incomplete"
+            ),
         )
     )
 
     checks.append(
         OperationCheck(
             "state_file_permissions",
-            STATUS_READY
-            if layout["files_secure"]
-            else STATUS_ATTENTION,
+            STATUS_READY if layout["files_secure"] else STATUS_ATTENTION,
             "local state files have restricted permissions",
         )
     )
@@ -125,9 +125,11 @@ def verify_state(base_dir: str | None = None, vault_path: str = "vault.bin"):
         OperationCheck(
             "container",
             STATUS_READY if os.path.exists(vault_path) else STATUS_ATTENTION,
-            "local container is present"
-            if os.path.exists(vault_path)
-            else "local container is not initialized",
+            (
+                "local container is present"
+                if os.path.exists(vault_path)
+                else "local container is not initialized"
+            ),
         )
     )
     return _report("verify-state", checks)
@@ -138,9 +140,7 @@ def _audit_path(path: str | None = None):
 
 
 def _canonical_record(record: dict):
-    return json.dumps(record, sort_keys=True, separators=(",", ":")).encode(
-        "utf-8"
-    )
+    return json.dumps(record, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
 def verify_audit_log(path: str | None = None):
@@ -202,11 +202,7 @@ def verify_audit_log(path: str | None = None):
                 chain_ok = False
                 break
             event_hash = record.get("event_hash")
-            data = {
-                key: value
-                for key, value in record.items()
-                if key != "event_hash"
-            }
+            data = {key: value for key, value in record.items() if key != "event_hash"}
             expected_hash = hashlib.sha256(_canonical_record(data)).hexdigest()
             if event_hash != expected_hash:
                 chain_ok = False
@@ -232,11 +228,7 @@ def verify_audit_log(path: str | None = None):
 
 
 def redact_audit_record(record: dict):
-    redacted = {
-        key: record[key]
-        for key in REDACTED_AUDIT_FIELDS
-        if key in record
-    }
+    redacted = {key: record[key] for key in REDACTED_AUDIT_FIELDS if key in record}
     redacted["details_redacted"] = any(
         key not in REDACTED_AUDIT_FIELDS for key in record
     )
@@ -258,17 +250,16 @@ def export_redacted_log(output_path: str, input_path: str | None = None):
         )
 
     count = 0
-    with open(input_path, "r", encoding="utf-8") as source, open(
-        output_path, "w", encoding="utf-8"
-    ) as target:
+    with (
+        open(input_path, "r", encoding="utf-8") as source,
+        open(output_path, "w", encoding="utf-8") as target,
+    ):
         for line in source:
             stripped = line.strip()
             if not stripped:
                 continue
             record = json.loads(stripped)
-            target.write(
-                json.dumps(redact_audit_record(record), sort_keys=True) + "\n"
-            )
+            target.write(json.dumps(redact_audit_record(record), sort_keys=True) + "\n")
             count += 1
 
     try:

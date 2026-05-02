@@ -33,7 +33,10 @@ def evaluate_restricted_action(
         raise RestrictedActionRejected(text.OPERATION_UNAVAILABLE)
     if policy.require_restricted_confirmation and not restricted_confirmed:
         raise RestrictedActionRejected(text.RESTRICTED_CONFIRMATION_REQUIRED)
-    if policy.confirmation_phrase is not None and confirmation != policy.confirmation_phrase:
+    if (
+        policy.confirmation_phrase is not None
+        and confirmation != policy.confirmation_phrase
+    ):
         raise RestrictedActionRejected(text.CONFIRMATION_REJECTED)
     if policy.require_password_reentry and not password_reentered:
         raise RestrictedActionRejected(text.OPERATION_REJECTED)

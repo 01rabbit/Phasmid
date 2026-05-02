@@ -122,12 +122,11 @@ def write_sbom(base_dir: Path, output_path: Path):
                 "name": "phantasm-vault",
             },
         },
-        "components": [
-            dependency_component(dependency)
-            for dependency in dependencies
-        ],
+        "components": [dependency_component(dependency) for dependency in dependencies],
     }
-    output_path.write_text(json.dumps(sbom, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    output_path.write_text(
+        json.dumps(sbom, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return sbom
 
 
@@ -163,15 +162,23 @@ def generate(base_dir: Path, output_dir: Path, archive: bool = False):
         "sbom": sbom_path.name,
         "sbom_components": len(sbom["components"]),
     }
-    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    summary_path.write_text(
+        json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return summary
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Generate local release review artifacts")
+    parser = argparse.ArgumentParser(
+        description="Generate local release review artifacts"
+    )
     parser.add_argument("--base-dir", default=".", help="repository root")
-    parser.add_argument("--output-dir", default="release/local", help="artifact output directory")
-    parser.add_argument("--archive", action="store_true", help="also write a local release archive")
+    parser.add_argument(
+        "--output-dir", default="release/local", help="artifact output directory"
+    )
+    parser.add_argument(
+        "--archive", action="store_true", help="also write a local release archive"
+    )
     args = parser.parse_args(argv)
 
     summary = generate(

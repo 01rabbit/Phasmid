@@ -125,7 +125,9 @@ class TerminologyAuditTests(unittest.TestCase):
         self.assertEqual([], violations)
 
     def test_normal_navigation_does_not_link_restricted_route(self):
-        with open(os.path.join(TEMPLATE_DIR, "base.html"), "r", encoding="utf-8") as handle:
+        with open(
+            os.path.join(TEMPLATE_DIR, "base.html"), "r", encoding="utf-8"
+        ) as handle:
             base = handle.read()
         nav_match = re.search(r"<nav.*?</nav>", base, flags=re.DOTALL)
         self.assertIsNotNone(nav_match)

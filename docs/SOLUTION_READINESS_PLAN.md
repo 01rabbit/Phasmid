@@ -42,6 +42,7 @@ Each release candidate should record:
 - git commit;
 - test command;
 - test result;
+- formatting and static-analysis result;
 - target hardware;
 - operating system image;
 - service unit used;

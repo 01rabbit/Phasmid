@@ -39,11 +39,16 @@ class WebServerBoundaryTests(unittest.TestCase):
 
     def test_security_headers_are_applied_to_responses(self):
         response = web_server._apply_security_headers(JSONResponse({"ok": True}))
-        self.assertEqual(response.headers["cache-control"], "no-store, no-cache, must-revalidate, max-age=0")
+        self.assertEqual(
+            response.headers["cache-control"],
+            "no-store, no-cache, must-revalidate, max-age=0",
+        )
         self.assertEqual(response.headers["x-frame-options"], "DENY")
         self.assertEqual(response.headers["x-content-type-options"], "nosniff")
         self.assertEqual(response.headers["referrer-policy"], "no-referrer")
-        self.assertIn("frame-ancestors 'none'", response.headers["content-security-policy"])
+        self.assertIn(
+            "frame-ancestors 'none'", response.headers["content-security-policy"]
+        )
         self.assertIn("camera=(self)", response.headers["permissions-policy"])
 
     def test_rate_limit_blocks_after_configured_limit(self):
@@ -70,12 +75,16 @@ class WebServerBoundaryTests(unittest.TestCase):
         asyncio.run(run())
 
     def test_status_uses_neutral_terms(self):
-        with mock.patch.object(web_server.gate, "get_status", return_value={
-            "object_detected": True,
-            "matched_mode": "dummy",
-            "match_states": {"dummy": True, "secret": False},
-            "registered_modes": {"dummy": True, "secret": False},
-        }):
+        with mock.patch.object(
+            web_server.gate,
+            "get_status",
+            return_value={
+                "object_detected": True,
+                "matched_mode": "dummy",
+                "match_states": {"dummy": True, "secret": False},
+                "registered_modes": {"dummy": True, "secret": False},
+            },
+        ):
             status = web_server.neutral_status()
 
         self.assertEqual(status["object_state"], "matched")
@@ -89,8 +98,12 @@ class WebServerBoundaryTests(unittest.TestCase):
             client=SimpleNamespace(host="127.0.0.1"),
             cookies={},
         )
-        with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
-             mock.patch.object(web_server.face_lock, "session_valid", return_value=False):
+        with (
+            mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True),
+            mock.patch.object(
+                web_server.face_lock, "session_valid", return_value=False
+            ),
+        ):
             with self.assertRaises(HTTPException) as ctx:
                 web_server.require_ui_unlock(request)
         self.assertEqual(ctx.exception.status_code, 423)
@@ -102,14 +115,26 @@ class WebServerBoundaryTests(unittest.TestCase):
                 cookies={},
                 url=SimpleNamespace(path="/face/verify"),
             )
-            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
-                 mock.patch.object(web_server, "_recent_camera_frames", return_value=[object()]), \
-                 mock.patch.object(web_server.face_lock, "verify_from_frames", return_value=(True, "ok")) as verify, \
-                 mock.patch.object(web_server.face_lock, "create_session") as create:
+            with (
+                mock.patch.object(
+                    web_server, "ui_face_lock_enabled", return_value=True
+                ),
+                mock.patch.object(
+                    web_server, "_recent_camera_frames", return_value=[object()]
+                ),
+                mock.patch.object(
+                    web_server.face_lock,
+                    "verify_from_frames",
+                    return_value=(True, "ok"),
+                ) as verify,
+                mock.patch.object(web_server.face_lock, "create_session") as create,
+            ):
                 response = await web_server.face_verify(request)
             verify.assert_called_once()
             create.assert_called_once()
-            self.assertIn(web_server.FACE_SESSION_COOKIE, response.headers.get("set-cookie", ""))
+            self.assertIn(
+                web_server.FACE_SESSION_COOKIE, response.headers.get("set-cookie", "")
+            )
 
         asyncio.run(run())
 
@@ -119,14 +144,24 @@ class WebServerBoundaryTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 cookies={},
             )
-            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
-                 mock.patch.object(web_server.face_lock, "session_valid", return_value=False), \
-                 mock.patch.object(web_server, "neutral_status", return_value={
-                     "camera_ready": True,
-                     "object_state": "matched",
-                     "device_state": "ready",
-                     "local_mode": True,
-                 }):
+            with (
+                mock.patch.object(
+                    web_server, "ui_face_lock_enabled", return_value=True
+                ),
+                mock.patch.object(
+                    web_server.face_lock, "session_valid", return_value=False
+                ),
+                mock.patch.object(
+                    web_server,
+                    "neutral_status",
+                    return_value={
+                        "camera_ready": True,
+                        "object_state": "matched",
+                        "device_state": "ready",
+                        "local_mode": True,
+                    },
+                ),
+            ):
                 response = await web_server.status(request)
             self.assertEqual(response["device_state"], "locked")
             self.assertFalse(response["camera_ready"])
@@ -139,7 +174,11 @@ class WebServerBoundaryTests(unittest.TestCase):
         asyncio.run(run())
 
     def test_video_feed_requires_unlocked_ui(self):
-        route = next(route for route in web_server.app.routes if getattr(route, "path", None) == "/video_feed")
+        route = next(
+            route
+            for route in web_server.app.routes
+            if getattr(route, "path", None) == "/video_feed"
+        )
         dependency_names = {item.call.__name__ for item in route.dependant.dependencies}
         self.assertIn("require_ui_unlock", dependency_names)
 
@@ -149,7 +188,9 @@ class WebServerBoundaryTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 cookies={},
             )
-            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=False):
+            with mock.patch.object(
+                web_server, "ui_face_lock_enabled", return_value=False
+            ):
                 with self.assertRaises(HTTPException) as ctx:
                     await web_server.ui_lock_video_feed(request)
             self.assertEqual(ctx.exception.status_code, 404)
@@ -162,10 +203,18 @@ class WebServerBoundaryTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 cookies={},
             )
-            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
-                 mock.patch.object(web_server.gate, "generate_frames", return_value=iter([b"frame"])):
+            with (
+                mock.patch.object(
+                    web_server, "ui_face_lock_enabled", return_value=True
+                ),
+                mock.patch.object(
+                    web_server.gate, "generate_frames", return_value=iter([b"frame"])
+                ),
+            ):
                 response = await web_server.ui_lock_video_feed(request)
-            self.assertEqual(response.media_type, "multipart/x-mixed-replace; boundary=frame")
+            self.assertEqual(
+                response.media_type, "multipart/x-mixed-replace; boundary=frame"
+            )
 
         asyncio.run(run())
 
@@ -176,12 +225,28 @@ class WebServerBoundaryTests(unittest.TestCase):
                 cookies={},
                 url=SimpleNamespace(path="/face/enroll"),
             )
-            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
-                 mock.patch.object(web_server, "ui_face_enrollment_enabled", return_value=False), \
-                 mock.patch.object(web_server.face_lock, "enrollment_pending", return_value=False), \
-                 mock.patch.object(web_server.face_lock, "is_enrolled", return_value=False), \
-                 mock.patch.object(web_server.face_lock, "enroll_from_frames", return_value=(True, "ok")) as enroll, \
-                 mock.patch.object(web_server.face_lock, "clear_enrollment_request") as clear:
+            with (
+                mock.patch.object(
+                    web_server, "ui_face_lock_enabled", return_value=True
+                ),
+                mock.patch.object(
+                    web_server, "ui_face_enrollment_enabled", return_value=False
+                ),
+                mock.patch.object(
+                    web_server.face_lock, "enrollment_pending", return_value=False
+                ),
+                mock.patch.object(
+                    web_server.face_lock, "is_enrolled", return_value=False
+                ),
+                mock.patch.object(
+                    web_server.face_lock,
+                    "enroll_from_frames",
+                    return_value=(True, "ok"),
+                ) as enroll,
+                mock.patch.object(
+                    web_server.face_lock, "clear_enrollment_request"
+                ) as clear,
+            ):
                 response = await web_server.face_enroll(request)
             enroll.assert_called_once()
             clear.assert_called_once_with()
@@ -196,12 +261,28 @@ class WebServerBoundaryTests(unittest.TestCase):
                 cookies={},
                 url=SimpleNamespace(path="/face/enroll"),
             )
-            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
-                 mock.patch.object(web_server, "ui_face_enrollment_enabled", return_value=True), \
-                 mock.patch.object(web_server, "_recent_camera_frames", return_value=[object()]), \
-                 mock.patch.object(web_server.face_lock, "is_enrolled", return_value=False), \
-                 mock.patch.object(web_server.face_lock, "enroll_from_frames", return_value=(True, "ok")) as enroll, \
-                 mock.patch.object(web_server.face_lock, "clear_enrollment_request") as clear:
+            with (
+                mock.patch.object(
+                    web_server, "ui_face_lock_enabled", return_value=True
+                ),
+                mock.patch.object(
+                    web_server, "ui_face_enrollment_enabled", return_value=True
+                ),
+                mock.patch.object(
+                    web_server, "_recent_camera_frames", return_value=[object()]
+                ),
+                mock.patch.object(
+                    web_server.face_lock, "is_enrolled", return_value=False
+                ),
+                mock.patch.object(
+                    web_server.face_lock,
+                    "enroll_from_frames",
+                    return_value=(True, "ok"),
+                ) as enroll,
+                mock.patch.object(
+                    web_server.face_lock, "clear_enrollment_request"
+                ) as clear,
+            ):
                 response = await web_server.face_enroll(request)
             enroll.assert_called_once()
             clear.assert_called_once_with()
@@ -216,13 +297,31 @@ class WebServerBoundaryTests(unittest.TestCase):
                 cookies={},
                 url=SimpleNamespace(path="/face/enroll"),
             )
-            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
-                 mock.patch.object(web_server, "ui_face_enrollment_enabled", return_value=False), \
-                 mock.patch.object(web_server.face_lock, "enrollment_pending", return_value=True), \
-                 mock.patch.object(web_server, "_recent_camera_frames", return_value=[object()]), \
-                 mock.patch.object(web_server.face_lock, "is_enrolled", return_value=False), \
-                 mock.patch.object(web_server.face_lock, "enroll_from_frames", return_value=(True, "ok")) as enroll, \
-                 mock.patch.object(web_server.face_lock, "clear_enrollment_request") as clear:
+            with (
+                mock.patch.object(
+                    web_server, "ui_face_lock_enabled", return_value=True
+                ),
+                mock.patch.object(
+                    web_server, "ui_face_enrollment_enabled", return_value=False
+                ),
+                mock.patch.object(
+                    web_server.face_lock, "enrollment_pending", return_value=True
+                ),
+                mock.patch.object(
+                    web_server, "_recent_camera_frames", return_value=[object()]
+                ),
+                mock.patch.object(
+                    web_server.face_lock, "is_enrolled", return_value=False
+                ),
+                mock.patch.object(
+                    web_server.face_lock,
+                    "enroll_from_frames",
+                    return_value=(True, "ok"),
+                ) as enroll,
+                mock.patch.object(
+                    web_server.face_lock, "clear_enrollment_request"
+                ) as clear,
+            ):
                 response = await web_server.face_enroll(request)
             enroll.assert_called_once()
             clear.assert_called_once_with()
@@ -237,10 +336,16 @@ class WebServerBoundaryTests(unittest.TestCase):
                 cookies={},
                 url=SimpleNamespace(path="/face/enroll"),
             )
-            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
-                 mock.patch.object(web_server.face_lock, "is_enrolled", return_value=True), \
-                 mock.patch.object(web_server, "_ui_unlocked", return_value=False), \
-                 mock.patch.object(web_server.face_lock, "enroll_from_frames") as enroll:
+            with (
+                mock.patch.object(
+                    web_server, "ui_face_lock_enabled", return_value=True
+                ),
+                mock.patch.object(
+                    web_server.face_lock, "is_enrolled", return_value=True
+                ),
+                mock.patch.object(web_server, "_ui_unlocked", return_value=False),
+                mock.patch.object(web_server.face_lock, "enroll_from_frames") as enroll,
+            ):
                 response = await web_server.face_enroll(request)
             enroll.assert_not_called()
             self.assertIn("unlocked", response["error"])
@@ -254,10 +359,16 @@ class WebServerBoundaryTests(unittest.TestCase):
                 cookies={},
                 url=SimpleNamespace(path="/face/enroll"),
             )
-            with mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True), \
-                 mock.patch.object(web_server.face_lock, "is_enrolled", return_value=True), \
-                 mock.patch.object(web_server, "_ui_unlocked", return_value=True), \
-                 mock.patch.object(web_server.face_lock, "enroll_from_frames") as enroll:
+            with (
+                mock.patch.object(
+                    web_server, "ui_face_lock_enabled", return_value=True
+                ),
+                mock.patch.object(
+                    web_server.face_lock, "is_enrolled", return_value=True
+                ),
+                mock.patch.object(web_server, "_ui_unlocked", return_value=True),
+                mock.patch.object(web_server.face_lock, "enroll_from_frames") as enroll,
+            ):
                 response = await web_server.face_enroll(request)
             enroll.assert_not_called()
             self.assertIn("Restricted confirmation required", response["error"])
@@ -275,7 +386,10 @@ class WebServerBoundaryTests(unittest.TestCase):
                 request,
                 confirmation=web_server.RESTRICTED_CONFIRMATION_PHRASE,
             )
-            self.assertIn(web_server.RESTRICTED_SESSION_COOKIE, response.headers.get("set-cookie", ""))
+            self.assertIn(
+                web_server.RESTRICTED_SESSION_COOKIE,
+                response.headers.get("set-cookie", ""),
+            )
 
         asyncio.run(run())
 
@@ -291,8 +405,14 @@ class WebServerBoundaryTests(unittest.TestCase):
     def test_entry_status_requires_restricted_confirmation_dependency(self):
         sensitive_paths = {"/maintenance/entry_status"}
         for path in sensitive_paths:
-            route = next(route for route in web_server.app.routes if getattr(route, "path", None) == path)
-            dependency_names = {item.call.__name__ for item in route.dependant.dependencies}
+            route = next(
+                route
+                for route in web_server.app.routes
+                if getattr(route, "path", None) == path
+            )
+            dependency_names = {
+                item.call.__name__ for item in route.dependant.dependencies
+            }
             self.assertIn("require_restricted_confirmation", dependency_names)
 
     def test_restricted_action_service_rejects_missing_confirmation_session(self):
@@ -315,8 +435,12 @@ class WebServerBoundaryTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 cookies={},
             )
-            with mock.patch.object(web_server, "_guard_page", return_value=None), \
-                 mock.patch.object(web_server, "_restricted_session_valid", return_value=False):
+            with (
+                mock.patch.object(web_server, "_guard_page", return_value=None),
+                mock.patch.object(
+                    web_server, "_restricted_session_valid", return_value=False
+                ),
+            ):
                 response = await web_server.emergency_page(request)
             self.assertFalse(response.context["restricted_confirmed"])
 
@@ -328,8 +452,12 @@ class WebServerBoundaryTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 cookies={},
             )
-            with mock.patch.object(web_server, "_guard_page", return_value=None), \
-                 mock.patch.object(web_server, "_restricted_session_valid", return_value=False):
+            with (
+                mock.patch.object(web_server, "_guard_page", return_value=None),
+                mock.patch.object(
+                    web_server, "_restricted_session_valid", return_value=False
+                ),
+            ):
                 response = await web_server.entry_management_page(request)
             self.assertFalse(response.context["restricted_confirmed"])
             self.assertNotIn("entry_status", response.context)
@@ -342,9 +470,13 @@ class WebServerBoundaryTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 cookies={},
             )
-            with mock.patch.object(web_server, "_guard_page", return_value=None), \
-                 mock.patch.object(web_server, "field_mode_enabled", return_value=True), \
-                 mock.patch.object(web_server, "_restricted_session_valid", return_value=False):
+            with (
+                mock.patch.object(web_server, "_guard_page", return_value=None),
+                mock.patch.object(web_server, "field_mode_enabled", return_value=True),
+                mock.patch.object(
+                    web_server, "_restricted_session_valid", return_value=False
+                ),
+            ):
                 response = await web_server.maintenance_page(request)
             self.assertTrue(response.context["field_mode"])
             self.assertFalse(response.context["restricted_confirmed"])
@@ -359,18 +491,32 @@ class WebServerBoundaryTests(unittest.TestCase):
                 cookies={},
                 url=SimpleNamespace(path="/maintenance/diagnostics"),
             )
-            with mock.patch.object(web_server, "field_mode_enabled", return_value=True), \
-                 mock.patch.object(web_server, "_restricted_session_valid", return_value=False), \
-                 mock.patch.object(web_server, "neutral_status", return_value={
-                     "camera_ready": True,
-                     "object_state": "none",
-                     "device_state": "ready",
-                     "local_mode": True,
-                 }):
+            with (
+                mock.patch.object(web_server, "field_mode_enabled", return_value=True),
+                mock.patch.object(
+                    web_server, "_restricted_session_valid", return_value=False
+                ),
+                mock.patch.object(
+                    web_server,
+                    "neutral_status",
+                    return_value={
+                        "camera_ready": True,
+                        "object_state": "none",
+                        "device_state": "ready",
+                        "local_mode": True,
+                    },
+                ),
+            ):
                 response = await web_server.diagnostics(request)
             self.assertEqual(
                 set(response.keys()),
-                {"device_state", "camera_ready", "object_state", "local_mode", "restricted_confirmation_active"},
+                {
+                    "device_state",
+                    "camera_ready",
+                    "object_state",
+                    "local_mode",
+                    "restricted_confirmation_active",
+                },
             )
 
         asyncio.run(run())
@@ -382,8 +528,12 @@ class WebServerBoundaryTests(unittest.TestCase):
                 cookies={},
                 url=SimpleNamespace(path="/maintenance/logs"),
             )
-            with mock.patch.object(web_server, "field_mode_enabled", return_value=True), \
-                 mock.patch.object(web_server, "_restricted_session_valid", return_value=False):
+            with (
+                mock.patch.object(web_server, "field_mode_enabled", return_value=True),
+                mock.patch.object(
+                    web_server, "_restricted_session_valid", return_value=False
+                ),
+            ):
                 with self.assertRaises(HTTPException) as ctx:
                     await web_server.export_logs(request)
             self.assertEqual(ctx.exception.status_code, 403)
@@ -397,8 +547,12 @@ class WebServerBoundaryTests(unittest.TestCase):
                 cookies={},
                 url=SimpleNamespace(path="/maintenance/rotate_token"),
             )
-            with mock.patch.object(web_server, "field_mode_enabled", return_value=True), \
-                 mock.patch.object(web_server, "_restricted_session_valid", return_value=False):
+            with (
+                mock.patch.object(web_server, "field_mode_enabled", return_value=True),
+                mock.patch.object(
+                    web_server, "_restricted_session_valid", return_value=False
+                ),
+            ):
                 with self.assertRaises(HTTPException) as ctx:
                     await web_server.rotate_token(request)
             self.assertEqual(ctx.exception.status_code, 403)
@@ -427,8 +581,12 @@ class WebServerBoundaryTests(unittest.TestCase):
                 cookies={},
                 url=SimpleNamespace(path="/maintenance/reset_session"),
             )
-            with mock.patch.object(web_server, "field_mode_enabled", return_value=True), \
-                 mock.patch.object(web_server, "_restricted_session_valid", return_value=False):
+            with (
+                mock.patch.object(web_server, "field_mode_enabled", return_value=True),
+                mock.patch.object(
+                    web_server, "_restricted_session_valid", return_value=False
+                ),
+            ):
                 with self.assertRaises(HTTPException) as ctx:
                     await web_server.reset_session(request)
             self.assertEqual(ctx.exception.status_code, 403)
@@ -441,7 +599,9 @@ class WebServerBoundaryTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 url=SimpleNamespace(path="/purge_other"),
             )
-            with mock.patch.object(web_server, "_restricted_session_valid", return_value=True):
+            with mock.patch.object(
+                web_server, "_restricted_session_valid", return_value=True
+            ):
                 with self.assertRaises(HTTPException) as ctx:
                     await web_server.purge_other(
                         request,
@@ -458,9 +618,15 @@ class WebServerBoundaryTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 url=SimpleNamespace(path="/purge_other"),
             )
-            with mock.patch.object(web_server, "purge_confirmation_required", return_value=False), \
-                 mock.patch.object(web_server, "_restricted_session_valid", return_value=True), \
-                 mock.patch.object(web_server.vault, "purge_other_mode") as purge:
+            with (
+                mock.patch.object(
+                    web_server, "purge_confirmation_required", return_value=False
+                ),
+                mock.patch.object(
+                    web_server, "_restricted_session_valid", return_value=True
+                ),
+                mock.patch.object(web_server.vault, "purge_other_mode") as purge,
+            ):
                 with self.assertRaises(HTTPException) as ctx:
                     await web_server.purge_other(
                         request,
@@ -478,8 +644,12 @@ class WebServerBoundaryTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 url=SimpleNamespace(path="/purge_other"),
             )
-            with mock.patch.object(web_server, "_restricted_session_valid", return_value=True), \
-                 mock.patch.object(web_server.vault, "purge_other_mode") as purge:
+            with (
+                mock.patch.object(
+                    web_server, "_restricted_session_valid", return_value=True
+                ),
+                mock.patch.object(web_server.vault, "purge_other_mode") as purge,
+            ):
                 response = await web_server.purge_other(
                     request,
                     accessed_entry="entry_1",
@@ -496,8 +666,12 @@ class WebServerBoundaryTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 url=SimpleNamespace(path="/emergency/initialize"),
             )
-            with mock.patch.object(web_server, "_restricted_session_valid", return_value=True), \
-                 mock.patch.object(web_server.vault, "format_container") as init:
+            with (
+                mock.patch.object(
+                    web_server, "_restricted_session_valid", return_value=True
+                ),
+                mock.patch.object(web_server.vault, "format_container") as init,
+            ):
                 with self.assertRaises(HTTPException) as ctx:
                     await web_server.emergency_initialize(
                         request,
@@ -514,9 +688,15 @@ class WebServerBoundaryTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 url=SimpleNamespace(path="/emergency/initialize"),
             )
-            with mock.patch.object(web_server, "_restricted_session_valid", return_value=True), \
-                 mock.patch.object(web_server.vault, "format_container") as init, \
-                 mock.patch.object(web_server.gate, "clear_references", return_value=(True, "ok")) as clear:
+            with (
+                mock.patch.object(
+                    web_server, "_restricted_session_valid", return_value=True
+                ),
+                mock.patch.object(web_server.vault, "format_container") as init,
+                mock.patch.object(
+                    web_server.gate, "clear_references", return_value=(True, "ok")
+                ) as clear,
+            ):
                 response = await web_server.emergency_initialize(
                     request,
                     confirmation=web_server.INITIALIZE_CONTAINER_PHRASE,
@@ -528,16 +708,24 @@ class WebServerBoundaryTests(unittest.TestCase):
         asyncio.run(run())
 
     def test_duress_mode_auto_purges_dummy_access(self):
-        with mock.patch.object(web_server, "duress_mode_enabled", return_value=True), \
-             mock.patch.object(web_server, "purge_confirmation_required", return_value=True), \
-             mock.patch.object(web_server.vault, "purge_other_mode") as purge:
+        with (
+            mock.patch.object(web_server, "duress_mode_enabled", return_value=True),
+            mock.patch.object(
+                web_server, "purge_confirmation_required", return_value=True
+            ),
+            mock.patch.object(web_server.vault, "purge_other_mode") as purge,
+        ):
             self.assertTrue(web_server._maybe_auto_purge("dummy", source="test"))
         purge.assert_called_once_with("dummy")
 
     def test_duress_mode_does_not_auto_purge_secret_access(self):
-        with mock.patch.object(web_server, "duress_mode_enabled", return_value=True), \
-             mock.patch.object(web_server, "purge_confirmation_required", return_value=True), \
-             mock.patch.object(web_server.vault, "purge_other_mode") as purge:
+        with (
+            mock.patch.object(web_server, "duress_mode_enabled", return_value=True),
+            mock.patch.object(
+                web_server, "purge_confirmation_required", return_value=True
+            ),
+            mock.patch.object(web_server.vault, "purge_other_mode") as purge,
+        ):
             self.assertFalse(web_server._maybe_auto_purge("secret", source="test"))
         purge.assert_not_called()
 
@@ -564,7 +752,9 @@ class WebServerBoundaryTests(unittest.TestCase):
         purge.assert_not_called()
 
     def test_download_response_uses_neutral_filename_without_state_change_header(self):
-        response = web_server.create_file_response(b"payload", "source-name.txt", purge_applied=True)
+        response = web_server.create_file_response(
+            b"payload", "source-name.txt", purge_applied=True
+        )
         self.assertIn("retrieved_payload.bin", response.headers["content-disposition"])
         self.assertNotIn("x-local-state-updated", response.headers)
         self.assertNotIn("source-name", str(response.headers).lower())
@@ -634,8 +824,14 @@ class WebServerBoundaryTests(unittest.TestCase):
 
     def test_metadata_routes_require_web_token_and_ui_unlock(self):
         for path in {"/metadata/check", "/metadata/scrub"}:
-            route = next(route for route in web_server.app.routes if getattr(route, "path", None) == path)
-            dependency_names = {item.call.__name__ for item in route.dependant.dependencies}
+            route = next(
+                route
+                for route in web_server.app.routes
+                if getattr(route, "path", None) == path
+            )
+            dependency_names = {
+                item.call.__name__ for item in route.dependant.dependencies
+            }
             self.assertIn("require_web_token", dependency_names)
             self.assertIn("require_ui_unlock", dependency_names)
 
@@ -667,7 +863,7 @@ class _BytesFile:
         if size is None or size < 0:
             size = len(self._content) - self._offset
         end = min(self._offset + size, len(self._content))
-        chunk = self._content[self._offset:end]
+        chunk = self._content[self._offset : end]
         self._offset = end
         return chunk
 

@@ -193,13 +193,10 @@ class LocalStateStore:
             directory=True,
         )
         present_files = [
-            name
-            for name in expected_files
-            if os.path.exists(self.path_for(name))
+            name for name in expected_files if os.path.exists(self.path_for(name))
         ]
         files_secure = all(
-            _secure_mode(self.path_for(name), directory=False)
-            for name in present_files
+            _secure_mode(self.path_for(name), directory=False) for name in present_files
         )
         checks.append(root_secure)
         return {

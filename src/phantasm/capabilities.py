@@ -80,4 +80,3 @@ def active_policy() -> DeploymentPolicy:
 
 def capability_enabled(capability: Capability) -> bool:
     return active_policy().allows(capability)
-
