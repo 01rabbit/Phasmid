@@ -34,6 +34,7 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 ## Current Defenses
 
 - New stores use GhostVault v3 records: random per-record Argon2id salt, random per-record AES-GCM nonce, no plaintext magic/header, and AEAD-authenticated encrypted metadata.
+- Startup self-tests check local AES-GCM, HMAC-SHA-256, and random byte generation behavior before normal CLI/WebUI operation.
 - The local access key is mixed into Argon2id by default, so copying `vault.bin` alone is insufficient for recovery.
 - Protected entries can be stored with normal access and restricted recovery passwords that share the same object cue.
 - Store flows reject empty, duplicate, short, or highly repetitive passphrases to reduce accidental weak input.
@@ -67,6 +68,7 @@ These surfaces should not reveal the internal disclosure model, internal trial o
 - If the local access key is copied with `vault.bin`, the local access-key protection does not raise attacker cost.
 - If `vault.bin`, the configured state directory, and external key material are carried together on one medium, separation benefits are reduced.
 - Secure deletion is best-effort only. SSD wear leveling, backups, snapshots, and journaling filesystems may retain previous data.
+- Startup self-tests detect some local primitive failures but are not cryptographic certification and do not prove the host is uncompromised.
 - On flash media, recovery resistance depends primarily on key-material destruction or removal, not overwrite guarantees.
 - The v3 format avoids a plaintext format marker, but surrounding tool files can still reveal that a Phantasm-style container may be in use.
 - Dual password slots duplicate encrypted payload material within the selected internal storage span. This improves operational control but reduces maximum payload size.

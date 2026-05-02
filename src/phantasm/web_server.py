@@ -36,6 +36,7 @@ from .config import (
     ui_face_enrollment_enabled,
     ui_face_lock_enabled,
 )
+from .crypto_boundary import ensure_crypto_self_tests
 from .face_lock import face_lock
 from .gv_core import GhostVault
 from .metadata import metadata_risk_report, scrub_metadata
@@ -48,6 +49,13 @@ from .restricted_actions import (
 from . import strings as text
 
 app = FastAPI(title="Phantasm - Local Secure Interface")
+
+
+@app.on_event("startup")
+async def startup_self_tests():
+    ensure_crypto_self_tests()
+
+
 templates = Jinja2Templates(directory=str(Path(__file__).with_name("templates")))
 vault = GhostVault("vault.bin")
 WEB_TOKEN = os.environ.get("PHANTASM_WEB_TOKEN") or secrets.token_urlsafe(32)

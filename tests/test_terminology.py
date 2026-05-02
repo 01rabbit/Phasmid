@@ -42,6 +42,7 @@ PYTHON_BOUNDARY_FILES = [
     "src/phantasm/state_store.py",
     "src/phantasm/passphrase_policy.py",
     "src/phantasm/attempt_limiter.py",
+    "src/phantasm/crypto_boundary.py",
 ]
 
 FORBIDDEN_PATTERNS = [

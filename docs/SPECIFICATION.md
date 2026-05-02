@@ -54,6 +54,12 @@ The default state directory is `.state/` and can be changed with `PHANTASM_STATE
 
 New local state code paths should use the typed state store for schema-versioned records, atomic writes, restrictive file permissions, and explicit transition checks. Existing binary state files remain compatibility-managed by their owning modules until a migration path is defined.
 
+## 4.1 Cryptographic Boundary
+
+Phantasm defines a local cryptographic primitive boundary in `src/phantasm/crypto_boundary.py`. Startup checks cover AES-GCM round trip behavior, HMAC-SHA-256 behavior, and random byte generation health. Failure causes local startup to stop with a neutral message in the CLI path.
+
+This boundary improves reviewability and failure detection. It is not a FIPS validation, certification claim, or replacement for independent cryptographic review.
+
 ## 5. Internal Entry Model
 
 The container uses two fixed internal storage spans. The CLI keeps a compact `--entry a` / `--entry b` selector for compatibility, while WebUI v2 maps the internal model to neutral protected-entry workflows and does not expose internal labels during normal operation.

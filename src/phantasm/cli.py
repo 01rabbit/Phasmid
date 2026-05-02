@@ -9,6 +9,7 @@ from .attempt_limiter import FileAttemptLimiter
 from .audit import audit_event
 from .bridge_ui import ui
 from .config import duress_mode_enabled, purge_confirmation_required
+from .crypto_boundary import CryptoSelfTestError, ensure_crypto_self_tests
 from .emergency_daemon import EmergencyDaemon
 from .face_lock import face_lock
 from .gv_core import GhostVault
@@ -191,7 +192,18 @@ def _print_operation_report(report):
         print(f"- {check['name']}: {check['status']} - {check['message']}")
 
 
+def _run_startup_checks():
+    try:
+        ensure_crypto_self_tests()
+        return True
+    except CryptoSelfTestError:
+        print("[!] Startup check failed.")
+        return False
+
+
 def main():
+    if not _run_startup_checks():
+        return
     parser = argparse.ArgumentParser(description="Phantasm - Local Protected Storage")
     parser.add_argument(
         "action",

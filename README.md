@@ -303,6 +303,8 @@ PHANTASM_STATE_DIR=/path/to/state python3 main.py init
 
 Phantasm is intended for localhost or USB Ethernet gadget access. It should not be exposed to an untrusted network and should not be deployed as an Internet-facing service. Remote management, telemetry, cloud unlock, and analytics are intentionally out of scope.
 
+At startup, Phantasm runs local primitive self-tests for the cryptographic operations it depends on. These checks improve failure detection and reviewability; they are not a validated cryptographic-module certification.
+
 Restricted local data-loss behavior should be understood primarily as key-material destruction and local access-path invalidation. Best-effort overwrite may be attempted, but SD card behavior means overwrite must not be treated as guaranteed secure deletion.
 
 For high-risk deployments, do not store all recovery conditions on the same physical medium. Phantasm is strongest when the encrypted container, local state, memorized password, physical-object cue, and optional external key material are separated.

@@ -143,6 +143,17 @@ class CLITests(unittest.TestCase):
 
         self.assertIn("Access temporarily unavailable", output.getvalue())
 
+    def test_startup_check_failure_is_neutral(self):
+        output = io.StringIO()
+
+        with unittest.mock.patch.object(
+            cli, "ensure_crypto_self_tests", side_effect=cli.CryptoSelfTestError
+        ):
+            with contextlib.redirect_stdout(output):
+                self.assertFalse(cli._run_startup_checks())
+
+        self.assertIn("Startup check failed", output.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()
