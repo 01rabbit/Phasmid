@@ -36,6 +36,11 @@ class AuditTests(unittest.TestCase):
                 record = json.loads(handle.readline())
 
             self.assertEqual(record["event"], "payload_stored")
+            self.assertEqual(record["version"], "2.0")
+            self.assertEqual(record["sequence"], 1)
+            self.assertIn("previous_hash", record)
+            self.assertIn("entry_hash", record)
+            self.assertIn("hmac_sha256", record)
             self.assertEqual(record["bytes"], 10)
             self.assertEqual(record["entry"], "local_entry")
             self.assertNotIn("profile", record)
@@ -66,6 +71,46 @@ class AuditTests(unittest.TestCase):
             self.assertTrue(record["filename_present"])
             self.assertNotIn("filename_hash", record)
             self.assertNotIn("payload-name.txt", json.dumps(record))
+
+    def test_audit_integrity_detects_tamper(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.dict(
+                os.environ, {"PHANTASM_STATE_DIR": tmp, "PHANTASM_AUDIT": "1"}
+            ):
+                audit.audit_event("payload_stored", bytes=10)
+                audit.audit_event("payload_retrieved", bytes=10)
+                ok, errors = audit.verify_log_integrity()
+                self.assertTrue(ok, errors)
+
+                path = os.path.join(tmp, AUDIT_LOG_NAME)
+                with open(path, "r", encoding="utf-8") as handle:
+                    records = [json.loads(line) for line in handle]
+                records[0]["event"] = "modified"
+                with open(path, "w", encoding="utf-8") as handle:
+                    for record in records:
+                        handle.write(json.dumps(record) + "\n")
+
+                ok, errors = audit.verify_log_integrity()
+                self.assertFalse(ok)
+                self.assertTrue(any("event hash rejected" in item for item in errors))
+
+    def test_audit_integrity_detects_deleted_record(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.dict(
+                os.environ, {"PHANTASM_STATE_DIR": tmp, "PHANTASM_AUDIT": "1"}
+            ):
+                audit.audit_event("payload_stored", bytes=10)
+                audit.audit_event("payload_retrieved", bytes=10)
+
+                path = os.path.join(tmp, AUDIT_LOG_NAME)
+                with open(path, "r", encoding="utf-8") as handle:
+                    records = handle.readlines()
+                with open(path, "w", encoding="utf-8") as handle:
+                    handle.write(records[1])
+
+                ok, errors = audit.verify_log_integrity()
+                self.assertFalse(ok)
+                self.assertTrue(any("sequence rejected" in item for item in errors))
 
 
 if __name__ == "__main__":

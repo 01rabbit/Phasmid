@@ -8,6 +8,7 @@ VAULT_KEY_NAME = "access.bin"
 PANIC_TOKEN_NAME = "signal.key"
 PANIC_TRIGGER_NAME = "signal.trigger"
 AUDIT_LOG_NAME = "events.log"
+AUDIT_AUTH_NAME = "events.auth"
 FACE_TEMPLATE_NAME = "face.bin"
 FACE_ENROLL_FLAG_NAME = "face.enroll"
 

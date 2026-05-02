@@ -47,7 +47,7 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - Optional UI face lock (`PHANTASM_UI_FACE_LOCK=1`) can gate normal WebUI routes with a short-lived local session. This is a UI access control only and is not used for vault encryption.
 - When UI face lock is enabled, the normal object-matching preview and object-match state are withheld until the UI is unlocked. The lock screen shows a separate camera preview for enrollment and verification alignment.
 - The Web server binds to `127.0.0.1` by default.
-- Audit logging is disabled by default. If `PHANTASM_AUDIT=1` is set, security-relevant operations append minimal JSONL records to the state directory's event log without recording passwords, payload bytes, plaintext filenames, or internal slot labels.
+- Audit logging is disabled by default. If `PHANTASM_AUDIT=1` is set, security-relevant operations append minimal versioned JSONL records to the state directory's event log without recording passwords, payload bytes, plaintext filenames, or internal slot labels. New records include local integrity fields for review.
 - Field Mode (`PHANTASM_FIELD_MODE=1`) hides Maintenance paths, audit export, token rotation, and detailed diagnostics until restricted confirmation is active.
 - Store includes a local metadata risk check and limited best-effort metadata reduction for supported file types.
 - Documentation includes seizure review, source-safe storage separation, field testing, and Raspberry Pi Zero 2 W appliance deployment guidance.
@@ -72,6 +72,7 @@ These surfaces should not reveal the internal disclosure model, internal trial o
 - The in-memory Web rate limiter and restricted confirmation state reset on process restart and are not substitutes for a full access-control layer.
 - UI tokens can be read from a compromised browser or host session.
 - Metadata checks and metadata reduction are best-effort. They can miss embedded identifiers, thumbnails, histories, and application-specific fields.
+- Optional audit logs can support local review, including tamper detection for versioned records, but they also create local metadata.
 - Browser history, cache, shell history, systemd logs, environment variables, and temporary files can leak operational context if the appliance is not configured carefully.
 - Legacy v1/v2 retrieval has been removed. Old containers must be migrated by retrieving with an older build and storing again with this build.
 

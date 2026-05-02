@@ -192,18 +192,22 @@ def verify_audit_log(path: str | None = None):
     )
 
     chain_records = [
-        record for record in records if "prev_hash" in record and "event_hash" in record
+        record
+        for record in records
+        if _previous_hash_field(record) and _entry_hash_field(record)
     ]
     if chain_records and len(chain_records) == len(records):
-        expected_prev = "GENESIS"
+        expected_prev = "sha256:GENESIS"
         chain_ok = True
         for record in chain_records:
-            if record.get("prev_hash") != expected_prev:
+            if record.get(_previous_hash_field(record)) != expected_prev:
                 chain_ok = False
                 break
-            event_hash = record.get("event_hash")
-            data = {key: value for key, value in record.items() if key != "event_hash"}
-            expected_hash = hashlib.sha256(_canonical_record(data)).hexdigest()
+            event_hash = record.get(_entry_hash_field(record))
+            data = _entry_hashable_record(record)
+            expected_hash = (
+                "sha256:" + hashlib.sha256(_canonical_record(data)).hexdigest()
+            )
             if event_hash != expected_hash:
                 chain_ok = False
                 break
@@ -225,6 +229,30 @@ def verify_audit_log(path: str | None = None):
         )
 
     return _report("verify-audit-log", checks)
+
+
+def _previous_hash_field(record):
+    if "previous_hash" in record:
+        return "previous_hash"
+    if "prev_hash" in record:
+        return "prev_hash"
+    return None
+
+
+def _entry_hash_field(record):
+    if "entry_hash" in record:
+        return "entry_hash"
+    if "event_hash" in record:
+        return "event_hash"
+    return None
+
+
+def _entry_hashable_record(record):
+    return {
+        key: value
+        for key, value in record.items()
+        if key not in {"entry_hash", "event_hash", "hmac_sha256"}
+    }
 
 
 def redact_audit_record(record: dict):

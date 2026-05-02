@@ -191,6 +191,8 @@ These commands report neutral readiness and audit-review status without printing
 
 New local state checks use a typed state-store helper for atomic writes, restrictive permissions, and transition validation. Existing vault and object-cue state files remain compatibility-managed by their owning modules.
 
+When audit logging is enabled, new audit records include sequence and integrity fields for local review. Audit logging remains disabled by default because audit records can create additional local metadata.
+
 ## WebUI v2
 
 ```bash
@@ -264,6 +266,7 @@ By default, Phantasm writes runtime state to `.state/`:
 - `access.bin`: local access key required for vault retrieval
 - `signal.key` / `signal.trigger`: panic trigger files
 - `events.log`: optional audit log
+- `events.auth`: optional audit verifier material
 - `face.bin`: optional encrypted WebUI face-lock template
 - `face.enroll`: short-lived first-time face enrollment request
 
