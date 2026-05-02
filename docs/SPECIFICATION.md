@@ -79,10 +79,11 @@ Store flow:
 
 1. Start the camera gate.
 2. Prompt for normal access and restricted recovery passwords.
-3. Register the physical object cue for the selected internal entry.
-4. Read the input file.
-5. Derive a key with Argon2id.
-6. Encrypt the payload with AES-GCM.
+3. Reject empty, duplicate, short, or highly repetitive passphrases.
+4. Register the physical object cue for the selected internal entry.
+5. Read the input file.
+6. Derive a key with Argon2id.
+7. Encrypt the payload with AES-GCM.
 
 ### Retrieve
 
@@ -314,6 +315,7 @@ The physical object is an operational cue, not a high-entropy cryptographic fact
 | `PHANTASM_RESTRICTED_SESSION_SECONDS` | Restricted confirmation lifetime | `120` |
 | `PHANTASM_FIELD_MODE` | Reduce normal WebUI operational detail | `0` |
 | `PHANTASM_PROFILE` | Select local capability mode: `standard`, `field`, or `maintenance` | `standard` |
+| `PHANTASM_MIN_PASSPHRASE_LENGTH` | Minimum Store passphrase length | `10` |
 | `PHANTASM_AUDIT` | Enable audit logging | `0` |
 | `PHANTASM_AUDIT_FILENAMES` | Record filename hashes | unset |
 

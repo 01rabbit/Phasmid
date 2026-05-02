@@ -38,6 +38,7 @@ from .config import (
 from .face_lock import face_lock
 from .gv_core import GhostVault
 from .metadata import metadata_risk_report, scrub_metadata
+from .passphrase_policy import check_store_passphrases
 from .restricted_actions import (
     RestrictedActionPolicy,
     RestrictedActionRejected,
@@ -715,8 +716,12 @@ async def store(
     try:
         if not password:
             return {"error": text.ACCESS_PASSWORD_REQUIRED}
-        if restricted_recovery_password and password == restricted_recovery_password:
-            return {"error": text.PASSWORDS_MUST_DIFFER}
+        passphrase_check = check_store_passphrases(
+            password,
+            restricted_recovery_password,
+        )
+        if not passphrase_check.ok:
+            return {"error": passphrase_check.message}
         if overwrite and overwrite_confirmation != OVERWRITE_CONFIRMATION_PHRASE:
             return {"error": text.REPLACEMENT_CONFIRMATION_REQUIRED}
         if overwrite and not _restricted_session_valid(request):

@@ -12,6 +12,7 @@ from .emergency_daemon import EmergencyDaemon
 from .face_lock import face_lock
 from .gv_core import GhostVault
 from .operations import doctor, export_redacted_log, verify_audit_log, verify_state
+from .passphrase_policy import check_store_passphrases
 
 CAMERA_WARMUP_TIMEOUT = 10
 REFERENCE_MATCH_TIMEOUT = 10
@@ -139,8 +140,11 @@ def _prompt_store_passwords():
         raise ValueError("access password must not be empty")
     if not restricted_recovery_password:
         raise ValueError("restricted recovery password must not be empty")
-    if open_password == restricted_recovery_password:
-        raise ValueError("access and restricted recovery passwords must be different")
+    passphrase_check = check_store_passphrases(
+        open_password, restricted_recovery_password
+    )
+    if not passphrase_check.ok:
+        raise ValueError(passphrase_check.message)
     return open_password, restricted_recovery_password
 
 

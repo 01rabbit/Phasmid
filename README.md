@@ -294,6 +294,7 @@ PHANTASM_STATE_DIR=/path/to/state python3 main.py init
 | `PHANTASM_RESTRICTED_SESSION_SECONDS` | Restricted confirmation lifetime |
 | `PHANTASM_FIELD_MODE=1` | Reduce normal WebUI operational detail |
 | `PHANTASM_PROFILE` | Select local capability mode: `standard`, `field`, or `maintenance` |
+| `PHANTASM_MIN_PASSPHRASE_LENGTH` | Minimum Store passphrase length |
 | `PHANTASM_AUDIT=1` | Enable audit logging |
 
 ## Local-Only Trust Boundary
@@ -303,6 +304,8 @@ Phantasm is intended for localhost or USB Ethernet gadget access. It should not 
 Restricted local data-loss behavior should be understood primarily as key-material destruction and local access-path invalidation. Best-effort overwrite may be attempted, but SD card behavior means overwrite must not be treated as guaranteed secure deletion.
 
 For high-risk deployments, do not store all recovery conditions on the same physical medium. Phantasm is strongest when the encrypted container, local state, memorized password, physical-object cue, and optional external key material are separated.
+
+Store flows reject empty, obviously short, duplicate, or highly repetitive passphrases. This policy reduces accidental weak input, but it is not a substitute for secure operational procedure, key separation, or target-hardware validation.
 
 ## Test Command
 

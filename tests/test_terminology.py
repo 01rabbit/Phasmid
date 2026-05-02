@@ -40,6 +40,7 @@ PYTHON_BOUNDARY_FILES = [
     "src/phantasm/strings.py",
     "src/phantasm/operations.py",
     "src/phantasm/state_store.py",
+    "src/phantasm/passphrase_policy.py",
 ]
 
 FORBIDDEN_PATTERNS = [

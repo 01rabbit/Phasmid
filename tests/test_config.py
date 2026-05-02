@@ -46,6 +46,18 @@ class ConfigTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=True):
             self.assertFalse(config.field_mode_enabled())
 
+    def test_passphrase_min_length_defaults_and_handles_invalid_env(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(config.passphrase_min_length(), 10)
+        with mock.patch.dict(
+            os.environ, {"PHANTASM_MIN_PASSPHRASE_LENGTH": "12"}, clear=True
+        ):
+            self.assertEqual(config.passphrase_min_length(), 12)
+        with mock.patch.dict(
+            os.environ, {"PHANTASM_MIN_PASSPHRASE_LENGTH": "bad"}, clear=True
+        ):
+            self.assertEqual(config.passphrase_min_length(), 10)
+
 
 if __name__ == "__main__":
     unittest.main()

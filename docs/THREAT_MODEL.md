@@ -36,6 +36,7 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - New stores use GhostVault v3 records: random per-record Argon2id salt, random per-record AES-GCM nonce, no plaintext magic/header, and AEAD-authenticated encrypted metadata.
 - The local access key is mixed into Argon2id by default, so copying `vault.bin` alone is insufficient for recovery.
 - Protected entries can be stored with normal access and restricted recovery passwords that share the same object cue.
+- Store flows reject empty, duplicate, short, or highly repetitive passphrases to reduce accidental weak input.
 - `PHANTASM_HARDWARE_SECRET_FILE`, `PHANTASM_HARDWARE_SECRET`, or `PHANTASM_HARDWARE_SECRET_PROMPT=1` can add an external value to Argon2id derivation. Data stored with any of these values requires the same value for retrieval.
 - Default Argon2id parameters are tuned for Raspberry Pi Zero 2 W class hardware: `memory_cost=32768`, `iterations=2`, `lanes=1`.
 - Restricted recovery behavior and explicit restricted actions can update unmatched local state. These paths can cause irreversible data loss.
@@ -71,6 +72,7 @@ These surfaces should not reveal the internal disclosure model, internal trial o
 - UI face lock can be affected by lighting, camera angle, false rejects, false accepts, and presentation attacks using photos or screens.
 - The in-memory Web rate limiter and restricted confirmation state reset on process restart and are not substitutes for a full access-control layer.
 - UI tokens can be read from a compromised browser or host session.
+- Passphrase policy cannot compensate for observed input, reused passwords, coercion, compromised hosts, or poor operational separation.
 - Metadata checks and metadata reduction are best-effort. They can miss embedded identifiers, thumbnails, histories, and application-specific fields.
 - Optional audit logs can support local review, including tamper detection for versioned records, but they also create local metadata.
 - Browser history, cache, shell history, systemd logs, environment variables, and temporary files can leak operational context if the appliance is not configured carefully.

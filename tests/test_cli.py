@@ -107,6 +107,17 @@ class CLITests(unittest.TestCase):
         self.assertEqual(enroll_message, "enrollment armed")
         arm.assert_called_once_with()
 
+    def test_store_password_prompt_rejects_short_values(self):
+        prompts = iter(["short", "another-short"])
+
+        with unittest.mock.patch(
+            "getpass.getpass", side_effect=lambda _: next(prompts)
+        ):
+            with self.assertRaises(ValueError) as ctx:
+                cli._prompt_store_passwords()
+
+        self.assertIn("at least", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

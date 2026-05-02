@@ -74,6 +74,23 @@ class WebServerBoundaryTests(unittest.TestCase):
 
         asyncio.run(run())
 
+    def test_store_rejects_short_access_password(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                url=SimpleNamespace(path="/store"),
+            )
+            upload = UploadFile(filename="payload.txt", file=_BytesFile(b"data"))
+            response = await web_server.store(
+                request,
+                file=upload,
+                password="short",
+                restricted_recovery_password="another-short",
+            )
+            self.assertIn("at least", response["error"])
+
+        asyncio.run(run())
+
     def test_status_uses_neutral_terms(self):
         with mock.patch.object(
             web_server.gate,

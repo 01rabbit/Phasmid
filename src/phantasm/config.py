@@ -42,3 +42,11 @@ def ui_face_enrollment_enabled():
 
 def field_mode_enabled():
     return env_flag("PHANTASM_FIELD_MODE", default=False)
+
+
+def passphrase_min_length():
+    value = os.environ.get("PHANTASM_MIN_PASSPHRASE_LENGTH", "10")
+    try:
+        return max(1, int(value))
+    except ValueError:
+        return 10
