@@ -33,6 +33,7 @@ PYTHON_BOUNDARY_FILES = [
     "src/phantasm/metadata.py",
     "src/phantasm/bridge_ui.py",
     "src/phantasm/face_lock.py",
+    "src/phantasm/restricted_actions.py",
 ]
 
 FORBIDDEN_PATTERNS = [

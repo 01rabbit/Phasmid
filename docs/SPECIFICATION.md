@@ -143,7 +143,7 @@ The restricted action view is available only by direct route and is not shown in
 
 Field Mode is not a security boundary. It reduces casual local exposure in the WebUI and maintenance APIs. It does not prevent forensic inspection, filesystem analysis, memory capture, host compromise, browser compromise, physical coercion, or lawful compulsory process.
 
-Hidden restricted routes are UX concealment only. They are not access control by themselves. Server-side confirmation, local tokens, UI unlock state, and typed confirmation are still required.
+Hidden restricted routes are UX concealment only. They are not access control by themselves. High-risk actions are evaluated through a shared local policy layer that combines deployment-mode capability, local tokens, UI unlock state, restricted confirmation freshness, and typed confirmation where applicable.
 
 WebUI responses include conservative browser hardening headers such as no-store cache control, frame denial, MIME-sniffing protection, a local-only content security policy, no-referrer policy, and limited browser permissions. These headers reduce browser-visible residue and common embedding or caching risks. They do not make the WebUI suitable for untrusted networks and are not a substitute for local-only binding, host integrity, or operator discipline.
 

@@ -24,6 +24,7 @@ from .config import (
 from .face_lock import face_lock
 from .gv_core import GhostVault
 from .metadata import metadata_risk_report, scrub_metadata
+from .restricted_actions import RestrictedActionPolicy, RestrictedActionRejected, evaluate_restricted_action
 
 app = FastAPI(title="Phantasm - Local Secure Interface")
 templates = Jinja2Templates(directory=str(Path(__file__).with_name("templates")))
@@ -58,6 +59,29 @@ INITIALIZE_CONTAINER_PHRASE = "INITIALIZE LOCAL CONTAINER"
 EMERGENCY_BRICK_PHRASE = "CLEAR LOCAL ACCESS PATH"
 RESTRICTED_CONFIRMATION_PHRASE = "CONFIRM LOCAL CONTROL"
 OVERWRITE_CONFIRMATION_PHRASE = "REPLACE LOCAL ENTRY"
+RESTRICTED_ACTION_POLICIES = {
+    "clear_unmatched_entry": RestrictedActionPolicy(
+        action_id="clear_unmatched_entry",
+        capability=Capability.RESTRICTED_ACTION,
+        confirmation_phrase=DESTRUCTIVE_CLEAR_PHRASE,
+    ),
+    "clear_local_access_path": RestrictedActionPolicy(
+        action_id="clear_local_access_path",
+        capability=Capability.RESTRICTED_ACTION,
+        confirmation_phrase=EMERGENCY_BRICK_PHRASE,
+    ),
+    "initialize_container": RestrictedActionPolicy(
+        action_id="initialize_container",
+        capability=Capability.RESTRICTED_ACTION,
+        confirmation_phrase=INITIALIZE_CONTAINER_PHRASE,
+    ),
+    "rapid_local_clear": RestrictedActionPolicy(
+        action_id="rapid_local_clear",
+        capability=Capability.RAPID_LOCAL_CLEAR,
+        confirmation_phrase="BRICK",
+        require_restricted_confirmation=False,
+    ),
+}
 SECURITY_HEADERS = {
     "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
     "Pragma": "no-cache",
@@ -183,6 +207,19 @@ def _require_restricted_when_field_mode(request):
 def require_capability(capability: Capability):
     if not capability_enabled(capability):
         raise HTTPException(status_code=403, detail="operation unavailable")
+
+
+def require_restricted_action(action_id, request, confirmation=""):
+    policy = RESTRICTED_ACTION_POLICIES[action_id]
+    try:
+        evaluate_restricted_action(
+            policy,
+            capability_allowed=capability_enabled(policy.capability),
+            restricted_confirmed=_restricted_session_valid(request),
+            confirmation=confirmation,
+        )
+    except RestrictedActionRejected as exc:
+        raise HTTPException(status_code=403, detail=exc.message) from exc
 
 
 def _guard_page(request):
@@ -721,7 +758,7 @@ async def retrieve(request: Request, password: str = Form(...)):
     return {"error": "No valid entry found."}
 
 
-@app.post("/purge_other", dependencies=[Depends(require_web_token), Depends(require_ui_unlock), Depends(require_restricted_confirmation)])
+@app.post("/purge_other", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def purge_other(
     request: Request,
     accessed_entry: str = Form(default=""),
@@ -729,37 +766,30 @@ async def purge_other(
     confirmation: str = Form(...),
 ):
     enforce_rate_limit(request)
-    require_capability(Capability.RESTRICTED_ACTION)
+    require_restricted_action("clear_unmatched_entry", request, confirmation)
     entry_id = _plain_form_value(accessed_entry) or LEGACY_SELECTOR_TO_ENTRY.get(
         _plain_form_value(legacy_selector),
         _plain_form_value(legacy_selector),
     )
     mode = resolve_entry(entry_id)
-    if confirmation != DESTRUCTIVE_CLEAR_PHRASE:
-        return {"error": f"Confirmation required: {DESTRUCTIVE_CLEAR_PHRASE}"}
-
     vault.purge_other_mode(mode)
     audit_event("restricted_local_update", accessed_entry="local_entry", source="web")
     return {"status": "Unmatched local entry cleared."}
 
 
-@app.post("/emergency/brick", dependencies=[Depends(require_web_token), Depends(require_ui_unlock), Depends(require_restricted_confirmation)])
+@app.post("/emergency/brick", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def emergency_brick(request: Request, confirmation: str = Form(...)):
     enforce_rate_limit(request)
-    require_capability(Capability.RESTRICTED_ACTION)
-    if confirmation != EMERGENCY_BRICK_PHRASE:
-        return {"error": f"Confirmation required: {EMERGENCY_BRICK_PHRASE}"}
+    require_restricted_action("clear_local_access_path", request, confirmation)
     vault.silent_brick()
     audit_event("access_path_cleared", source="web")
     return {"status": "Local access path cleared. Close this session."}
 
 
-@app.post("/emergency/initialize", dependencies=[Depends(require_web_token), Depends(require_ui_unlock), Depends(require_restricted_confirmation)])
+@app.post("/emergency/initialize", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def emergency_initialize(request: Request, confirmation: str = Form(...)):
     enforce_rate_limit(request)
-    require_capability(Capability.RESTRICTED_ACTION)
-    if confirmation != INITIALIZE_CONTAINER_PHRASE:
-        return {"error": f"Confirmation required: {INITIALIZE_CONTAINER_PHRASE}"}
+    require_restricted_action("initialize_container", request, confirmation)
     vault.format_container(rotate_access_key=True)
     success, message = gate.clear_references()
     if not success:
@@ -772,13 +802,13 @@ async def emergency_initialize(request: Request, confirmation: str = Form(...)):
 async def web_panic_trigger(request: Request, secret_trigger: str = Form(...)):
     """Hidden endpoint for rapid local state destruction."""
     enforce_rate_limit(request)
-    require_capability(Capability.RAPID_LOCAL_CLEAR)
-    # DISGUISE: In the UI, this could be triggered by a specific multi-tap pattern
-    if secret_trigger == "BRICK":
-        vault.silent_brick()
-        audit_event("access_path_cleared", source="web_panic")
-        return {"status": "Critical state cleared."}
-    raise HTTPException(status_code=404)
+    try:
+        require_restricted_action("rapid_local_clear", request, secret_trigger)
+    except HTTPException:
+        raise HTTPException(status_code=404)
+    vault.silent_brick()
+    audit_event("access_path_cleared", source="web_panic")
+    return {"status": "Critical state cleared."}
 
 
 @app.post("/maintenance/rotate_token", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])

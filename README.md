@@ -196,7 +196,7 @@ Navigation:
 - `Maintenance`: diagnostics, token rotation, audit state, log export, and entry management.
 - `/emergency`: hidden route for restricted local actions with typed confirmation.
 
-Restricted actions are not shown in normal navigation. Hidden routes are UX concealment only, so restricted actions also require the Web mutation token, an unlocked UI session when face lock is enabled, a fresh restricted confirmation, and a typed action phrase. The hidden restricted route initially renders only a confirmation screen.
+Restricted actions are not shown in normal navigation. Hidden routes are UX concealment only, so high-risk actions are evaluated by a shared local policy layer. Depending on the action, this combines the Web mutation token, an unlocked UI session when face lock is enabled, a fresh restricted confirmation, deployment-mode capability, and a typed action phrase. The hidden restricted route initially renders only a confirmation screen.
 
 Field Mode reduces Maintenance detail and other operational hints:
 

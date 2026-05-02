@@ -288,12 +288,26 @@ class WebServerBoundaryTests(unittest.TestCase):
             web_server.require_restricted_confirmation(request)
         self.assertEqual(ctx.exception.status_code, 403)
 
-    def test_sensitive_routes_require_restricted_confirmation_dependency(self):
-        sensitive_paths = {"/purge_other", "/emergency/brick", "/emergency/initialize", "/maintenance/entry_status"}
+    def test_entry_status_requires_restricted_confirmation_dependency(self):
+        sensitive_paths = {"/maintenance/entry_status"}
         for path in sensitive_paths:
             route = next(route for route in web_server.app.routes if getattr(route, "path", None) == path)
             dependency_names = {item.call.__name__ for item in route.dependant.dependencies}
             self.assertIn("require_restricted_confirmation", dependency_names)
+
+    def test_restricted_action_service_rejects_missing_confirmation_session(self):
+        request = SimpleNamespace(
+            client=SimpleNamespace(host="127.0.0.1"),
+            cookies={},
+        )
+        with self.assertRaises(HTTPException) as ctx:
+            web_server.require_restricted_action(
+                "initialize_container",
+                request,
+                web_server.INITIALIZE_CONTAINER_PHRASE,
+            )
+        self.assertEqual(ctx.exception.status_code, 403)
+        self.assertEqual(ctx.exception.detail, "restricted confirmation required")
 
     def test_emergency_page_hides_actions_before_restricted_confirmation(self):
         async def run():
@@ -427,12 +441,14 @@ class WebServerBoundaryTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 url=SimpleNamespace(path="/purge_other"),
             )
-            response = await web_server.purge_other(
-                request,
-                accessed_entry="entry_1",
-                confirmation="DELETE",
-            )
-            self.assertIn("Confirmation required", response["error"])
+            with mock.patch.object(web_server, "_restricted_session_valid", return_value=True):
+                with self.assertRaises(HTTPException) as ctx:
+                    await web_server.purge_other(
+                        request,
+                        accessed_entry="entry_1",
+                        confirmation="DELETE",
+                    )
+            self.assertEqual(ctx.exception.detail, "confirmation rejected")
 
         asyncio.run(run())
 
@@ -443,14 +459,16 @@ class WebServerBoundaryTests(unittest.TestCase):
                 url=SimpleNamespace(path="/purge_other"),
             )
             with mock.patch.object(web_server, "purge_confirmation_required", return_value=False), \
+                 mock.patch.object(web_server, "_restricted_session_valid", return_value=True), \
                  mock.patch.object(web_server.vault, "purge_other_mode") as purge:
-                response = await web_server.purge_other(
-                    request,
-                    accessed_entry="entry_1",
-                    confirmation="",
-                )
+                with self.assertRaises(HTTPException) as ctx:
+                    await web_server.purge_other(
+                        request,
+                        accessed_entry="entry_1",
+                        confirmation="",
+                    )
             purge.assert_not_called()
-            self.assertIn("Confirmation required", response["error"])
+            self.assertEqual(ctx.exception.detail, "confirmation rejected")
 
         asyncio.run(run())
 
@@ -460,7 +478,8 @@ class WebServerBoundaryTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 url=SimpleNamespace(path="/purge_other"),
             )
-            with mock.patch.object(web_server.vault, "purge_other_mode") as purge:
+            with mock.patch.object(web_server, "_restricted_session_valid", return_value=True), \
+                 mock.patch.object(web_server.vault, "purge_other_mode") as purge:
                 response = await web_server.purge_other(
                     request,
                     accessed_entry="entry_1",
@@ -477,13 +496,15 @@ class WebServerBoundaryTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 url=SimpleNamespace(path="/emergency/initialize"),
             )
-            with mock.patch.object(web_server.vault, "format_container") as init:
-                response = await web_server.emergency_initialize(
-                    request,
-                    confirmation="INITIALIZE",
-                )
+            with mock.patch.object(web_server, "_restricted_session_valid", return_value=True), \
+                 mock.patch.object(web_server.vault, "format_container") as init:
+                with self.assertRaises(HTTPException) as ctx:
+                    await web_server.emergency_initialize(
+                        request,
+                        confirmation="INITIALIZE",
+                    )
             init.assert_not_called()
-            self.assertIn("Confirmation required", response["error"])
+            self.assertEqual(ctx.exception.detail, "confirmation rejected")
 
         asyncio.run(run())
 
@@ -493,7 +514,8 @@ class WebServerBoundaryTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 url=SimpleNamespace(path="/emergency/initialize"),
             )
-            with mock.patch.object(web_server.vault, "format_container") as init, \
+            with mock.patch.object(web_server, "_restricted_session_valid", return_value=True), \
+                 mock.patch.object(web_server.vault, "format_container") as init, \
                  mock.patch.object(web_server.gate, "clear_references", return_value=(True, "ok")) as clear:
                 response = await web_server.emergency_initialize(
                     request,
