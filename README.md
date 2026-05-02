@@ -275,6 +275,7 @@ PHANTASM_STATE_DIR=/path/to/state python3 main.py init
 | `PHANTASM_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime |
 | `PHANTASM_RESTRICTED_SESSION_SECONDS` | Restricted confirmation lifetime |
 | `PHANTASM_FIELD_MODE=1` | Reduce normal WebUI operational detail |
+| `PHANTASM_PROFILE` | Select local capability mode: `standard`, `field`, or `maintenance` |
 | `PHANTASM_AUDIT=1` | Enable audit logging |
 
 ## Local-Only Trust Boundary

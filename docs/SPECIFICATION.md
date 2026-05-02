@@ -308,6 +308,7 @@ The physical object is an operational cue, not a high-entropy cryptographic fact
 | `PHANTASM_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime | `300` |
 | `PHANTASM_RESTRICTED_SESSION_SECONDS` | Restricted confirmation lifetime | `120` |
 | `PHANTASM_FIELD_MODE` | Reduce normal WebUI operational detail | `0` |
+| `PHANTASM_PROFILE` | Select local capability mode: `standard`, `field`, or `maintenance` | `standard` |
 | `PHANTASM_AUDIT` | Enable audit logging | `0` |
 | `PHANTASM_AUDIT_FILENAMES` | Record filename hashes | unset |
 

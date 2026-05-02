@@ -27,6 +27,13 @@ class WebServerBoundaryTests(unittest.TestCase):
     def test_require_web_token_accepts_current_token(self):
         self.assertIsNone(web_server.require_web_token(web_server.WEB_TOKEN))
 
+    def test_disabled_capability_rejects_with_neutral_error(self):
+        with mock.patch.object(web_server, "capability_enabled", return_value=False):
+            with self.assertRaises(HTTPException) as ctx:
+                web_server.require_capability(web_server.Capability.TOKEN_ROTATION)
+        self.assertEqual(ctx.exception.status_code, 403)
+        self.assertEqual(ctx.exception.detail, "operation unavailable")
+
     def test_fastapi_debug_is_disabled_by_default(self):
         self.assertFalse(web_server.app.debug)
 
@@ -381,6 +388,21 @@ class WebServerBoundaryTests(unittest.TestCase):
                 with self.assertRaises(HTTPException) as ctx:
                     await web_server.rotate_token(request)
             self.assertEqual(ctx.exception.status_code, 403)
+
+        asyncio.run(run())
+
+    def test_deployment_mode_rejects_token_rotation_when_unavailable(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+                url=SimpleNamespace(path="/maintenance/rotate_token"),
+            )
+            with mock.patch.dict(os.environ, {"PHANTASM_PROFILE": "field"}, clear=True):
+                with self.assertRaises(HTTPException) as ctx:
+                    await web_server.rotate_token(request)
+            self.assertEqual(ctx.exception.status_code, 403)
+            self.assertEqual(ctx.exception.detail, "operation unavailable")
 
         asyncio.run(run())
 

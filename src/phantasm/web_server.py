@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 
 from .ai_gate import gate, get_gesture_sequence
 from .audit import audit_event
+from .capabilities import Capability, active_policy, capability_enabled
 from .config import (
     AUDIT_LOG_NAME,
     duress_mode_enabled,
@@ -179,6 +180,11 @@ def _require_restricted_when_field_mode(request):
         raise HTTPException(status_code=403, detail="restricted confirmation required")
 
 
+def require_capability(capability: Capability):
+    if not capability_enabled(capability):
+        raise HTTPException(status_code=403, detail="operation unavailable")
+
+
 def _guard_page(request):
     if _ui_unlocked(request):
         return None
@@ -229,6 +235,7 @@ def _template_context(request: Request, active="home", **extra):
         "purge_confirmation_required": purge_confirmation_required(),
         "duress_mode_enabled": duress_mode_enabled(),
         "field_mode": field_mode_enabled(),
+        "deployment_mode": active_policy().name,
         "restricted_confirmed": restricted_confirmed,
         "face_enrollment_enabled": _face_enrollment_allowed(),
         "face_lock": _face_lock_status(request),
@@ -462,6 +469,7 @@ async def status(request: Request):
 @app.post("/face/enroll", dependencies=[Depends(require_web_token)])
 async def face_enroll(request: Request):
     enforce_rate_limit(request)
+    require_capability(Capability.FACE_ENROLL)
     if not ui_face_lock_enabled():
         return {"error": "Face UI lock is disabled."}
     if not face_lock.is_enrolled() and not _face_enrollment_allowed():
@@ -481,6 +489,7 @@ async def face_enroll(request: Request):
 @app.post("/face/verify", dependencies=[Depends(require_web_token)])
 async def face_verify(request: Request):
     enforce_rate_limit(request)
+    require_capability(Capability.FACE_VERIFY)
     if not ui_face_lock_enabled():
         return {"error": "Face UI lock is disabled."}
     client_id = _client_id(request)
@@ -519,6 +528,7 @@ async def face_lock_session(request: Request):
 )
 async def entry_status(request: Request, entry_id: str = "entry_1"):
     enforce_rate_limit(request)
+    require_capability(Capability.ENTRY_MAINTENANCE)
     if entry_id not in ENTRY_TO_MODE:
         return {"error": "Unknown local entry."}
     status_data = entry_management_status()
@@ -646,6 +656,7 @@ async def store(
 @app.post("/metadata/check", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def metadata_check(request: Request, file: UploadFile = File(...)):
     enforce_rate_limit(request)
+    require_capability(Capability.METADATA_CHECK)
     data = await read_limited_upload(file)
     return metadata_risk_report(file.filename, data)
 
@@ -653,6 +664,7 @@ async def metadata_check(request: Request, file: UploadFile = File(...)):
 @app.post("/metadata/scrub", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def metadata_scrub(request: Request, file: UploadFile = File(...)):
     enforce_rate_limit(request)
+    require_capability(Capability.METADATA_REDUCE)
     data = await read_limited_upload(file)
     result = scrub_metadata(file.filename, data)
     if not result["success"]:
@@ -717,6 +729,7 @@ async def purge_other(
     confirmation: str = Form(...),
 ):
     enforce_rate_limit(request)
+    require_capability(Capability.RESTRICTED_ACTION)
     entry_id = _plain_form_value(accessed_entry) or LEGACY_SELECTOR_TO_ENTRY.get(
         _plain_form_value(legacy_selector),
         _plain_form_value(legacy_selector),
@@ -733,6 +746,7 @@ async def purge_other(
 @app.post("/emergency/brick", dependencies=[Depends(require_web_token), Depends(require_ui_unlock), Depends(require_restricted_confirmation)])
 async def emergency_brick(request: Request, confirmation: str = Form(...)):
     enforce_rate_limit(request)
+    require_capability(Capability.RESTRICTED_ACTION)
     if confirmation != EMERGENCY_BRICK_PHRASE:
         return {"error": f"Confirmation required: {EMERGENCY_BRICK_PHRASE}"}
     vault.silent_brick()
@@ -743,6 +757,7 @@ async def emergency_brick(request: Request, confirmation: str = Form(...)):
 @app.post("/emergency/initialize", dependencies=[Depends(require_web_token), Depends(require_ui_unlock), Depends(require_restricted_confirmation)])
 async def emergency_initialize(request: Request, confirmation: str = Form(...)):
     enforce_rate_limit(request)
+    require_capability(Capability.RESTRICTED_ACTION)
     if confirmation != INITIALIZE_CONTAINER_PHRASE:
         return {"error": f"Confirmation required: {INITIALIZE_CONTAINER_PHRASE}"}
     vault.format_container(rotate_access_key=True)
@@ -757,6 +772,7 @@ async def emergency_initialize(request: Request, confirmation: str = Form(...)):
 async def web_panic_trigger(request: Request, secret_trigger: str = Form(...)):
     """Hidden endpoint for rapid local state destruction."""
     enforce_rate_limit(request)
+    require_capability(Capability.RAPID_LOCAL_CLEAR)
     # DISGUISE: In the UI, this could be triggered by a specific multi-tap pattern
     if secret_trigger == "BRICK":
         vault.silent_brick()
@@ -768,6 +784,7 @@ async def web_panic_trigger(request: Request, secret_trigger: str = Form(...)):
 @app.post("/maintenance/rotate_token", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def rotate_token(request: Request):
     enforce_rate_limit(request)
+    require_capability(Capability.TOKEN_ROTATION)
     _require_restricted_when_field_mode(request)
     global WEB_TOKEN
     WEB_TOKEN = secrets.token_urlsafe(32)
@@ -778,6 +795,7 @@ async def rotate_token(request: Request):
 @app.post("/maintenance/reset_session", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def reset_session(request: Request):
     enforce_rate_limit(request)
+    require_capability(Capability.SESSION_RESET)
     _require_restricted_when_field_mode(request)
     _rate_limit.clear()
     _restricted_sessions.pop(_restricted_session_token(request), None)
@@ -797,7 +815,7 @@ async def diagnostics(request: Request):
         "restricted_confirmation_active": _restricted_session_valid(request),
     }
     restricted = _restricted_session_valid(request)
-    if not field_mode_enabled() or restricted:
+    if (not field_mode_enabled() or restricted) and capability_enabled(Capability.DIAGNOSTICS_DETAIL):
         data.update({
             "sensor_link": status_data["object_state"] != "none",
             "state_directory": state_dir(),
@@ -811,6 +829,7 @@ async def diagnostics(request: Request):
 @app.get("/maintenance/logs", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
 async def export_logs(request: Request):
     enforce_rate_limit(request)
+    require_capability(Capability.AUDIT_EXPORT)
     _require_restricted_when_field_mode(request)
     path = Path(state_dir()) / AUDIT_LOG_NAME
     if not path.exists():

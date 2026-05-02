@@ -27,6 +27,7 @@ PYTHON_BOUNDARY_FILES = [
     "src/phantasm/web_server.py",
     "src/phantasm/cli.py",
     "src/phantasm/audit.py",
+    "src/phantasm/capabilities.py",
     "src/phantasm/emergency_daemon.py",
     "src/phantasm/config.py",
     "src/phantasm/metadata.py",
