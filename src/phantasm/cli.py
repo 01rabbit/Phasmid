@@ -11,6 +11,7 @@ from .config import duress_mode_enabled, purge_confirmation_required
 from .emergency_daemon import EmergencyDaemon
 from .face_lock import face_lock
 from .gv_core import GhostVault
+from .operations import doctor, export_redacted_log, verify_audit_log, verify_state
 
 CAMERA_WARMUP_TIMEOUT = 10
 REFERENCE_MATCH_TIMEOUT = 10
@@ -168,11 +169,27 @@ def _reset_face_lock_and_container(vault):
     )
 
 
+def _print_operation_report(report):
+    print(f"{report['name']}: {report['status']}")
+    for check in report["checks"]:
+        print(f"- {check['name']}: {check['status']} - {check['message']}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Phantasm - Local Protected Storage")
     parser.add_argument(
         "action",
-        choices=["init", "store", "retrieve", "brick", "reset-face-lock"],
+        choices=[
+            "init",
+            "store",
+            "retrieve",
+            "brick",
+            "reset-face-lock",
+            "verify-state",
+            "verify-audit-log",
+            "doctor",
+            "export-redacted-log",
+        ],
         help="operation to run",
     )
     parser.add_argument(
@@ -195,6 +212,23 @@ def main():
     parser.add_argument("--file", help="path to the input file")
     parser.add_argument("--out", help="path where decrypted output will be written")
     args = parser.parse_args()
+
+    if args.action == "verify-state":
+        _print_operation_report(verify_state())
+        return
+    if args.action == "verify-audit-log":
+        _print_operation_report(verify_audit_log())
+        return
+    if args.action == "doctor":
+        _print_operation_report(doctor())
+        return
+    if args.action == "export-redacted-log":
+        if not args.out:
+            print("[!] Error: Output path required.")
+            return
+        _print_operation_report(export_redacted_log(args.out))
+        return
+
     selected_value = args.legacy_entry if args.legacy_entry else args.entry
     selected_mode = resolve_mode(selected_value)
     if args.legacy_entry_mode in gate.MODES:

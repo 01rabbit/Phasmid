@@ -178,6 +178,17 @@ This operation has no WebUI route. It requires the confirmation phrase `RESET FA
 
 After a successful reset, Phantasm creates a short-lived local enrollment request. If the WebUI is already running, reload `/ui-lock` to register the new face lock.
 
+Local operations checks:
+
+```bash
+python3 main.py verify-state
+python3 main.py verify-audit-log
+python3 main.py doctor
+python3 main.py export-redacted-log --out review-events.jsonl
+```
+
+These commands report neutral readiness and audit-review status without printing local paths in normal output.
+
 ## WebUI v2
 
 ```bash
@@ -313,6 +324,9 @@ python3 scripts/bench_kdf.py
 - [Field Test Procedure](docs/FIELD_TEST_PROCEDURE.md)
 - [Review Validation Record](docs/REVIEW_VALIDATION_RECORD.md)
 - [Solution Readiness Plan](docs/SOLUTION_READINESS_PLAN.md)
+- [Local Operations](docs/OPERATIONS.md)
+- [Restricted Actions](docs/RESTRICTED_ACTIONS.md)
+- [State Recovery](docs/STATE_RECOVERY.md)
 
 ## Security Notes
 

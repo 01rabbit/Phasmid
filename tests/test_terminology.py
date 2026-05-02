@@ -19,6 +19,9 @@ USER_FACING_FILES = [
     "docs/FIELD_TEST_PROCEDURE.md",
     "docs/REVIEW_VALIDATION_RECORD.md",
     "docs/SOLUTION_READINESS_PLAN.md",
+    "docs/OPERATIONS.md",
+    "docs/RESTRICTED_ACTIONS.md",
+    "docs/STATE_RECOVERY.md",
     "contrib/systemd/phantasm.service",
 ]
 
@@ -35,6 +38,7 @@ PYTHON_BOUNDARY_FILES = [
     "src/phantasm/face_lock.py",
     "src/phantasm/restricted_actions.py",
     "src/phantasm/strings.py",
+    "src/phantasm/operations.py",
 ]
 
 FORBIDDEN_PATTERNS = [

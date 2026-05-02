@@ -341,7 +341,7 @@ Raspberry Pi Zero 2 W appliance assumptions are documented in `docs/RPI_ZERO_APP
 
 Seizure review requirements are documented in `docs/SEIZURE_REVIEW_CHECKLIST.md`. Review normal screens, restricted pages before and after confirmation, browser history, cache, HTML source, JavaScript console, HTTP response headers, download filenames, optional audit logs, `.state/` names, temporary files, shell history, systemd logs, CLI output, environment variables, and service unit files.
 
-Operational guidance documents include `docs/SOURCE_SAFE_WORKFLOW.md`, `docs/SEIZURE_REVIEW_CHECKLIST.md`, `docs/FIELD_TEST_PROCEDURE.md`, and `docs/REVIEW_VALIDATION_RECORD.md`.
+Operational guidance documents include `docs/SOURCE_SAFE_WORKFLOW.md`, `docs/SEIZURE_REVIEW_CHECKLIST.md`, `docs/FIELD_TEST_PROCEDURE.md`, `docs/REVIEW_VALIDATION_RECORD.md`, `docs/OPERATIONS.md`, `docs/RESTRICTED_ACTIONS.md`, and `docs/STATE_RECOVERY.md`.
 
 ## 17. Testing
 
