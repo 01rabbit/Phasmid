@@ -196,6 +196,8 @@ No capture-visible surface should reveal the internal disclosure model, internal
 
 Capture-visible surfaces include the WebUI, rendered HTML, browser history, browser cache, JavaScript console, response headers, download filenames, CLI output, shell history, systemd stdout/stderr, audit logs, state-directory filenames, screenshots, and documentation copied to the device.
 
+Common user-facing wording should be centralized where practical. New UI, CLI, API, and audit text must either reuse shared neutral strings or pass terminology audit before release.
+
 ## 9. Stress-Use UX Principle
 
 Phantasm must prefer simple, low-choice flows under stress.

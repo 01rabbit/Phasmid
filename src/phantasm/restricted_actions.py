@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 
 from .capabilities import Capability
+from . import strings as text
 
 
 class RestrictedActionRejected(Exception):
-    def __init__(self, message="operation rejected"):
+    def __init__(self, message=text.OPERATION_REJECTED):
         super().__init__(message)
         self.message = message
 
@@ -29,13 +30,13 @@ def evaluate_restricted_action(
     object_cue_accepted: bool = True,
 ):
     if not capability_allowed:
-        raise RestrictedActionRejected("operation unavailable")
+        raise RestrictedActionRejected(text.OPERATION_UNAVAILABLE)
     if policy.require_restricted_confirmation and not restricted_confirmed:
-        raise RestrictedActionRejected("restricted confirmation required")
+        raise RestrictedActionRejected(text.RESTRICTED_CONFIRMATION_REQUIRED)
     if policy.confirmation_phrase is not None and confirmation != policy.confirmation_phrase:
-        raise RestrictedActionRejected("confirmation rejected")
+        raise RestrictedActionRejected(text.CONFIRMATION_REJECTED)
     if policy.require_password_reentry and not password_reentered:
-        raise RestrictedActionRejected("operation rejected")
+        raise RestrictedActionRejected(text.OPERATION_REJECTED)
     if policy.require_object_cue and not object_cue_accepted:
-        raise RestrictedActionRejected("operation rejected")
+        raise RestrictedActionRejected(text.OPERATION_REJECTED)
     return True

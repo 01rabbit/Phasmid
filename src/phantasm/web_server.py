@@ -25,6 +25,7 @@ from .face_lock import face_lock
 from .gv_core import GhostVault
 from .metadata import metadata_risk_report, scrub_metadata
 from .restricted_actions import RestrictedActionPolicy, RestrictedActionRejected, evaluate_restricted_action
+from . import strings as text
 
 app = FastAPI(title="Phantasm - Local Secure Interface")
 templates = Jinja2Templates(directory=str(Path(__file__).with_name("templates")))
@@ -167,7 +168,7 @@ def _face_enrollment_allowed():
 
 def require_ui_unlock(request: Request):
     if not _ui_unlocked(request):
-        raise HTTPException(status_code=423, detail="ui locked")
+        raise HTTPException(status_code=423, detail=text.UI_LOCKED)
 
 
 def _create_restricted_session(client_id):
@@ -196,17 +197,17 @@ def _restricted_session_valid(request):
 
 def require_restricted_confirmation(request: Request):
     if not _restricted_session_valid(request):
-        raise HTTPException(status_code=403, detail="restricted confirmation required")
+        raise HTTPException(status_code=403, detail=text.RESTRICTED_CONFIRMATION_REQUIRED)
 
 
 def _require_restricted_when_field_mode(request):
     if field_mode_enabled() and not _restricted_session_valid(request):
-        raise HTTPException(status_code=403, detail="restricted confirmation required")
+        raise HTTPException(status_code=403, detail=text.RESTRICTED_CONFIRMATION_REQUIRED)
 
 
 def require_capability(capability: Capability):
     if not capability_enabled(capability):
-        raise HTTPException(status_code=403, detail="operation unavailable")
+        raise HTTPException(status_code=403, detail=text.OPERATION_UNAVAILABLE)
 
 
 def require_restricted_action(action_id, request, confirmation=""):
@@ -241,7 +242,7 @@ def _recent_camera_frames(count=FACE_FRAME_SAMPLES, delay=FACE_FRAME_DELAY_SECON
 
 def require_web_token(x_phantasm_token: str = Header(default="")):
     if not secrets.compare_digest(x_phantasm_token, WEB_TOKEN):
-        raise HTTPException(status_code=403, detail="invalid web token")
+        raise HTTPException(status_code=403, detail=text.INVALID_WEB_TOKEN)
 
 
 def enforce_rate_limit(request: Request):
@@ -250,7 +251,7 @@ def enforce_rate_limit(request: Request):
     now = time.time()
     bucket = [timestamp for timestamp in _rate_limit.get(key, []) if now - timestamp < RATE_LIMIT_WINDOW]
     if len(bucket) >= RATE_LIMIT_MAX:
-        raise HTTPException(status_code=429, detail="rate limit exceeded")
+        raise HTTPException(status_code=429, detail=text.RATE_LIMIT_EXCEEDED)
     bucket.append(now)
     _rate_limit[key] = bucket
 
@@ -258,7 +259,7 @@ def enforce_rate_limit(request: Request):
 async def read_limited_upload(file: UploadFile):
     data = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="upload too large")
+        raise HTTPException(status_code=413, detail=text.UPLOAD_TOO_LARGE)
     return data
 
 
@@ -581,10 +582,10 @@ async def entry_status(request: Request, entry_id: str = "entry_1"):
 async def restricted_confirm(request: Request, confirmation: str = Form(...)):
     enforce_rate_limit(request)
     if confirmation != RESTRICTED_CONFIRMATION_PHRASE:
-        return {"error": "Confirmation rejected."}
+        return {"error": text.CONFIRMATION_REJECTED_DISPLAY}
     token = _create_restricted_session(_client_id(request))
     response = JSONResponse({
-        "status": "Restricted confirmation accepted.",
+        "status": text.RESTRICTED_CONFIRMATION_ACCEPTED,
         "expires_in": RESTRICTED_SESSION_TTL_SECONDS,
     })
     response.set_cookie(
@@ -606,23 +607,23 @@ async def register_key(
 ):
     enforce_rate_limit(request)
     if replace and not _restricted_session_valid(request):
-        return {"error": "Restricted confirmation required. Please confirm local control and retry."}
+        return {"error": text.RESTRICTED_CONFIRMATION_RETRY}
     entry_id = entry_hint if entry_hint in ENTRY_TO_MODE else _matched_entry() or _first_unbound_entry()
     if entry_id is None:
         return {
-            "error": "No open local entry is available.",
+            "error": text.NO_OPEN_LOCAL_ENTRY,
             "overwrite_required": True,
             "entries": list(ENTRY_LABELS.values()),
         }
 
     mode = resolve_entry(entry_id)
     if entry_hint in ENTRY_TO_MODE and not replace and _raw_gate_status()["registered_modes"].get(mode):
-        return {"error": "Entry already has a bound object. Confirm replacement first."}
+        return {"error": text.ENTRY_ALREADY_BOUND}
 
     success, message = _capture_entry_binding(mode)
     if success:
         audit_event("image_key_registered", entry="local_entry", source="web")
-        return {"status": "Object bound to protected entry.", "entry_state": "updated" if replace else "created"}
+        return {"status": text.OBJECT_BOUND_TO_ENTRY, "entry_state": "updated" if replace else "created"}
     return {"error": message}
 
 
@@ -643,18 +644,18 @@ async def store(
 
     try:
         if not password:
-            return {"error": "Access password must not be empty."}
+            return {"error": text.ACCESS_PASSWORD_REQUIRED}
         if restricted_recovery_password and password == restricted_recovery_password:
-            return {"error": "Access and restricted recovery passwords must be different."}
+            return {"error": text.PASSWORDS_MUST_DIFFER}
         if overwrite and overwrite_confirmation != OVERWRITE_CONFIRMATION_PHRASE:
-            return {"error": "Replacement confirmation required."}
+            return {"error": text.REPLACEMENT_CONFIRMATION_REQUIRED}
         if overwrite and not _restricted_session_valid(request):
-            return {"error": "Restricted confirmation required. Please confirm local control and retry."}
+            return {"error": text.RESTRICTED_CONFIRMATION_RETRY}
 
         entry_id, needs_capture = _select_entry_for_store(entry_hint=entry_hint, overwrite=overwrite)
         if entry_id is None:
             return {
-                "error": "No open local entry is available. Confirm replacement to continue.",
+                "error": text.NO_OPEN_LOCAL_ENTRY_WITH_REPLACEMENT,
                 "overwrite_required": True,
                 "entries": [
                     {"id": item_id, "label": label}
@@ -685,9 +686,9 @@ async def store(
             source="web",
         )
         entry_state = "replaced" if overwrite else "created" if needs_capture else "updated"
-        return {"success": True, "message": "Protected entry saved.", "entry_state": entry_state}
+        return {"success": True, "message": text.PROTECTED_ENTRY_SAVED, "entry_state": entry_state}
     except Exception:
-        return {"error": "Store operation failed."}
+        return {"error": text.STORE_OPERATION_FAILED}
 
 
 @app.post("/metadata/check", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
@@ -725,9 +726,9 @@ async def retrieve(request: Request, password: str = Form(...)):
     enforce_rate_limit(request)
     auth_sequence = get_gesture_sequence(length=1)
     if gate.last_match_mode == gate.MATCH_AMBIGUOUS:
-        return {"error": "Ambiguous object match."}
+        return {"error": text.AMBIGUOUS_OBJECT_MATCH}
     if auth_sequence[0] == gate.MATCH_NONE:
-        return {"error": "No valid entry found."}
+        return {"error": text.NO_VALID_ENTRY_FOUND}
 
     for mode in gate.MODES:
         result, filename, password_role = vault.retrieve_with_policy(password, auth_sequence, mode=mode)
@@ -755,7 +756,7 @@ async def retrieve(request: Request, password: str = Form(...)):
         )
 
     audit_event("retrieve_failed", source="web")
-    return {"error": "No valid entry found."}
+    return {"error": text.NO_VALID_ENTRY_FOUND}
 
 
 @app.post("/purge_other", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
@@ -774,7 +775,7 @@ async def purge_other(
     mode = resolve_entry(entry_id)
     vault.purge_other_mode(mode)
     audit_event("restricted_local_update", accessed_entry="local_entry", source="web")
-    return {"status": "Unmatched local entry cleared."}
+    return {"status": text.UNMATCHED_ENTRY_CLEARED}
 
 
 @app.post("/emergency/brick", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
@@ -783,7 +784,7 @@ async def emergency_brick(request: Request, confirmation: str = Form(...)):
     require_restricted_action("clear_local_access_path", request, confirmation)
     vault.silent_brick()
     audit_event("access_path_cleared", source="web")
-    return {"status": "Local access path cleared. Close this session."}
+    return {"status": text.LOCAL_ACCESS_PATH_CLEARED}
 
 
 @app.post("/emergency/initialize", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
@@ -795,7 +796,7 @@ async def emergency_initialize(request: Request, confirmation: str = Form(...)):
     if not success:
         return {"error": message}
     audit_event("container_reinitialized", source="web")
-    return {"status": "Local container initialized. Protected entries are empty."}
+    return {"status": text.CONTAINER_INITIALIZED}
 
 
 @app.post("/emergency/panic", dependencies=[Depends(require_web_token)])
@@ -808,7 +809,7 @@ async def web_panic_trigger(request: Request, secret_trigger: str = Form(...)):
         raise HTTPException(status_code=404)
     vault.silent_brick()
     audit_event("access_path_cleared", source="web_panic")
-    return {"status": "Critical state cleared."}
+    return {"status": text.CRITICAL_STATE_CLEARED}
 
 
 @app.post("/maintenance/rotate_token", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])

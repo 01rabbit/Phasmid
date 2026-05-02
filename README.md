@@ -188,6 +188,8 @@ Open `http://127.0.0.1:8000`.
 
 WebUI v2 uses neutral entry-based terminology. Normal screens do not show internal storage labels, retrieval order, or restricted local-state behavior.
 
+Common WebUI/API wording is centralized where practical so terminology checks can audit capture-visible messages consistently.
+
 Navigation:
 
 - `Home`: local device state, camera state, object state, and primary actions.
