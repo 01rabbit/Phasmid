@@ -118,6 +118,31 @@ class CLITests(unittest.TestCase):
 
         self.assertIn("at least", str(ctx.exception))
 
+    def test_cli_retrieve_respects_attempt_lockout(self):
+        output = io.StringIO()
+
+        class LockedLimiter:
+            def check(self, _scope):
+                return type("Decision", (), {"allowed": False})()
+
+        with (
+            unittest.mock.patch.object(sys, "argv", ["phantasm", "retrieve"]),
+            unittest.mock.patch.object(
+                cli, "_wait_for_camera_frame", return_value=True
+            ),
+            unittest.mock.patch.object(cli.gate, "start"),
+            unittest.mock.patch.object(cli.gate, "close"),
+            unittest.mock.patch.object(cli.EmergencyDaemon, "start"),
+            unittest.mock.patch.object(cli.EmergencyDaemon, "stop"),
+            unittest.mock.patch.object(
+                cli, "FileAttemptLimiter", return_value=LockedLimiter()
+            ),
+            contextlib.redirect_stdout(output),
+        ):
+            cli.main()
+
+        self.assertIn("Access temporarily unavailable", output.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

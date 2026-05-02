@@ -8,6 +8,7 @@ UI_LOCKED = "ui locked"
 INVALID_WEB_TOKEN = "invalid web token"
 RATE_LIMIT_EXCEEDED = "rate limit exceeded"
 UPLOAD_TOO_LARGE = "upload too large"
+ACCESS_TEMPORARILY_UNAVAILABLE = "Access temporarily unavailable."
 
 CONFIRMATION_REJECTED_DISPLAY = "Confirmation rejected."
 RESTRICTED_CONFIRMATION_ACCEPTED = "Restricted confirmation accepted."

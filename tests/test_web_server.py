@@ -18,6 +18,7 @@ class WebServerBoundaryTests(unittest.TestCase):
     def tearDown(self):
         web_server._rate_limit.clear()
         web_server._restricted_sessions.clear()
+        web_server._access_attempts._state.clear()
 
     def test_require_web_token_rejects_invalid_token(self):
         with self.assertRaises(HTTPException) as ctx:
@@ -186,6 +187,36 @@ class WebServerBoundaryTests(unittest.TestCase):
             self.assertEqual(
                 set(response.keys()),
                 {"camera_ready", "object_state", "device_state", "local_mode"},
+            )
+
+        asyncio.run(run())
+
+    def test_retrieve_attempt_limiter_blocks_repeated_failures(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                url=SimpleNamespace(path="/retrieve"),
+            )
+            limiter = web_server.AttemptLimiter(
+                max_failures=1,
+                lockout_seconds=30,
+                clock=lambda: 1000,
+            )
+            with (
+                mock.patch.object(web_server, "_access_attempts", limiter),
+                mock.patch.object(
+                    web_server,
+                    "get_gesture_sequence",
+                    return_value=[web_server.gate.MATCH_NONE],
+                ),
+            ):
+                web_server.gate.last_match_mode = web_server.gate.MATCH_NONE
+                first = await web_server.retrieve(request, password="wrong-passphrase")
+                second = await web_server.retrieve(request, password="wrong-passphrase")
+            self.assertEqual(first["error"], web_server.text.NO_VALID_ENTRY_FOUND)
+            self.assertEqual(
+                second["error"],
+                web_server.text.ACCESS_TEMPORARILY_UNAVAILABLE,
             )
 
         asyncio.run(run())

@@ -24,6 +24,7 @@ from fastapi.responses import (
 from fastapi.templating import Jinja2Templates
 
 from .ai_gate import gate, get_gesture_sequence
+from .attempt_limiter import AttemptLimiter
 from .audit import audit_event
 from .capabilities import Capability, active_policy, capability_enabled
 from .config import (
@@ -62,6 +63,7 @@ RESTRICTED_SESSION_TTL_SECONDS = int(
 )
 _rate_limit = {}
 _restricted_sessions = {}
+_access_attempts = AttemptLimiter()
 
 ENTRY_TO_MODE = {
     "entry_1": gate.MODES[0],
@@ -815,10 +817,15 @@ async def metadata_scrub(request: Request, file: UploadFile = File(...)):
 )
 async def retrieve(request: Request, password: str = Form(...)):
     enforce_rate_limit(request)
+    attempt_scope = f"web:{_client_id(request)}"
+    if not _access_attempts.check(attempt_scope).allowed:
+        return {"error": text.ACCESS_TEMPORARILY_UNAVAILABLE}
     auth_sequence = get_gesture_sequence(length=1)
     if gate.last_match_mode == gate.MATCH_AMBIGUOUS:
+        _access_attempts.record_failure(attempt_scope)
         return {"error": text.AMBIGUOUS_OBJECT_MATCH}
     if auth_sequence[0] == gate.MATCH_NONE:
+        _access_attempts.record_failure(attempt_scope)
         return {"error": text.NO_VALID_ENTRY_FOUND}
 
     for mode in gate.MODES:
@@ -840,6 +847,7 @@ async def retrieve(request: Request, password: str = Form(...)):
         if result is not None:
             # Release camera to save power and heat after successful retrieval
             gate.close()
+        _access_attempts.record_success(attempt_scope)
         if not purge_applied:
             purge_applied = _maybe_auto_purge(mode, source="web")
         return create_file_response(
@@ -849,6 +857,7 @@ async def retrieve(request: Request, password: str = Form(...)):
         )
 
     audit_event("retrieve_failed", source="web")
+    _access_attempts.record_failure(attempt_scope)
     return {"error": text.NO_VALID_ENTRY_FOUND}
 
 

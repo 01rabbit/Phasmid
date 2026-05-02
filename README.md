@@ -295,6 +295,8 @@ PHANTASM_STATE_DIR=/path/to/state python3 main.py init
 | `PHANTASM_FIELD_MODE=1` | Reduce normal WebUI operational detail |
 | `PHANTASM_PROFILE` | Select local capability mode: `standard`, `field`, or `maintenance` |
 | `PHANTASM_MIN_PASSPHRASE_LENGTH` | Minimum Store passphrase length |
+| `PHANTASM_ACCESS_MAX_FAILURES` | Failed access attempts before temporary lockout |
+| `PHANTASM_ACCESS_LOCKOUT_SECONDS` | Temporary access lockout duration |
 | `PHANTASM_AUDIT=1` | Enable audit logging |
 
 ## Local-Only Trust Boundary

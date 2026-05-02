@@ -58,6 +58,21 @@ class ConfigTests(unittest.TestCase):
         ):
             self.assertEqual(config.passphrase_min_length(), 10)
 
+    def test_access_attempt_limits_default_and_env(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(config.access_max_failures(), 5)
+            self.assertEqual(config.access_lockout_seconds(), 60)
+        with mock.patch.dict(
+            os.environ,
+            {
+                "PHANTASM_ACCESS_MAX_FAILURES": "2",
+                "PHANTASM_ACCESS_LOCKOUT_SECONDS": "9",
+            },
+            clear=True,
+        ):
+            self.assertEqual(config.access_max_failures(), 2)
+            self.assertEqual(config.access_lockout_seconds(), 9)
+
 
 if __name__ == "__main__":
     unittest.main()

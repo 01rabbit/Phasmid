@@ -316,6 +316,8 @@ The physical object is an operational cue, not a high-entropy cryptographic fact
 | `PHANTASM_FIELD_MODE` | Reduce normal WebUI operational detail | `0` |
 | `PHANTASM_PROFILE` | Select local capability mode: `standard`, `field`, or `maintenance` | `standard` |
 | `PHANTASM_MIN_PASSPHRASE_LENGTH` | Minimum Store passphrase length | `10` |
+| `PHANTASM_ACCESS_MAX_FAILURES` | Failed access attempts before temporary lockout | `5` |
+| `PHANTASM_ACCESS_LOCKOUT_SECONDS` | Temporary access lockout duration | `60` |
 | `PHANTASM_AUDIT` | Enable audit logging | `0` |
 | `PHANTASM_AUDIT_FILENAMES` | Record filename hashes | unset |
 

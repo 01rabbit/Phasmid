@@ -5,6 +5,7 @@ import sys
 import time
 
 from .ai_gate import get_gesture_sequence, gate
+from .attempt_limiter import FileAttemptLimiter
 from .audit import audit_event
 from .bridge_ui import ui
 from .config import duress_mode_enabled, purge_confirmation_required
@@ -13,6 +14,7 @@ from .face_lock import face_lock
 from .gv_core import GhostVault
 from .operations import doctor, export_redacted_log, verify_audit_log, verify_state
 from .passphrase_policy import check_store_passphrases
+from . import strings as text
 
 CAMERA_WARMUP_TIMEOUT = 10
 REFERENCE_MATCH_TIMEOUT = 10
@@ -323,6 +325,12 @@ def main():
             print(" DEVICE STATUS: READY")
             print("=" * 55)
 
+            attempt_limiter = FileAttemptLimiter()
+            attempt_scope = "cli-retrieve"
+            if not attempt_limiter.check(attempt_scope).allowed:
+                print(f"\n[!] {text.ACCESS_TEMPORARILY_UNAVAILABLE}")
+                return
+
             pw = getpass.getpass("\n[AUTH] Access password: ")
 
             print("\n[LOCAL] Requesting bound object verification...")
@@ -330,10 +338,12 @@ def main():
 
             if gate.last_match_mode == gate.MATCH_AMBIGUOUS:
                 ui.show_alert("ACCESS ERROR\nAMBIGUOUS OBJECT")
+                attempt_limiter.record_failure(attempt_scope)
                 print("[!] Access rejected because the object match is ambiguous.")
                 return
             if not user_gesture_seq or user_gesture_seq[0] == gate.MATCH_NONE:
                 ui.show_alert("ACCESS ERROR\nOBJECT NOT FOUND")
+                attempt_limiter.record_failure(attempt_scope)
                 print("[!] No bound object matched.")
                 return
 
@@ -355,6 +365,7 @@ def main():
                 accessed_mode = gate.MODES[1]
 
             if result is not None:
+                attempt_limiter.record_success(attempt_scope)
                 ui.show_alert("ACCESS GRANTED")
 
                 show_loading("Preparing recovered payload", 2)
@@ -410,6 +421,7 @@ def main():
             else:
                 ui.show_alert("ACCESS DENIED\nINVALID CREDENTIALS")
                 audit_event("retrieve_failed")
+                attempt_limiter.record_failure(attempt_scope)
                 print("\n[!] Access failed.")
 
         elif args.action == "brick":

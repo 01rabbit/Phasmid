@@ -50,3 +50,19 @@ def passphrase_min_length():
         return max(1, int(value))
     except ValueError:
         return 10
+
+
+def access_max_failures():
+    value = os.environ.get("PHANTASM_ACCESS_MAX_FAILURES", "5")
+    try:
+        return max(1, int(value))
+    except ValueError:
+        return 5
+
+
+def access_lockout_seconds():
+    value = os.environ.get("PHANTASM_ACCESS_LOCKOUT_SECONDS", "60")
+    try:
+        return max(1, int(value))
+    except ValueError:
+        return 60

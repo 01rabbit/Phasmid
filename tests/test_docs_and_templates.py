@@ -46,6 +46,7 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("python3 -m black --check src tests scripts", readme)
         self.assertIn("python3 -m bandit -r src", readme)
         self.assertIn("PHANTASM_MIN_PASSPHRASE_LENGTH", readme)
+        self.assertIn("PHANTASM_ACCESS_MAX_FAILURES", readme)
         self.assertIn("not approved classified-data handling infrastructure", readme)
         self.assertIn("Field Mode is not a security boundary", readme)
         self.assertIn("Metadata detection and reduction are best-effort", readme)
@@ -64,6 +65,7 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("Stress-Use UX Principle", spec)
         self.assertIn("Field Mode is not a security boundary", spec)
         self.assertIn("PHANTASM_MIN_PASSPHRASE_LENGTH", spec)
+        self.assertIn("PHANTASM_ACCESS_LOCKOUT_SECONDS", spec)
 
     def test_threat_model_names_leakage_surfaces(self):
         threat = read_text("docs/THREAT_MODEL.md")
