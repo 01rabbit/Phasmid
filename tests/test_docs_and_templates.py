@@ -42,6 +42,7 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("Government and Organizational Use Boundary", readme)
         self.assertIn("When to Use Phantasm", readme)
         self.assertIn("Test Command", readme)
+        self.assertIn("Release Review Artifacts", readme)
         self.assertIn("not approved classified-data handling infrastructure", readme)
         self.assertIn("Field Mode is not a security boundary", readme)
         self.assertIn("Metadata detection and reduction are best-effort", readme)
@@ -97,6 +98,7 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("readiness gates", plan)
         self.assertIn("target-hardware validation", plan)
         self.assertIn("README claims match the validation record", plan)
+        self.assertIn("release manifest and SBOM generation result", plan)
 
     def test_rpi_appliance_doc_is_authoritative(self):
         summary = read_text("docs/RPI_ZERO_DEPLOYMENT.md")

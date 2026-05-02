@@ -309,6 +309,24 @@ python3 -m unittest discover -s tests
 
 Passing automated tests do not prove field safety. They verify expected local behavior, terminology boundaries, Field Mode behavior, metadata route behavior, and WebUI contract behavior. Field evaluation still requires the Field Test Procedure and Seizure Review Checklist.
 
+## Release Review Artifacts
+
+Generate local release-review artifacts:
+
+```bash
+python3 scripts/generate_release_artifacts.py --archive
+```
+
+The script writes a SHA-256 source manifest, a CycloneDX-format dependency SBOM, a release summary, and optionally a local tar archive. Runtime state directories, `vault.bin`, caches, virtual environments, and release outputs are excluded.
+
+Reviewers can verify files with:
+
+```bash
+shasum -a 256 -c release/local/MANIFEST.sha256
+```
+
+The manifest helps review accidental changes and archive contents. It does not protect a host that is already compromised and is not a certification claim.
+
 KDF benchmark:
 
 ```bash

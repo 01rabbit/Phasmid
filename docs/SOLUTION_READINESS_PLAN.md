@@ -48,6 +48,7 @@ Each release candidate should record:
 - Field Mode setting;
 - audit setting;
 - network posture;
+- release manifest and SBOM generation result;
 - known failures;
 - remaining unvalidated areas.
 
