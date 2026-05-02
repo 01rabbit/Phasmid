@@ -1,5 +1,7 @@
 # Raspberry Pi Zero 2 W Deployment
 
+This is a compact deployment summary. The authoritative appliance deployment guide is `docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md`.
+
 This document describes a conservative local appliance deployment for Raspberry Pi Zero 2 W class hardware.
 
 Phantasm should remain local-only. The expected access path is localhost during development or USB Ethernet gadget mode during appliance use. Do not expose the WebUI to an untrusted network.

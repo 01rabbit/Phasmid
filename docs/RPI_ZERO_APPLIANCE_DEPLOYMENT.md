@@ -1,5 +1,7 @@
 # Raspberry Pi Zero 2 W Appliance Deployment
 
+This is the authoritative Raspberry Pi Zero 2 W appliance deployment guide for Phantasm.
+
 This deployment plan reduces exposed services and local leakage for Raspberry Pi Zero 2 W class hardware. It does not provide physical tamper resistance, anti-forensic guarantees, or hardware-grade secure storage.
 
 ## Base System

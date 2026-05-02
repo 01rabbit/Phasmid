@@ -35,6 +35,22 @@ If your only requirement is normal file encryption on a trusted device, a mature
 
 Phantasm is intentionally specialized. It is not designed to be the simplest way to encrypt files.
 
+## From Prototype to Solution
+
+Phantasm should not become a stronger product by claiming more. It becomes stronger by making its operating boundary repeatable, testable, and boring.
+
+The path from field-evaluation prototype to operational solution is:
+
+1. keep the scope local-only;
+2. keep the interface quiet under capture;
+3. provide a reproducible appliance deployment;
+4. complete target-hardware field testing;
+5. complete seizure-review testing;
+6. record validation results for each release;
+7. publish only claims that are covered by tests or documented limits.
+
+Until those validation gates are completed on target hardware, Phantasm should be described as a field-evaluation prototype. After those gates are completed and recorded, it can be described as a local coercion-aware storage appliance for the validated deployment conditions.
+
 ## Safe Use Boundary
 
 Phantasm is intended for lawful local protection of sensitive material where device seizure, compelled access, or over-disclosure are realistic risks.
@@ -287,12 +303,13 @@ python3 scripts/bench_kdf.py
 
 - [Specification](docs/SPECIFICATION.md)
 - [Threat Model](docs/THREAT_MODEL.md)
-- [Raspberry Pi Zero 2 W Deployment](docs/RPI_ZERO_DEPLOYMENT.md)
-- [Raspberry Pi Zero 2 W Appliance Deployment](docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md)
+- [Raspberry Pi Zero 2 W Appliance Deployment](docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md) authoritative appliance deployment guide
+- [Raspberry Pi Zero 2 W Deployment](docs/RPI_ZERO_DEPLOYMENT.md) compact deployment summary
 - [Source-Safe Storage Workflow](docs/SOURCE_SAFE_WORKFLOW.md)
 - [Seizure Review Checklist](docs/SEIZURE_REVIEW_CHECKLIST.md)
 - [Field Test Procedure](docs/FIELD_TEST_PROCEDURE.md)
 - [Review Validation Record](docs/REVIEW_VALIDATION_RECORD.md)
+- [Solution Readiness Plan](docs/SOLUTION_READINESS_PLAN.md)
 
 ## Security Notes
 

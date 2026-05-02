@@ -28,6 +28,8 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("docs/SEIZURE_REVIEW_CHECKLIST.md", readme)
         self.assertIn("docs/FIELD_TEST_PROCEDURE.md", readme)
         self.assertIn("docs/REVIEW_VALIDATION_RECORD.md", readme)
+        self.assertIn("docs/SOLUTION_READINESS_PLAN.md", readme)
+        self.assertIn("authoritative appliance deployment guide", readme)
         self.assertIn("metadata risk check", readme)
 
     def test_readme_addresses_reviewer_and_use_boundaries(self):
@@ -41,6 +43,8 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("Field Mode is not a security boundary", readme)
         self.assertIn("Metadata detection and reduction are best-effort", readme)
         self.assertIn("field-evaluation prototype", readme)
+        self.assertIn("From Prototype to Solution", readme)
+        self.assertIn("record validation results for each release", readme)
 
     def test_specification_defines_field_mode_and_metadata_routes(self):
         spec = read_text("docs/SPECIFICATION.md")
@@ -78,9 +82,23 @@ class DocsAndTemplateTests(unittest.TestCase):
     def test_review_validation_record_exists(self):
         record = read_text("docs/REVIEW_VALIDATION_RECORD.md")
         self.assertIn("Review Validation Record", record)
-        self.assertIn("93 tests passed", record)
+        self.assertIn("95 tests passed", record)
         self.assertIn("Target-hardware validation result", record)
         self.assertIn("Not field-proven", record)
+        self.assertIn("Solution Readiness", record)
+
+    def test_solution_readiness_plan_bounds_solution_claims(self):
+        plan = read_text("docs/SOLUTION_READINESS_PLAN.md")
+        self.assertIn("Solution Readiness Plan", plan)
+        self.assertIn("readiness gates", plan)
+        self.assertIn("target-hardware validation", plan)
+        self.assertIn("README claims match the validation record", plan)
+
+    def test_rpi_appliance_doc_is_authoritative(self):
+        summary = read_text("docs/RPI_ZERO_DEPLOYMENT.md")
+        appliance = read_text("docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md")
+        self.assertIn("authoritative appliance deployment guide", summary)
+        self.assertIn("authoritative Raspberry Pi Zero 2 W appliance deployment guide", appliance)
 
 
 if __name__ == "__main__":

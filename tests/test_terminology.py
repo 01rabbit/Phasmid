@@ -18,6 +18,7 @@ USER_FACING_FILES = [
     "docs/SEIZURE_REVIEW_CHECKLIST.md",
     "docs/FIELD_TEST_PROCEDURE.md",
     "docs/REVIEW_VALIDATION_RECORD.md",
+    "docs/SOLUTION_READINESS_PLAN.md",
     "contrib/systemd/phantasm.service",
 ]
 

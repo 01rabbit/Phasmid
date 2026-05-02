@@ -24,7 +24,7 @@ python3 -m unittest discover -s tests
 Result:
 
 ```text
-2026-05-02, macOS Darwin arm64, python3 -m unittest discover -s tests, 93 tests passed.
+2026-05-02, macOS Darwin arm64, python3 -m unittest discover -s tests, 95 tests passed.
 ```
 
 Target-hardware validation result:
@@ -59,3 +59,7 @@ Current status:
 ```text
 Field-evaluation prototype. Not field-proven until this checklist is completed on target hardware.
 ```
+
+## Solution Readiness
+
+Operational solution status is not claimed until the readiness gates in `docs/SOLUTION_READINESS_PLAN.md` are completed and recorded for the target deployment.

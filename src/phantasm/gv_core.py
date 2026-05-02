@@ -44,8 +44,9 @@ class GhostVault:
         return size_bytes
 
     def _context_password(self, password: str, gesture_sequence: list, mode="dummy", password_role=OPEN_ROLE):
-        # Combine the password, image-key token, and profile into the KDF input.
-        # The same profile key must be visible to reproduce the same KDF context.
+        # Combine the password, object-cue token, and local entry selector into
+        # the KDF input. The same local entry selector must be available to
+        # reproduce the KDF context.
         gesture_str = "-".join(gesture_sequence)
         return f"{password}_{gesture_str}_{mode}_{password_role}".encode()
 
