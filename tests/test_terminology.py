@@ -39,6 +39,7 @@ PYTHON_BOUNDARY_FILES = [
     "src/phantasm/restricted_actions.py",
     "src/phantasm/strings.py",
     "src/phantasm/operations.py",
+    "src/phantasm/state_store.py",
 ]
 
 FORBIDDEN_PATTERNS = [

@@ -6,7 +6,6 @@ from dataclasses import asdict, dataclass
 import hashlib
 import json
 import os
-import stat
 
 from .config import (
     AUDIT_LOG_NAME,
@@ -15,6 +14,7 @@ from .config import (
     VAULT_KEY_NAME,
     state_dir,
 )
+from .state_store import LocalStateStore
 
 STATUS_READY = "ready"
 STATUS_ATTENTION = "attention"
@@ -65,33 +65,18 @@ def _report(name: str, checks: list[OperationCheck]):
     }
 
 
-def _secure_mode(path: str, *, directory: bool):
-    mode = stat.S_IMODE(os.stat(path).st_mode)
-    if directory:
-        return (mode & 0o077) == 0
-    return (mode & 0o177) == 0
-
-
 def verify_state(base_dir: str | None = None, vault_path: str = "vault.bin"):
     base_dir = base_dir or state_dir()
     checks: list[OperationCheck] = []
+    store = LocalStateStore(base_dir)
+    layout = store.inspect_layout(EXPECTED_STATE_FILES)
 
-    if not os.path.exists(base_dir):
+    if not layout["root_present"]:
         checks.append(
             OperationCheck(
                 "local_state",
                 STATUS_ATTENTION,
                 "local state is not initialized",
-            )
-        )
-        return _report("verify-state", checks)
-
-    if not os.path.isdir(base_dir):
-        checks.append(
-            OperationCheck(
-                "local_state",
-                STATUS_ATTENTION,
-                "local state location is not a directory",
             )
         )
         return _report("verify-state", checks)
@@ -107,17 +92,13 @@ def verify_state(base_dir: str | None = None, vault_path: str = "vault.bin"):
         OperationCheck(
             "state_permissions",
             STATUS_READY
-            if _secure_mode(base_dir, directory=True)
+            if layout["root_secure"]
             else STATUS_ATTENTION,
             "local state permissions are restricted",
         )
     )
 
-    present_files = [
-        name
-        for name in EXPECTED_STATE_FILES
-        if os.path.exists(os.path.join(base_dir, name))
-    ]
+    present_files = layout["present_files"]
     checks.append(
         OperationCheck(
             "state_material",
@@ -130,15 +111,12 @@ def verify_state(base_dir: str | None = None, vault_path: str = "vault.bin"):
         )
     )
 
-    insecure_files = [
-        name
-        for name in present_files
-        if not _secure_mode(os.path.join(base_dir, name), directory=False)
-    ]
     checks.append(
         OperationCheck(
             "state_file_permissions",
-            STATUS_READY if not insecure_files else STATUS_ATTENTION,
+            STATUS_READY
+            if layout["files_secure"]
+            else STATUS_ATTENTION,
             "local state files have restricted permissions",
         )
     )

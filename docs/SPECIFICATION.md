@@ -51,6 +51,8 @@ The project is intended for USB gadget mode or localhost access. It is not a rep
 
 The default state directory is `.state/` and can be changed with `PHANTASM_STATE_DIR`. The directory is intended to be mode `0700`; sensitive files are intended to be mode `0600`. Neutral filenames reduce obvious metadata, but they do not provide deniability.
 
+New local state code paths should use the typed state store for schema-versioned records, atomic writes, restrictive file permissions, and explicit transition checks. Existing binary state files remain compatibility-managed by their owning modules until a migration path is defined.
+
 ## 5. Internal Entry Model
 
 The container uses two fixed internal storage spans. The CLI keeps a compact `--entry a` / `--entry b` selector for compatibility, while WebUI v2 maps the internal model to neutral protected-entry workflows and does not expose internal labels during normal operation.

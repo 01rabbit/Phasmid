@@ -189,6 +189,8 @@ python3 main.py export-redacted-log --out review-events.jsonl
 
 These commands report neutral readiness and audit-review status without printing local paths in normal output.
 
+New local state checks use a typed state-store helper for atomic writes, restrictive permissions, and transition validation. Existing vault and object-cue state files remain compatibility-managed by their owning modules.
+
 ## WebUI v2
 
 ```bash
