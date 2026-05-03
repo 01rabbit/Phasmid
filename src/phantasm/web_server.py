@@ -43,7 +43,12 @@ from .gv_core import GhostVault
 from .metadata import metadata_risk_report, scrub_metadata
 from .passphrase_policy import check_store_passphrases
 from .restricted_actions import (
-    RestrictedActionPolicy,
+    DESTRUCTIVE_CLEAR_PHRASE,
+    EMERGENCY_BRICK_PHRASE,
+    INITIALIZE_CONTAINER_PHRASE,
+    OVERWRITE_CONFIRMATION_PHRASE,
+    RESTRICTED_ACTION_POLICIES,
+    RESTRICTED_CONFIRMATION_PHRASE,
     RestrictedActionRejected,
     evaluate_restricted_action,
 )
@@ -84,34 +89,6 @@ MODE_TO_ENTRY = {mode: entry for entry, mode in ENTRY_TO_MODE.items()}
 ENTRY_LABELS = {
     "entry_1": "Entry 1",
     "entry_2": "Entry 2",
-}
-DESTRUCTIVE_CLEAR_PHRASE = "CLEAR LOCAL ENTRY"
-INITIALIZE_CONTAINER_PHRASE = "INITIALIZE LOCAL CONTAINER"
-EMERGENCY_BRICK_PHRASE = "CLEAR LOCAL ACCESS PATH"
-RESTRICTED_CONFIRMATION_PHRASE = "CONFIRM LOCAL CONTROL"
-OVERWRITE_CONFIRMATION_PHRASE = "REPLACE LOCAL ENTRY"
-RESTRICTED_ACTION_POLICIES = {
-    "clear_unmatched_entry": RestrictedActionPolicy(
-        action_id="clear_unmatched_entry",
-        capability=Capability.RESTRICTED_ACTION,
-        confirmation_phrase=DESTRUCTIVE_CLEAR_PHRASE,
-    ),
-    "clear_local_access_path": RestrictedActionPolicy(
-        action_id="clear_local_access_path",
-        capability=Capability.RESTRICTED_ACTION,
-        confirmation_phrase=EMERGENCY_BRICK_PHRASE,
-    ),
-    "initialize_container": RestrictedActionPolicy(
-        action_id="initialize_container",
-        capability=Capability.RESTRICTED_ACTION,
-        confirmation_phrase=INITIALIZE_CONTAINER_PHRASE,
-    ),
-    "rapid_local_clear": RestrictedActionPolicy(
-        action_id="rapid_local_clear",
-        capability=Capability.RAPID_LOCAL_CLEAR,
-        confirmation_phrase="BRICK",
-        require_restricted_confirmation=False,
-    ),
 }
 SECURITY_HEADERS = {
     "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",

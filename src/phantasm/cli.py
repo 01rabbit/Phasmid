@@ -9,6 +9,7 @@ from .ai_gate import gate, get_gesture_sequence
 from .attempt_limiter import FileAttemptLimiter
 from .audit import audit_event
 from .bridge_ui import ui
+from .capabilities import capability_enabled
 from .config import duress_mode_enabled, purge_confirmation_required
 from .crypto_boundary import CryptoSelfTestError, ensure_crypto_self_tests
 from .emergency_daemon import EmergencyDaemon
@@ -16,10 +17,17 @@ from .face_lock import face_lock
 from .gv_core import GhostVault
 from .operations import doctor, export_redacted_log, verify_audit_log, verify_state
 from .passphrase_policy import check_store_passphrases
+from .restricted_actions import (
+    DESTRUCTIVE_CLEAR_PHRASE,
+    FACE_RESET_PHRASE,
+    RESTRICTED_ACTION_POLICIES,
+    RestrictedActionRejected,
+    evaluate_restricted_action,
+)
 
 CAMERA_WARMUP_TIMEOUT = 10
 REFERENCE_MATCH_TIMEOUT = 10
-FACE_RESET_CONFIRMATION = "RESET FACE LOCK AND VAULT"
+FACE_RESET_CONFIRMATION = FACE_RESET_PHRASE
 MODE_LABELS = {
     gate.MODES[0]: "selected local entry",
     gate.MODES[1]: "selected local entry",
@@ -118,7 +126,7 @@ def _confirm_purge_other_mode(accessed_mode):
 
     print("\n[SAFETY] Local state is preserved by default.")
 
-    confirmation = "CLEAR UNMATCHED LOCAL ENTRY"
+    confirmation = DESTRUCTIVE_CLEAR_PHRASE
     answer = input(
         f"[LOCAL STATE] Clear unmatched local entry after access? "
         f'Type "{confirmation}" to confirm: '
@@ -149,6 +157,19 @@ def _prompt_store_passwords():
     if not passphrase_check.ok:
         raise ValueError(passphrase_check.message)
     return open_password, restricted_recovery_password
+
+
+def require_restricted_action(action_id, confirmation=""):
+    policy = RESTRICTED_ACTION_POLICIES[action_id]
+    try:
+        evaluate_restricted_action(
+            policy,
+            capability_allowed=capability_enabled(policy.capability),
+            restricted_confirmed=True,  # CLI assumes local control
+            confirmation=confirmation,
+        )
+    except RestrictedActionRejected as exc:
+        raise ValueError(exc.message) from exc
 
 
 def _confirm_face_lock_reset(input_func=input):
@@ -439,9 +460,19 @@ def main():
                 print("\n[!] Access failed.")
 
         elif args.action == "brick":
-            vault.silent_brick()
-            audit_event("access_path_cleared", source="cli")
-            print("[!] Local access path cleared.")
+            print("\n[!] CAUTION: CLEARING LOCAL ACCESS PATH")
+            policy = RESTRICTED_ACTION_POLICIES["rapid_local_clear"]
+            confirmation = input(
+                f'Type "{policy.confirmation_phrase}" to confirm: '
+            ).strip()
+            try:
+                require_restricted_action("rapid_local_clear", confirmation)
+                vault.silent_brick()
+                audit_event("access_path_cleared", source="cli")
+                print("[!] Local access path cleared.")
+            except ValueError as exc:
+                print(f"[ABORTED] {exc}")
+                return 1
 
         elif args.action == "reset-face-lock":
             if not _confirm_face_lock_reset():
