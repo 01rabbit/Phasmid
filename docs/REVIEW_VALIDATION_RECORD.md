@@ -27,6 +27,21 @@ Result:
 2026-05-02, macOS Darwin arm64, python3 -m unittest discover -s tests, 151 tests passed.
 ```
 
+Coverage baseline:
+
+```bash
+python3 -m coverage run --source=src -m unittest discover -s tests
+python3 -m coverage report -m
+```
+
+Result:
+
+```text
+coverage: 71% overall
+```
+
+The coverage baseline records a minimum acceptable regression gate (70%) for future changes.
+
 Restricted-flow scenario matrix:
 
 ```text

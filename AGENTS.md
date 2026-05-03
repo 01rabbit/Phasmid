@@ -230,7 +230,6 @@ Use this context for changes involving tests, CI, static analysis, coverage, rel
 Relevant issues:
 
 - `#8` static analysis pipeline
-- `#9` coverage target and regression gates
 - `#16` release integrity manifest and SBOM workflow
 - `#24` scenario matrix
 
@@ -349,14 +348,13 @@ When choosing the next work item, prefer changes that reduce future risk and AI 
 Recommended order:
 
 1. Add or maintain this `AGENTS.md`.
-2. `#9` establish coverage target and regression gates.
-3. `#8` add CI and static analysis.
-4. `#25` centralize user-visible UI and CLI strings.
-5. `#22` centralize restricted action policy enforcement.
-6. `#24` add local coercion and restricted-flow scenario matrix.
-7. `#23` introduce typed local state store and transition checks.
-8. `#26` split vault cryptographic core into reviewable modules.
-9. `#19` design local multi-source key derivation pipeline.
+2. `#8` add CI and static analysis.
+3. `#25` centralize user-visible UI and CLI strings.
+4. `#22` centralize restricted action policy enforcement.
+5. `#24` add local coercion and restricted-flow scenario matrix.
+6. `#23` introduce typed local state store and transition checks.
+7. `#26` split vault cryptographic core into reviewable modules.
+8. `#19` design local multi-source key derivation pipeline.
 
 Defer implementation-heavy work on these until tests and compatibility boundaries are strong:
 
