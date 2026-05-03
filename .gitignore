@@ -6,6 +6,7 @@ __pycache__/
 .ruff_cache/
 .venv/
 venv/
+.coverage
 
 # Runtime state and generated secrets
 .state/
