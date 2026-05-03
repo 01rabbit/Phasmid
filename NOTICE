@@ -1,0 +1,12 @@
+Phantasm
+Copyright 2026 01rabbit
+
+Phantasm is a field-evaluation prototype for local-only coercion-aware storage.
+
+This software is research software and is not a replacement for full-disk encryption,
+hardware-backed key storage, audited classified-data handling systems, organizational
+records-management systems, or a complete solution to compelled disclosure.
+
+The Apache License, Version 2.0 grants software-use rights. It does not imply
+operational approval, field validation, classified-data handling approval, certification,
+or suitability for any specific deployment.
