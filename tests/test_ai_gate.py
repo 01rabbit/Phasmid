@@ -93,6 +93,83 @@ class AIGateTemplateTests(unittest.TestCase):
 
             self.assertEqual(gate.last_match_mode, "dummy")
 
+    def test_get_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            status = gate.get_status()
+            self.assertFalse(status["object_detected"])
+            self.assertEqual(status["matched_mode"], "none")
+            self.assertFalse(status["registered_modes"]["dummy"])
+            self.assertFalse(status["registered_modes"]["secret"])
+
+    def test_clear_references(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            # Mock a registered state
+            gate.reference_data["dummy"]["des"] = np.ones((10, 32), dtype=np.uint8)
+            success, msg = gate.clear_references()
+            self.assertTrue(success)
+            self.assertFalse(gate.reference_data["dummy"]["des"] is not None)
+            # The blob file should exist but represent an empty state
+            self.assertTrue(os.path.exists(gate.state_blob_path))
+            loaded = gate._read_reference_blob()
+            self.assertIsNone(loaded["dummy"]["des"])
+
+    def test_get_auth_sequence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            seq = gate.get_auth_sequence(length=2)
+            self.assertEqual(seq, ["none", "none"])
+
+            gate.last_match_mode = "dummy"
+            seq = gate.get_auth_sequence(length=3)
+            self.assertEqual(seq, ["reference_dummy_matched"] * 3)
+
+    def test_state_encryption_key_env(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            secret = "my_custom_secret"
+            with mock.patch.dict(os.environ, {"PHANTASM_STATE_SECRET": secret}):
+                key = gate._state_encryption_key()
+                import hashlib
+                expected = hashlib.sha256(secret.encode("utf-8")).digest()
+                self.assertEqual(key, expected)
+
+    def test_read_encrypted_template_error_handling(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            blob_path = os.path.join(tmp, "bad_blob")
+            with open(blob_path, "wb") as f:
+                f.write(os.urandom(10)) # Too short
+            
+            with self.assertRaisesRegex(ValueError, "too short"):
+                gate._read_encrypted_template(blob_path)
+
+            with open(blob_path, "wb") as f:
+                f.write(os.urandom(20)) # Random data, tag mismatch
+            
+            with self.assertRaisesRegex(ValueError, "authentication failed"):
+                gate._read_encrypted_template(blob_path)
+
+    def test_match_reference_state_none_cases(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            res = gate._match_reference_state(gate._empty_reference(), None)
+            self.assertIsNone(res)
+
+            state = {
+                "des": np.ones((10, 32), dtype=np.uint8),
+                "kp": [object()] * 10,
+                "pts": np.zeros((4, 1, 2), dtype=np.float32)
+            }
+            res = gate._match_reference_state(state, None) # frame_gray is None
+            self.assertIsNone(res)
+
+    def test_sequence_for_mode_invalid(self):
+        gate = AIGate()
+        with self.assertRaises(ValueError):
+            gate.sequence_for_mode("invalid")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -19,6 +19,45 @@ class CLITests(unittest.TestCase):
         self.assertEqual(
             cli.display_mode_label(cli.gate.MODES[1]), "selected local entry"
         )
+        self.assertEqual(cli.display_mode_label("invalid"), "local entry")
+
+    def test_resolve_mode(self):
+        self.assertEqual(cli.resolve_mode("a"), cli.gate.MODES[0])
+        self.assertEqual(cli.resolve_mode("b"), cli.gate.MODES[1])
+        with self.assertRaises(ValueError):
+            cli.resolve_mode("c")
+
+    def test_show_loading(self):
+        output = io.StringIO()
+        with (
+            unittest.mock.patch("time.sleep"),
+            contextlib.redirect_stdout(output),
+        ):
+            cli.show_loading("test", duration=0.1)
+        self.assertIn("test... DONE", output.getvalue())
+
+    def test_wait_for_camera_frame(self):
+        with unittest.mock.patch("time.sleep"):
+            # Case 1: Frame already exists
+            with unittest.mock.patch.object(cli.gate, "lock"):
+                cli.gate.latest_frame = object()
+                self.assertTrue(cli._wait_for_camera_frame(timeout=0.1))
+            
+            # Case 2: Timeout
+            cli.gate.latest_frame = None
+            self.assertFalse(cli._wait_for_camera_frame(timeout=0.1))
+
+    def test_wait_for_reference_match(self):
+        with unittest.mock.patch("time.sleep"):
+            # Case 1: Match already exists
+            cli.gate.last_match_mode = "dummy"
+            self.assertTrue(cli._wait_for_reference_match(timeout=0.1))
+            self.assertTrue(cli._wait_for_reference_match(timeout=0.1, expected_mode="dummy"))
+            self.assertFalse(cli._wait_for_reference_match(timeout=0.1, expected_mode="secret"))
+
+            # Case 2: Timeout
+            cli.gate.last_match_mode = "none"
+            self.assertFalse(cli._wait_for_reference_match(timeout=0.1))
 
     def test_local_state_confirmation_language_is_neutral(self):
         output = io.StringIO()
