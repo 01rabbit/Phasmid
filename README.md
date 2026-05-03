@@ -372,3 +372,11 @@ python3 scripts/bench_kdf.py
 Phantasm does not guarantee protection against a compromised host, live memory capture, keylogging, camera observation, shoulder surfing, active surveillance, forced disclosure, forensic analysis of the entire device, complete secure deletion, or unsafe network exposure.
 
 It is not a replacement for audited full-disk encryption, hardware-backed key storage, or formal classified-data handling systems.
+
+## License
+
+Phantasm is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
+
+Third-party dependency licenses are listed in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+
+Phantasm is research software. The license grants software-use rights; it does not imply operational approval, field validation, classified-data handling approval, or suitability for any specific deployment.

@@ -1,3 +1,13 @@
+# Third-Party Licenses
+
+This file lists third-party Python package licenses for Phantasm.
+
+Generated with:
+
+```bash
+pip-licenses --from=mixed --format=markdown --with-urls --with-description --output-file=THIRD_PARTY_LICENSES.md
+```
+
 | Name              | Version   | License                    | URL                                                               | Description                                                                                         |
 |-------------------|-----------|----------------------------|-------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
 | Jinja2            | 3.1.6     | BSD License                | https://github.com/pallets/jinja/                                 | A very fast and expressive template engine.                                                         |

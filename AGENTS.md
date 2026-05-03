@@ -451,3 +451,9 @@ Before finalizing an AI-generated change, verify:
 - Tests cover the changed behavior.
 - Documentation claims match actual implementation.
 - Existing container compatibility is preserved or migration is explicitly documented.
+
+## Scope of This File
+
+This file is development guidance only. It does not define user-facing product claims, legal advice, operational approval, or deployment authorization.
+
+If this file conflicts with the threat model or specification, the threat model and specification take precedence according to the Documentation Authority section.
