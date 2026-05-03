@@ -590,7 +590,7 @@ async def face_verify(request: Request):
     token = secrets.token_urlsafe(32)
     face_lock.create_session(client_id, token)
     audit_event("ui_face_lock_unlocked", source="web")
-    response = JSONResponse({"status": "UI unlocked."})
+    response = JSONResponse({"status": text.UI_UNLOCKED})
     response.set_cookie(
         FACE_SESSION_COOKIE,
         token,
@@ -609,7 +609,7 @@ async def face_verify(request: Request):
 async def face_lock_session(request: Request):
     face_lock.clear_session(_face_session_token(request))
     _restricted_sessions.pop(_restricted_session_token(request), None)
-    response = JSONResponse({"status": "UI locked."})
+    response = JSONResponse({"status": text.UI_LOCKED_FEEDBACK})
     response.delete_cookie(FACE_SESSION_COOKIE)
     response.delete_cookie(RESTRICTED_SESSION_COOKIE)
     return response
@@ -674,7 +674,7 @@ async def register_key(
 ):
     enforce_rate_limit(request)
     if replace and not _restricted_session_valid(request):
-        return {"error": text.RESTRICTED_CONFIRMATION_RETRY}
+        return {"error": text.RESTRICTED_CONFIRMATION_REQUIRED_UI}
     entry_id = (
         entry_hint
         if entry_hint in ENTRY_TO_MODE
@@ -734,7 +734,7 @@ async def store(
         if overwrite and overwrite_confirmation != OVERWRITE_CONFIRMATION_PHRASE:
             return {"error": text.REPLACEMENT_CONFIRMATION_REQUIRED}
         if overwrite and not _restricted_session_valid(request):
-            return {"error": text.RESTRICTED_CONFIRMATION_RETRY}
+            return {"error": text.RESTRICTED_CONFIRMATION_REQUIRED_UI}
 
         entry_id, needs_capture = _select_entry_for_store(
             entry_hint=entry_hint, overwrite=overwrite
@@ -940,7 +940,7 @@ async def rotate_token(request: Request):
     global WEB_TOKEN
     WEB_TOKEN = secrets.token_urlsafe(32)
     audit_event("web_token_rotated", source="web")
-    return {"status": "Session token rotated.", "web_token": WEB_TOKEN}
+    return {"status": text.SESSION_TOKEN_ROTATED, "web_token": WEB_TOKEN}
 
 
 @app.post(
@@ -953,7 +953,7 @@ async def reset_session(request: Request):
     _require_restricted_when_field_mode(request)
     _rate_limit.clear()
     _restricted_sessions.pop(_restricted_session_token(request), None)
-    return {"status": "Local session counters reset."}
+    return {"status": text.LOCAL_SESSION_COUNTERS_RESET}
 
 
 @app.get(
@@ -1003,7 +1003,7 @@ async def export_logs(request: Request):
     path = Path(state_dir()) / AUDIT_LOG_NAME
     if not path.exists():
         return JSONResponse(
-            {"error": "No local event log is available."}, status_code=404
+            {"error": text.NO_LOCAL_EVENT_LOG}, status_code=404
         )
     data = path.read_bytes()
     return StreamingResponse(

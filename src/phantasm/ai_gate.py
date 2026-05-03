@@ -9,6 +9,7 @@ import numpy as np
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
+from . import strings as text
 from .config import STATE_BLOB_NAME, STATE_KEY_NAME, state_dir
 
 
@@ -356,16 +357,16 @@ class AIGate:
     def capture_reference(self, mode):
         self._validate_mode(mode)
         if self.latest_frame is None:
-            return False, "No frame."
+            return False, text.AI_GATE_NO_FRAME
 
         candidate_state = self._best_reference_state_from_recent_frames()
         if candidate_state is None:
-            return False, "Image too simple. Use a textured object."
+            return False, text.AI_GATE_IMAGE_TOO_SIMPLE
 
         if self._references_too_similar(mode, candidate_state):
             return (
                 False,
-                "This object is too similar to an existing access cue. Use a different physical object.",
+                text.AI_GATE_CUES_TOO_SIMILAR,
             )
 
         try:
@@ -373,7 +374,7 @@ class AIGate:
             updated_references[mode] = candidate_state
             self._write_reference_blob(updated_references)
         except OSError:
-            return False, "Failed to save reference template."
+            return False, text.AI_GATE_SAVE_FAILED
 
         candidate_state["path"] = self.state_blob_path
         with self.lock:
@@ -383,7 +384,7 @@ class AIGate:
             self.match_states = {ref_mode: False for ref_mode in self.MODES}
             self.match_history = []
 
-        return True, "Object access cue registered."
+        return True, text.AI_GATE_OBJECT_MATCHED
 
     def _best_reference_state_from_recent_frames(self):
         candidates = []
@@ -415,7 +416,7 @@ class AIGate:
         try:
             self._write_reference_blob(empty)
         except OSError:
-            return False, "Failed to clear object bindings."
+            return False, text.AI_GATE_CLEAR_FAILED
 
         with self.lock:
             self.reference_data = empty
@@ -424,14 +425,14 @@ class AIGate:
             self.match_states = {mode: False for mode in self.MODES}
             self.match_history = []
 
-        return True, "Object bindings cleared."
+        return True, text.AI_GATE_CUES_CLEARED
 
     def _draw_match_status(self, image):
         h, w, _ = image.shape
         cv2.rectangle(image, (0, 0), (w, 50), (0, 0, 0), -1)
         cv2.putText(
             image,
-            "PHANTASM: ACTIVE",
+            text.AI_GATE_ACTIVE,
             (20, 28),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
@@ -443,7 +444,7 @@ class AIGate:
             cv2.circle(image, (w - 15, 15), 8, (0, 255, 0), -1)
             cv2.putText(
                 image,
-                "MATCH",
+                text.AI_GATE_MATCH,
                 (w - 80, 28),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.6,
@@ -453,7 +454,7 @@ class AIGate:
             cv2.rectangle(image, (5, 55), (w - 5, h - 5), (0, 255, 0), 3)
             cv2.putText(
                 image,
-                "Object cue matched",
+                text.AI_GATE_OBJECT_MATCHED,
                 (15, 75),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.7,
@@ -462,7 +463,7 @@ class AIGate:
             )
             cv2.putText(
                 image,
-                "Bound object detected in frame",
+                text.AI_GATE_OBJECT_DETECTED,
                 (15, 100),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.5,
@@ -475,7 +476,7 @@ class AIGate:
             cv2.circle(image, (w - 15, 15), 8, (0, 165, 255), -1)
             cv2.putText(
                 image,
-                "AMBIG",
+                text.AI_GATE_AMBIGUOUS,
                 (w - 85, 28),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.6,
@@ -485,7 +486,7 @@ class AIGate:
             cv2.rectangle(image, (5, 55), (w - 5, h - 5), (0, 165, 255), 3)
             cv2.putText(
                 image,
-                "Ambiguous object cue",
+                text.AI_GATE_AMBIGUOUS_CUE,
                 (15, 75),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.7,
@@ -494,7 +495,7 @@ class AIGate:
             )
             cv2.putText(
                 image,
-                "Access cues are too similar",
+                text.AI_GATE_CUES_TOO_SIMILAR,
                 (15, 100),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.5,
@@ -505,7 +506,7 @@ class AIGate:
 
         cv2.putText(
             image,
-            "No object cue match",
+            text.AI_GATE_NO_MATCH,
             (15, 75),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
@@ -514,7 +515,7 @@ class AIGate:
         )
         cv2.putText(
             image,
-            "Present a bound object to continue",
+            text.AI_GATE_PRESENT_OBJECT,
             (15, 100),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.5,

@@ -35,3 +35,43 @@ UNMATCHED_ENTRY_CLEARED = "Unmatched local entry cleared."
 LOCAL_ACCESS_PATH_CLEARED = "Local access path cleared. Close this session."
 CONTAINER_INITIALIZED = "Local container initialized. Protected entries are empty."
 CRITICAL_STATE_CLEARED = "Critical state cleared."
+
+# UI Status and Feedback
+UI_UNLOCKED = "UI unlocked."
+UI_LOCKED_FEEDBACK = "UI locked."
+UI_FACE_LOCK_DISABLED = "Face UI lock is disabled."
+UI_FACE_ENROLLMENT_DISABLED = "Face enrollment is disabled for this session."
+UI_UNLOCK_REQUIRED = "UI must be unlocked before replacing the face lock."
+RESTRICTED_CONFIRMATION_REQUIRED_UI = (
+    "Restricted confirmation required. Please confirm local control and retry."
+)
+NO_LOCAL_EVENT_LOG = "No local event log is available."
+SESSION_TOKEN_ROTATED = "Session token rotated."
+LOCAL_SESSION_COUNTERS_RESET = "Local session counters reset."
+
+# CLI Feedback
+CLI_OBJECT_BOUND = "Object access cue registered."
+CLI_OBJECT_MATCHED = "[LOCAL] Bound object matched."
+CLI_AMBIGUOUS_MATCH = "[LOCAL] Ambiguous object match detected."
+CLI_NO_MATCH_TIMEOUT = "[LOCAL] No bound object match detected within timeout."
+CLI_ERROR_NO_INPUT = "[!] Error: No input file specified."
+CLI_ERROR_OUTPUT_REQUIRED = "[!] Error: Output path required."
+CLI_ERROR_CAMERA_UNAVAILABLE = "[!] Error: Camera feed did not become available."
+CLI_INIT_SUCCESS = "[+] Local container initialized. Ready for protected entries."
+CLI_RESET_COMPLETE = "[+] Reset complete. Reload /ui-lock in the WebUI to register a new face lock."
+
+# AI Gate Neutral Wording
+AI_GATE_ACTIVE = "PHANTASM: ACTIVE"
+AI_GATE_MATCH = "MATCH"
+AI_GATE_AMBIGUOUS = "AMBIG"
+AI_GATE_OBJECT_MATCHED = "Object cue matched"
+AI_GATE_OBJECT_DETECTED = "Bound object detected in frame"
+AI_GATE_AMBIGUOUS_CUE = "Ambiguous object cue"
+AI_GATE_CUES_TOO_SIMILAR = "Access cues are too similar"
+AI_GATE_NO_MATCH = "No object cue match"
+AI_GATE_PRESENT_OBJECT = "Present a bound object to continue"
+AI_GATE_IMAGE_TOO_SIMPLE = "Image too simple. Use a textured object."
+AI_GATE_NO_FRAME = "No frame."
+AI_GATE_SAVE_FAILED = "Failed to save reference template."
+AI_GATE_CLEAR_FAILED = "Failed to clear object bindings."
+AI_GATE_CUES_CLEARED = "Object bindings cleared."

@@ -95,7 +95,7 @@ def _register_reference_key(mode):
             f"Object cue captured, but no stable match was detected for {display_mode_label(mode)}.",
         )
 
-    return True, "Object access cue registered."
+    return True, text.CLI_OBJECT_BOUND
 
 
 def _collect_auth_sequence():
@@ -103,11 +103,11 @@ def _collect_auth_sequence():
     input()
 
     if _wait_for_reference_match():
-        print("[LOCAL] Bound object matched.")
+        print(text.CLI_OBJECT_MATCHED)
     elif gate.last_match_mode == gate.MATCH_AMBIGUOUS:
-        print("[LOCAL] Ambiguous object match detected.")
+        print(text.CLI_AMBIGUOUS_MATCH)
     else:
-        print("[LOCAL] No bound object match detected within timeout.")
+        print(text.CLI_NO_MATCH_TIMEOUT)
 
     return get_gesture_sequence(length=1)
 
@@ -252,8 +252,9 @@ def main():
         return
     if args.action == "export-redacted-log":
         if not args.out:
-            print("[!] Error: Output path required.")
-            return
+            print(text.CLI_ERROR_OUTPUT_REQUIRED)
+            return 1
+
         _print_operation_report(export_redacted_log(args.out))
         return
 
@@ -272,8 +273,9 @@ def main():
             gate.start()
             gate_started = True
             if not _wait_for_camera_frame():
-                print("[!] Error: Camera feed did not become available.")
-                return
+                print(text.CLI_ERROR_CAMERA_UNAVAILABLE)
+                return 1
+
 
         vault = GhostVault("vault.bin")
 
@@ -282,11 +284,11 @@ def main():
             show_loading("Initializing local container with random data", 3)
             vault.format_container(rotate_access_key=True)
             audit_event("container_reinitialized")
-            print("[+] Local container initialized. Ready for protected entries.")
+            print(text.CLI_INIT_SUCCESS)
 
         elif args.action == "store":
             if not args.file:
-                print("[!] Error: No input file specified.")
+                print(text.CLI_ERROR_NO_INPUT)
                 return
 
             entry_label = display_mode_label(selected_mode)
@@ -453,9 +455,7 @@ def main():
             print(f"[+] Face UI lock: {face_message}")
             print(f"[+] Face enrollment: {enroll_message}")
             if success:
-                print(
-                    "[+] Reset complete. Reload /ui-lock in the WebUI to register a new face lock."
-                )
+                print(text.CLI_RESET_COMPLETE)
             else:
                 print("[!] Reset completed with warnings. Review the messages above.")
     finally:

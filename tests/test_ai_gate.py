@@ -10,6 +10,7 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
+from phantasm import strings as text
 from phantasm.ai_gate import AIGate
 
 
@@ -36,15 +37,15 @@ class AIGateTemplateTests(unittest.TestCase):
                 success, message = gate.capture_reference(gate.MODES[0])
 
             self.assertFalse(success)
-            self.assertIn("existing access cue", message)
+            self.assertEqual(message, text.AI_GATE_CUES_TOO_SIMILAR)
             self.assertNotRegex(message.lower(), r"\b(key|mode|dummy|secret)\b")
 
     def test_camera_overlay_text_is_neutral(self):
         source = inspect.getsource(AIGate._draw_match_status)
-        self.assertIn("Object cue matched", source)
-        self.assertIn("Ambiguous object cue", source)
-        self.assertIn("No object cue match", source)
-        self.assertIn("Present a bound object to continue", source)
+        self.assertIn("text.AI_GATE_OBJECT_MATCHED", source)
+        self.assertIn("text.AI_GATE_AMBIGUOUS_CUE", source)
+        self.assertIn("text.AI_GATE_NO_MATCH", source)
+        self.assertIn("text.AI_GATE_PRESENT_OBJECT", source)
         self.assertNotIn("IMAGE KEY", source)
         self.assertNotIn("Registered keys", source)
         self.assertNotIn("No reference match", source)
