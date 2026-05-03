@@ -1,10 +1,12 @@
 import os
 import secrets
-import time
 import threading
+import time
+
 from .audit import audit_event
 from .bridge_ui import ui
-from .config import PANIC_TOKEN_NAME, PANIC_TRIGGER_NAME, state_dir as default_state_dir
+from .config import PANIC_TOKEN_NAME, PANIC_TRIGGER_NAME
+from .config import state_dir as default_state_dir
 from .gv_core import GhostVault
 
 

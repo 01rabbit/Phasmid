@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
-from enum import Enum
 import json
 import os
 import stat
 import tempfile
 import time
+from dataclasses import asdict, dataclass, field
+from enum import Enum
 
 from .config import state_dir
 

@@ -1,8 +1,8 @@
+import glob
 import os
 import re
 import sys
 import unittest
-import glob
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))

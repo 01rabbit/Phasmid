@@ -4,7 +4,8 @@ import os
 import sys
 import time
 
-from .ai_gate import get_gesture_sequence, gate
+from . import strings as text
+from .ai_gate import gate, get_gesture_sequence
 from .attempt_limiter import FileAttemptLimiter
 from .audit import audit_event
 from .bridge_ui import ui
@@ -15,7 +16,6 @@ from .face_lock import face_lock
 from .gv_core import GhostVault
 from .operations import doctor, export_redacted_log, verify_audit_log, verify_state
 from .passphrase_policy import check_store_passphrases
-from . import strings as text
 
 CAMERA_WARMUP_TIMEOUT = 10
 REFERENCE_MATCH_TIMEOUT = 10

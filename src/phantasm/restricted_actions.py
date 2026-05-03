@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from .capabilities import Capability
 from . import strings as text
+from .capabilities import Capability
 
 
 class RestrictedActionRejected(Exception):

@@ -1,12 +1,15 @@
-import os
+import getpass
 import json
+import os
 import struct
 import time
-import getpass
+
+from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
-from cryptography.exceptions import InvalidTag
-from .config import VAULT_KEY_NAME, state_dir as default_state_dir
+
+from .config import VAULT_KEY_NAME
+from .config import state_dir as default_state_dir
 
 
 class GhostVault:

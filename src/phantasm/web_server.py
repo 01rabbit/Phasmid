@@ -1,9 +1,9 @@
-from pathlib import Path
 import io
 import os
 import secrets
 import time
 import urllib.parse
+from pathlib import Path
 
 from fastapi import (
     Depends,
@@ -23,6 +23,7 @@ from fastapi.responses import (
 )
 from fastapi.templating import Jinja2Templates
 
+from . import strings as text
 from .ai_gate import gate, get_gesture_sequence
 from .attempt_limiter import AttemptLimiter
 from .audit import audit_event
@@ -46,7 +47,6 @@ from .restricted_actions import (
     RestrictedActionRejected,
     evaluate_restricted_action,
 )
-from . import strings as text
 
 app = FastAPI(title="Phantasm - Local Secure Interface")
 
@@ -69,7 +69,6 @@ FACE_FRAME_DELAY_SECONDS = 0.10
 RESTRICTED_SESSION_TTL_SECONDS = int(
     os.environ.get("PHANTASM_RESTRICTED_SESSION_SECONDS", 120)
 )
-_rate_limit = {}
 _restricted_sessions = {}
 _access_attempts = AttemptLimiter()
 
@@ -284,11 +283,11 @@ def _recent_camera_frames(count=FACE_FRAME_SAMPLES, delay=FACE_FRAME_DELAY_SECON
 def require_web_token(x_phantasm_token: str = Header(default="")):
     if not secrets.compare_digest(x_phantasm_token, WEB_TOKEN):
         raise HTTPException(status_code=403, detail=text.INVALID_WEB_TOKEN)
-
+_rate_limit: dict[str, list[float]] = {}
 
 def enforce_rate_limit(request: Request):
     client = request.client.host if request.client else "unknown"
-    key = (client, request.url.path)
+    key = f"{client}:{request.url.path}"
     now = time.time()
     bucket = [
         timestamp
@@ -299,6 +298,7 @@ def enforce_rate_limit(request: Request):
         raise HTTPException(status_code=429, detail=text.RATE_LIMIT_EXCEEDED)
     bucket.append(now)
     _rate_limit[key] = bucket
+
 
 
 async def read_limited_upload(file: UploadFile):
@@ -466,7 +466,6 @@ async def maintenance_page(request: Request):
     if guard:
         return guard
     restricted_confirmed = _restricted_session_valid(request)
-    is_field = field_mode_enabled()
     return templates.TemplateResponse(
         request=request,
         name="maintenance.html",
@@ -843,7 +842,6 @@ async def retrieve(request: Request, password: str = Form(...)):
         if result is None:
             continue
 
-        entry_id = mode_to_entry(mode)
         audit_event(
             "payload_retrieved",
             entry="local_entry",
@@ -925,7 +923,7 @@ async def web_panic_trigger(request: Request, secret_trigger: str = Form(...)):
     try:
         require_restricted_action("rapid_local_clear", request, secret_trigger)
     except HTTPException:
-        raise HTTPException(status_code=404)
+        raise HTTPException(status_code=404) from None
     vault.silent_brick()
     audit_event("access_path_cleared", source="web_panic")
     return {"status": text.CRITICAL_STATE_CLEARED}

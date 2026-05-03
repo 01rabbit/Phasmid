@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
 
 from .config import access_lockout_seconds, access_max_failures
 from .state_store import LocalStateStore
@@ -27,7 +27,7 @@ class AttemptLimiter:
         self.max_failures = max_failures or access_max_failures()
         self.lockout_seconds = lockout_seconds or access_lockout_seconds()
         self.clock = clock or time.time
-        self._state = {}
+        self._state: dict[str, dict[str, int]] = {}
 
     def check(self, scope: str):
         state = self._state.get(scope, {"failures": 0, "locked_until": 0})

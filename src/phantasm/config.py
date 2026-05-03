@@ -1,6 +1,5 @@
 import os
 
-
 DEFAULT_STATE_DIR = ".state"
 STATE_BLOB_NAME = "store.bin"
 STATE_KEY_NAME = "lock.bin"

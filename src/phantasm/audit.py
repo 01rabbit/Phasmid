@@ -154,14 +154,14 @@ def _sanitize_fields(fields):
             continue
         if key == "filename":
             if value:
-                sanitized["filename_present"] = True
+                sanitized["filename_present"] = "yes"
                 if os.environ.get("PHANTASM_AUDIT_FILENAMES") == "hash":
                     filename = os.path.basename(str(value))
                     sanitized["filename_hash"] = hashlib.sha256(
                         filename.encode("utf-8")
                     ).hexdigest()
             else:
-                sanitized["filename_present"] = False
+                sanitized["filename_present"] = "no"
             continue
         sanitized[key] = value
     return sanitized

@@ -1,7 +1,7 @@
 import argparse
 import os
-import sys
 import statistics
+import sys
 import tempfile
 import time
 

@@ -2,8 +2,8 @@ import asyncio
 import os
 import sys
 import unittest
-from unittest import mock
 from types import SimpleNamespace
+from unittest import mock
 
 from fastapi import HTTPException, UploadFile
 from fastapi.responses import JSONResponse

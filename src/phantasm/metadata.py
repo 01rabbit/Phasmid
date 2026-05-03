@@ -3,7 +3,6 @@ import os
 import re
 import zipfile
 
-
 METADATA_WARNING = (
     "This file may contain metadata that could reveal source, device, "
     "location, or author information."
@@ -18,7 +17,7 @@ DETECTION_LIMITATION = "Metadata detection is best-effort."
 def metadata_risk_report(filename, data):
     name = os.path.basename(filename or "")
     lower_name = name.lower()
-    risks = []
+    risks: list[str] = []
 
     if _looks_like_jpeg(data):
         if b"Exif\x00\x00" in data:
@@ -127,7 +126,7 @@ def _scan_ascii_tokens(data, risks, token_map):
 
 
 def _office_zip_risks(data):
-    risks = []
+    risks: list[str] = []
     try:
         with zipfile.ZipFile(io.BytesIO(data)) as archive:
             names = set(archive.namelist())

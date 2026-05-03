@@ -1,25 +1,35 @@
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
+[tool.ruff]
+line-length = 88
+target-version = "py310"
 
-[project]
-name = "phantasm-vault"
-version = "0.1.0"
-description = "Local secure-storage prototype with camera-gated retrieval"
-readme = "README.md"
-requires-python = ">=3.10"
-dependencies = [
-    "cryptography==46.0.4",
-    "fastapi==0.136.1",
-    "jinja2==3.1.6",
-    "numpy==2.2.6",
-    "opencv-python==4.13.0.92",
-    "python-multipart==0.0.27",
-    "uvicorn==0.46.0",
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = [
+    "E402", # Module level import not at top of file
+    "E501", # Line too long
+    "B008", # Do not perform function call in argument defaults (FastAPI Depends/File/Form)
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false # Start relaxed
+check_untyped_defs = true
 
-[tool.setuptools.package-data]
-phantasm = ["templates/*.html"]
+[[tool.mypy.overrides]]
+module = [
+    "cv2",
+    "numpy",
+    "cryptography.*",
+    "fastapi.*",
+    "jinja2.*"
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "phantasm.ai_gate",
+    "phantasm.face_lock"
+]
+ignore_errors = true

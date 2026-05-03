@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
 from .config import STATE_BLOB_NAME, STATE_KEY_NAME, state_dir
 
 

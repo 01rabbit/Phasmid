@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 import hashlib
 import json
 import os
+from dataclasses import asdict, dataclass
 
 from .config import (
     AUDIT_LOG_NAME,

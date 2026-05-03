@@ -23,8 +23,14 @@ jobs:
           python -m pip install -e .
           python -m pip install -r requirements-dev.txt
 
-      - name: Check formatting
+      - name: Check formatting with black
         run: python -m black --check src tests scripts
+
+      - name: Lint with ruff
+        run: python -m ruff check src tests scripts
+
+      - name: Type check with mypy
+        run: python -m mypy src
 
       - name: Compile Python sources
         run: python -m compileall -q src tests scripts
