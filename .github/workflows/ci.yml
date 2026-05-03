@@ -32,10 +32,7 @@ jobs:
       - name: Run Python security scanner
         run: python -m bandit -r src -q --severity-level medium --confidence-level high
 
-      - name: Run unit tests
-        run: python -m unittest discover -s tests
-
-      - name: Run coverage and enforce threshold
+      - name: Run unit tests with coverage and enforce threshold
         run: |
           python -m coverage run --source=src -m unittest discover -s tests
           python -m coverage report -m

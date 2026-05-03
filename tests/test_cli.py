@@ -42,7 +42,7 @@ class CLITests(unittest.TestCase):
             with unittest.mock.patch.object(cli.gate, "lock"):
                 cli.gate.latest_frame = object()
                 self.assertTrue(cli._wait_for_camera_frame(timeout=0.1))
-            
+
             # Case 2: Timeout
             cli.gate.latest_frame = None
             self.assertFalse(cli._wait_for_camera_frame(timeout=0.1))
@@ -52,8 +52,12 @@ class CLITests(unittest.TestCase):
             # Case 1: Match already exists
             cli.gate.last_match_mode = "dummy"
             self.assertTrue(cli._wait_for_reference_match(timeout=0.1))
-            self.assertTrue(cli._wait_for_reference_match(timeout=0.1, expected_mode="dummy"))
-            self.assertFalse(cli._wait_for_reference_match(timeout=0.1, expected_mode="secret"))
+            self.assertTrue(
+                cli._wait_for_reference_match(timeout=0.1, expected_mode="dummy")
+            )
+            self.assertFalse(
+                cli._wait_for_reference_match(timeout=0.1, expected_mode="secret")
+            )
 
             # Case 2: Timeout
             cli.gate.last_match_mode = "none"
