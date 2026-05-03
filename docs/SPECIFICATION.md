@@ -46,10 +46,19 @@ The project is intended for USB gadget mode or localhost access. It is not a rep
 | `.state/signal.key` | Panic trigger token |
 | `.state/signal.trigger` | Panic trigger file |
 | `.state/events.log` | Optional audit log |
+| `.state/events.auth` | Optional audit verifier material |
 | `.state/face.bin` | Optional encrypted WebUI face-lock template |
 | `.state/face.enroll` | Short-lived first-time face enrollment request |
 
 The default state directory is `.state/` and can be changed with `PHANTASM_STATE_DIR`. The directory is intended to be mode `0700`; sensitive files are intended to be mode `0600`. Neutral filenames reduce obvious metadata, but they do not provide deniability.
+
+New local state code paths should use the typed state store for schema-versioned records, atomic writes, restrictive file permissions, and explicit transition checks. Existing binary state files remain compatibility-managed by their owning modules until a migration path is defined.
+
+## 4.1 Cryptographic Boundary
+
+Phantasm defines a local cryptographic primitive boundary in `src/phantasm/crypto_boundary.py`. Startup checks cover AES-GCM round trip behavior, HMAC-SHA-256 behavior, and random byte generation health. Failure causes local startup to stop with a neutral message in the CLI path.
+
+This boundary improves reviewability and failure detection. It is not a FIPS validation, certification claim, or replacement for independent cryptographic review.
 
 ## 5. Internal Entry Model
 
@@ -76,10 +85,11 @@ Store flow:
 
 1. Start the camera gate.
 2. Prompt for normal access and restricted recovery passwords.
-3. Register the physical object cue for the selected internal entry.
-4. Read the input file.
-5. Derive a key with Argon2id.
-6. Encrypt the payload with AES-GCM.
+3. Reject empty, duplicate, short, or highly repetitive passphrases.
+4. Register the physical object cue for the selected internal entry.
+5. Read the input file.
+6. Derive a key with Argon2id.
+7. Encrypt the payload with AES-GCM.
 
 ### Retrieve
 
@@ -143,7 +153,9 @@ The restricted action view is available only by direct route and is not shown in
 
 Field Mode is not a security boundary. It reduces casual local exposure in the WebUI and maintenance APIs. It does not prevent forensic inspection, filesystem analysis, memory capture, host compromise, browser compromise, physical coercion, or lawful compulsory process.
 
-Hidden restricted routes are UX concealment only. They are not access control by themselves. Server-side confirmation, local tokens, UI unlock state, and typed confirmation are still required.
+Hidden restricted routes are UX concealment only. They are not access control by themselves. High-risk actions are evaluated through a shared local policy layer that combines deployment-mode capability, local tokens, UI unlock state, restricted confirmation freshness, and typed confirmation where applicable.
+
+WebUI responses include conservative browser hardening headers such as no-store cache control, frame denial, MIME-sniffing protection, a local-only content security policy, no-referrer policy, and limited browser permissions. These headers reduce browser-visible residue and common embedding or caching risks. They do not make the WebUI suitable for untrusted networks and are not a substitute for local-only binding, host integrity, or operator discipline.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
@@ -193,6 +205,8 @@ First-time face enrollment is disabled unless the WebUI process is started with 
 No capture-visible surface should reveal the internal disclosure model, internal trial order, slot purpose, restricted recovery side effects, or the existence of an alternate protected state.
 
 Capture-visible surfaces include the WebUI, rendered HTML, browser history, browser cache, JavaScript console, response headers, download filenames, CLI output, shell history, systemd stdout/stderr, audit logs, state-directory filenames, screenshots, and documentation copied to the device.
+
+Common user-facing wording should be centralized where practical. New UI, CLI, API, and audit text must either reuse shared neutral strings or pass terminology audit before release.
 
 ## 9. Stress-Use UX Principle
 
@@ -306,6 +320,10 @@ The physical object is an operational cue, not a high-entropy cryptographic fact
 | `PHANTASM_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime | `300` |
 | `PHANTASM_RESTRICTED_SESSION_SECONDS` | Restricted confirmation lifetime | `120` |
 | `PHANTASM_FIELD_MODE` | Reduce normal WebUI operational detail | `0` |
+| `PHANTASM_PROFILE` | Select local capability mode: `standard`, `field`, or `maintenance` | `standard` |
+| `PHANTASM_MIN_PASSPHRASE_LENGTH` | Minimum Store passphrase length | `10` |
+| `PHANTASM_ACCESS_MAX_FAILURES` | Failed access attempts before temporary lockout | `5` |
+| `PHANTASM_ACCESS_LOCKOUT_SECONDS` | Temporary access lockout duration | `60` |
 | `PHANTASM_AUDIT` | Enable audit logging | `0` |
 | `PHANTASM_AUDIT_FILENAMES` | Record filename hashes | unset |
 
@@ -336,7 +354,9 @@ Raspberry Pi Zero 2 W appliance assumptions are documented in `docs/RPI_ZERO_APP
 
 Seizure review requirements are documented in `docs/SEIZURE_REVIEW_CHECKLIST.md`. Review normal screens, restricted pages before and after confirmation, browser history, cache, HTML source, JavaScript console, HTTP response headers, download filenames, optional audit logs, `.state/` names, temporary files, shell history, systemd logs, CLI output, environment variables, and service unit files.
 
-Operational guidance documents include `docs/SOURCE_SAFE_WORKFLOW.md`, `docs/SEIZURE_REVIEW_CHECKLIST.md`, `docs/FIELD_TEST_PROCEDURE.md`, and `docs/REVIEW_VALIDATION_RECORD.md`.
+Operational guidance documents include `docs/SOURCE_SAFE_WORKFLOW.md`, `docs/SEIZURE_REVIEW_CHECKLIST.md`, `docs/FIELD_TEST_PROCEDURE.md`, `docs/REVIEW_VALIDATION_RECORD.md`, `docs/OPERATIONS.md`, `docs/RESTRICTED_ACTIONS.md`, and `docs/STATE_RECOVERY.md`.
+
+Optional audit records are versioned and include sequence, previous record hash, record hash, and local verifier fields. This improves local tamper review when audit logging is enabled, but it also creates additional local metadata and is disabled by default.
 
 ## 17. Testing
 

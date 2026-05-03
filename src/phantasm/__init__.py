@@ -1,2 +1,1 @@
 """Phantasm secure storage prototype."""
-

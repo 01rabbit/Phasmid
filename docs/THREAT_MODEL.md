@@ -34,19 +34,23 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 ## Current Defenses
 
 - New stores use GhostVault v3 records: random per-record Argon2id salt, random per-record AES-GCM nonce, no plaintext magic/header, and AEAD-authenticated encrypted metadata.
+- Startup self-tests check local AES-GCM, HMAC-SHA-256, and random byte generation behavior before normal CLI/WebUI operation.
 - The local access key is mixed into Argon2id by default, so copying `vault.bin` alone is insufficient for recovery.
 - Protected entries can be stored with normal access and restricted recovery passwords that share the same object cue.
+- Store flows reject empty, duplicate, short, or highly repetitive passphrases to reduce accidental weak input.
 - `PHANTASM_HARDWARE_SECRET_FILE`, `PHANTASM_HARDWARE_SECRET`, or `PHANTASM_HARDWARE_SECRET_PROMPT=1` can add an external value to Argon2id derivation. Data stored with any of these values requires the same value for retrieval.
 - Default Argon2id parameters are tuned for Raspberry Pi Zero 2 W class hardware: `memory_cost=32768`, `iterations=2`, `lanes=1`.
 - Restricted recovery behavior and explicit restricted actions can update unmatched local state. These paths can cause irreversible data loss.
 - Reference keys are stored together in a single AES-GCM encrypted ORB state blob under the configured state directory, not as raw reference photos or semantic per-entry template filenames.
 - Image-key matching requires stable results across a short frame window rather than accepting a single-frame match.
 - Web mutation endpoints require `X-Phantasm-Token`, apply a simple per-client rate limit, and enforce upload size limits.
+- Access recovery flows count repeated local failures and apply a bounded temporary lockout. WebUI limiting is process-local; CLI limiting is stored in local state.
+- Web responses include no-store cache headers, frame denial, MIME-sniffing protection, no-referrer policy, constrained browser permissions, and a local-only content security policy. These reduce browser residue and common Web embedding risks but do not make the WebUI safe for untrusted networks.
 - Sensitive Web actions require a fresh restricted confirmation session in addition to the Web token and UI unlock state. Restricted action pages and entry maintenance details are withheld until that confirmation is active.
 - Optional UI face lock (`PHANTASM_UI_FACE_LOCK=1`) can gate normal WebUI routes with a short-lived local session. This is a UI access control only and is not used for vault encryption.
 - When UI face lock is enabled, the normal object-matching preview and object-match state are withheld until the UI is unlocked. The lock screen shows a separate camera preview for enrollment and verification alignment.
 - The Web server binds to `127.0.0.1` by default.
-- Audit logging is disabled by default. If `PHANTASM_AUDIT=1` is set, security-relevant operations append minimal JSONL records to the state directory's event log without recording passwords, payload bytes, plaintext filenames, or internal slot labels.
+- Audit logging is disabled by default. If `PHANTASM_AUDIT=1` is set, security-relevant operations append minimal versioned JSONL records to the state directory's event log without recording passwords, payload bytes, plaintext filenames, or internal slot labels. New records include local integrity fields for review.
 - Field Mode (`PHANTASM_FIELD_MODE=1`) hides Maintenance paths, audit export, token rotation, and detailed diagnostics until restricted confirmation is active.
 - Store includes a local metadata risk check and limited best-effort metadata reduction for supported file types.
 - Documentation includes seizure review, source-safe storage separation, field testing, and Raspberry Pi Zero 2 W appliance deployment guidance.
@@ -64,13 +68,17 @@ These surfaces should not reveal the internal disclosure model, internal trial o
 - If the local access key is copied with `vault.bin`, the local access-key protection does not raise attacker cost.
 - If `vault.bin`, the configured state directory, and external key material are carried together on one medium, separation benefits are reduced.
 - Secure deletion is best-effort only. SSD wear leveling, backups, snapshots, and journaling filesystems may retain previous data.
+- Startup self-tests detect some local primitive failures but are not cryptographic certification and do not prove the host is uncompromised.
 - On flash media, recovery resistance depends primarily on key-material destruction or removal, not overwrite guarantees.
 - The v3 format avoids a plaintext format marker, but surrounding tool files can still reveal that a Phantasm-style container may be in use.
 - Dual password slots duplicate encrypted payload material within the selected internal storage span. This improves operational control but reduces maximum payload size.
 - UI face lock can be affected by lighting, camera angle, false rejects, false accepts, and presentation attacks using photos or screens.
 - The in-memory Web rate limiter and restricted confirmation state reset on process restart and are not substitutes for a full access-control layer.
+- Access-attempt limiting slows repeated local failures but does not stop offline guessing against copied data, compromised hosts, or deliberate state rollback.
 - UI tokens can be read from a compromised browser or host session.
+- Passphrase policy cannot compensate for observed input, reused passwords, coercion, compromised hosts, or poor operational separation.
 - Metadata checks and metadata reduction are best-effort. They can miss embedded identifiers, thumbnails, histories, and application-specific fields.
+- Optional audit logs can support local review, including tamper detection for versioned records, but they also create local metadata.
 - Browser history, cache, shell history, systemd logs, environment variables, and temporary files can leak operational context if the appliance is not configured carefully.
 - Legacy v1/v2 retrieval has been removed. Old containers must be migrated by retrieving with an older build and storing again with this build.
 

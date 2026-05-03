@@ -25,8 +25,14 @@ class AIGateTemplateTests(unittest.TestCase):
                 "pts": np.zeros((4, 1, 2), dtype=np.float32),
                 "path": None,
             }
-            with mock.patch.object(gate, "_best_reference_state_from_recent_frames", return_value=candidate), \
-                 mock.patch.object(gate, "_references_too_similar", return_value=True):
+            with (
+                mock.patch.object(
+                    gate,
+                    "_best_reference_state_from_recent_frames",
+                    return_value=candidate,
+                ),
+                mock.patch.object(gate, "_references_too_similar", return_value=True),
+            ):
                 success, message = gate.capture_reference(gate.MODES[0])
 
             self.assertFalse(success)
@@ -51,11 +57,17 @@ class AIGateTemplateTests(unittest.TestCase):
             state = gate._reference_state_from_image(image)
             self.assertIsNotNone(state)
 
-            gate._write_reference_blob({"dummy": state, "secret": gate._empty_reference()})
+            gate._write_reference_blob(
+                {"dummy": state, "secret": gate._empty_reference()}
+            )
 
             self.assertTrue(os.path.exists(gate.state_blob_path))
-            self.assertFalse(os.path.exists(os.path.join(tmp, "reference_key_dummy.npz")))
-            self.assertFalse(os.path.exists(os.path.join(tmp, "reference_key_secret.npz")))
+            self.assertFalse(
+                os.path.exists(os.path.join(tmp, "reference_key_dummy.npz"))
+            )
+            self.assertFalse(
+                os.path.exists(os.path.join(tmp, "reference_key_secret.npz"))
+            )
 
             with open(gate.state_blob_path, "rb") as handle:
                 raw = handle.read()

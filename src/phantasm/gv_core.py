@@ -43,7 +43,13 @@ class GhostVault:
             )
         return size_bytes
 
-    def _context_password(self, password: str, gesture_sequence: list, mode="dummy", password_role=OPEN_ROLE):
+    def _context_password(
+        self,
+        password: str,
+        gesture_sequence: list,
+        mode="dummy",
+        password_role=OPEN_ROLE,
+    ):
         # Combine the password, object-cue token, and local entry selector into
         # the KDF input. The same local entry selector must be available to
         # reproduce the KDF context.
@@ -67,7 +73,9 @@ class GhostVault:
             memory_cost=self.ARGON2_MEMORY_COST,
             secret=self._kdf_secret(create_access_key=create_access_key),
         )
-        return kdf.derive(self._context_password(password, gesture_sequence, mode, password_role))
+        return kdf.derive(
+            self._context_password(password, gesture_sequence, mode, password_role)
+        )
 
     def _kdf_secret(self, create_access_key=False):
         parts = []
@@ -86,7 +94,9 @@ class GhostVault:
 
         if os.environ.get("PHANTASM_HARDWARE_SECRET_PROMPT") == "1":
             if self._prompt_secret_cache is None:
-                self._prompt_secret_cache = getpass.getpass("[AUTH] External device secret: ").encode("utf-8")
+                self._prompt_secret_cache = getpass.getpass(
+                    "[AUTH] External device secret: "
+                ).encode("utf-8")
             parts.append(self._prompt_secret_cache)
 
         if not parts:
@@ -158,7 +168,7 @@ class GhostVault:
             self.rotate_access_key()
         else:
             self._load_or_create_access_key(create=True)
-        with open(self.path, 'wb') as f:
+        with open(self.path, "wb") as f:
             f.write(os.urandom(self.size))
         try:
             os.chmod(self.path, 0o600)
@@ -175,7 +185,10 @@ class GhostVault:
         restricted_recovery_password=None,
     ):
         self._require_container()
-        if restricted_recovery_password is not None and restricted_recovery_password == password:
+        if (
+            restricted_recovery_password is not None
+            and restricted_recovery_password == password
+        ):
             raise ValueError("open and restricted recovery passwords must be different")
 
         self._write_slot(
@@ -199,7 +212,9 @@ class GhostVault:
         else:
             self._randomize_slot(mode, self.PURGE_ROLE)
 
-    def _write_slot(self, password, data, gesture_sequence, filename, mode, password_role):
+    def _write_slot(
+        self, password, data, gesture_sequence, filename, mode, password_role
+    ):
         start, span_len = self._slot_span(mode, password_role)
 
         plaintext_capacity = self._plaintext_capacity(span_len)
@@ -224,31 +239,37 @@ class GhostVault:
             "created_at": int(time.time()),
             "kdf": "argon2id",
         }
-        metadata_bytes = json.dumps(metadata, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        metadata_bytes = json.dumps(
+            metadata, separators=(",", ":"), ensure_ascii=False
+        ).encode("utf-8")
         required_len = 4 + len(metadata_bytes) + len(data)
 
         if required_len > plaintext_capacity:
-            raise ValueError(
-                "encrypted payload does not fit in the container"
-            )
+            raise ValueError("encrypted payload does not fit in the container")
         padding = os.urandom(plaintext_capacity - required_len)
-        plaintext = struct.pack(">I", len(metadata_bytes)) + metadata_bytes + data + padding
+        plaintext = (
+            struct.pack(">I", len(metadata_bytes)) + metadata_bytes + data + padding
+        )
         aad = self._record_aad(mode, password_role)
         ciphertext = aesgcm.encrypt(nonce, plaintext, aad)
         payload = salt + nonce + ciphertext
 
-        with open(self.path, 'r+b') as f:
+        with open(self.path, "r+b") as f:
             f.seek(start)
             f.write(payload)
 
     def retrieve(self, password, gesture_sequence, mode="dummy"):
-        data, filename, _password_role = self.retrieve_with_policy(password, gesture_sequence, mode=mode)
+        data, filename, _password_role = self.retrieve_with_policy(
+            password, gesture_sequence, mode=mode
+        )
         return data, filename
 
     def retrieve_with_policy(self, password, gesture_sequence, mode="dummy"):
         self._require_container()
         for password_role in self.SLOT_ROLES:
-            data, filename = self._retrieve_slot(password, gesture_sequence, mode, password_role)
+            data, filename = self._retrieve_slot(
+                password, gesture_sequence, mode, password_role
+            )
             if data is not None:
                 return data, filename, password_role
         return None, None, None
@@ -257,7 +278,7 @@ class GhostVault:
         start, span_len = self._slot_span(mode, password_role)
         ciphertext_len = span_len - self.SALT_SIZE - self.NONCE_SIZE
 
-        with open(self.path, 'rb') as f:
+        with open(self.path, "rb") as f:
             f.seek(start)
             salt = f.read(self.SALT_SIZE)
             nonce = f.read(self.NONCE_SIZE)
@@ -277,15 +298,20 @@ class GhostVault:
                 password_role=password_role,
             )
             aesgcm = AESGCM(key)
-            decrypted = aesgcm.decrypt(nonce, ciphertext, self._record_aad(mode, password_role))
+            decrypted = aesgcm.decrypt(
+                nonce, ciphertext, self._record_aad(mode, password_role)
+            )
             if len(decrypted) < 4:
                 return None, None
 
             meta_len = struct.unpack(">I", decrypted[:4])[0]
             if meta_len > len(decrypted) - 4:
                 return None, None
-            metadata = json.loads(decrypted[4:4 + meta_len].decode("utf-8"))
-            if metadata.get("format") != "ghostvault-v3" or metadata.get("version") != self.FORMAT_VERSION:
+            metadata = json.loads(decrypted[4 : 4 + meta_len].decode("utf-8"))
+            if (
+                metadata.get("format") != "ghostvault-v3"
+                or metadata.get("version") != self.FORMAT_VERSION
+            ):
                 return None, None
             if metadata.get("password_role") != password_role:
                 return None, None
@@ -300,7 +326,14 @@ class GhostVault:
 
             filename = os.path.basename(metadata.get("filename") or "payload.bin")
             return actual_data, filename
-        except (InvalidTag, ValueError, OSError, json.JSONDecodeError, UnicodeDecodeError, KeyError):
+        except (
+            InvalidTag,
+            ValueError,
+            OSError,
+            json.JSONDecodeError,
+            UnicodeDecodeError,
+            KeyError,
+        ):
             return None, None
 
     def _record_aad(self, mode, password_role):
@@ -309,14 +342,14 @@ class GhostVault:
     def _randomize_slot(self, mode, password_role):
         self._require_container()
         start, length = self._slot_span(mode, password_role)
-        with open(self.path, 'r+b') as f:
+        with open(self.path, "r+b") as f:
             f.seek(start)
             f.write(os.urandom(length))
 
     def silent_brick(self):
         self.destroy_access_keys()
         self._require_container()
-        with open(self.path, 'r+b') as f:
+        with open(self.path, "r+b") as f:
             f.seek(0)
             f.write(os.urandom(self.size))
 
@@ -336,7 +369,7 @@ class GhostVault:
     def purge_mode(self, mode):
         self._require_container()
         start, length = self._mode_span(mode)
-        with open(self.path, 'r+b') as f:
+        with open(self.path, "r+b") as f:
             f.seek(start)
             f.write(os.urandom(length))
 

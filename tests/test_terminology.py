@@ -19,6 +19,9 @@ USER_FACING_FILES = [
     "docs/FIELD_TEST_PROCEDURE.md",
     "docs/REVIEW_VALIDATION_RECORD.md",
     "docs/SOLUTION_READINESS_PLAN.md",
+    "docs/OPERATIONS.md",
+    "docs/RESTRICTED_ACTIONS.md",
+    "docs/STATE_RECOVERY.md",
     "contrib/systemd/phantasm.service",
 ]
 
@@ -27,11 +30,19 @@ PYTHON_BOUNDARY_FILES = [
     "src/phantasm/web_server.py",
     "src/phantasm/cli.py",
     "src/phantasm/audit.py",
+    "src/phantasm/capabilities.py",
     "src/phantasm/emergency_daemon.py",
     "src/phantasm/config.py",
     "src/phantasm/metadata.py",
     "src/phantasm/bridge_ui.py",
     "src/phantasm/face_lock.py",
+    "src/phantasm/restricted_actions.py",
+    "src/phantasm/strings.py",
+    "src/phantasm/operations.py",
+    "src/phantasm/state_store.py",
+    "src/phantasm/passphrase_policy.py",
+    "src/phantasm/attempt_limiter.py",
+    "src/phantasm/crypto_boundary.py",
 ]
 
 FORBIDDEN_PATTERNS = [
@@ -117,7 +128,9 @@ class TerminologyAuditTests(unittest.TestCase):
         self.assertEqual([], violations)
 
     def test_normal_navigation_does_not_link_restricted_route(self):
-        with open(os.path.join(TEMPLATE_DIR, "base.html"), "r", encoding="utf-8") as handle:
+        with open(
+            os.path.join(TEMPLATE_DIR, "base.html"), "r", encoding="utf-8"
+        ) as handle:
             base = handle.read()
         nav_match = re.search(r"<nav.*?</nav>", base, flags=re.DOTALL)
         self.assertIsNotNone(nav_match)

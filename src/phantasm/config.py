@@ -8,6 +8,7 @@ VAULT_KEY_NAME = "access.bin"
 PANIC_TOKEN_NAME = "signal.key"
 PANIC_TRIGGER_NAME = "signal.trigger"
 AUDIT_LOG_NAME = "events.log"
+AUDIT_AUTH_NAME = "events.auth"
 FACE_TEMPLATE_NAME = "face.bin"
 FACE_ENROLL_FLAG_NAME = "face.enroll"
 
@@ -41,3 +42,27 @@ def ui_face_enrollment_enabled():
 
 def field_mode_enabled():
     return env_flag("PHANTASM_FIELD_MODE", default=False)
+
+
+def passphrase_min_length():
+    value = os.environ.get("PHANTASM_MIN_PASSPHRASE_LENGTH", "10")
+    try:
+        return max(1, int(value))
+    except ValueError:
+        return 10
+
+
+def access_max_failures():
+    value = os.environ.get("PHANTASM_ACCESS_MAX_FAILURES", "5")
+    try:
+        return max(1, int(value))
+    except ValueError:
+        return 5
+
+
+def access_lockout_seconds():
+    value = os.environ.get("PHANTASM_ACCESS_LOCKOUT_SECONDS", "60")
+    try:
+        return max(1, int(value))
+    except ValueError:
+        return 60

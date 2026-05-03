@@ -5,12 +5,17 @@ import sys
 import time
 
 from .ai_gate import get_gesture_sequence, gate
+from .attempt_limiter import FileAttemptLimiter
 from .audit import audit_event
 from .bridge_ui import ui
 from .config import duress_mode_enabled, purge_confirmation_required
+from .crypto_boundary import CryptoSelfTestError, ensure_crypto_self_tests
 from .emergency_daemon import EmergencyDaemon
 from .face_lock import face_lock
 from .gv_core import GhostVault
+from .operations import doctor, export_redacted_log, verify_audit_log, verify_state
+from .passphrase_policy import check_store_passphrases
+from . import strings as text
 
 CAMERA_WARMUP_TIMEOUT = 10
 REFERENCE_MATCH_TIMEOUT = 10
@@ -81,7 +86,9 @@ def _register_reference_key(mode):
     if not success:
         return False, msg
 
-    print(f"[LOCAL] {display_mode_label(mode)} object cue captured. Validating match quality...")
+    print(
+        f"[LOCAL] {display_mode_label(mode)} object cue captured. Validating match quality..."
+    )
     if not _wait_for_reference_match(expected_mode=mode):
         return (
             False,
@@ -113,7 +120,7 @@ def _confirm_purge_other_mode(accessed_mode):
 
     confirmation = "CLEAR UNMATCHED LOCAL ENTRY"
     answer = input(
-        f'[LOCAL STATE] Clear unmatched local entry after access? '
+        f"[LOCAL STATE] Clear unmatched local entry after access? "
         f'Type "{confirmation}" to confirm: '
     ).strip()
     return answer == confirmation
@@ -129,19 +136,26 @@ def _auto_purge_reason(accessed_mode):
 
 def _prompt_store_passwords():
     open_password = getpass.getpass("[AUTH] Enter access password: ")
-    restricted_recovery_password = getpass.getpass("[AUTH] Enter restricted recovery password: ")
+    restricted_recovery_password = getpass.getpass(
+        "[AUTH] Enter restricted recovery password: "
+    )
     if not open_password:
         raise ValueError("access password must not be empty")
     if not restricted_recovery_password:
         raise ValueError("restricted recovery password must not be empty")
-    if open_password == restricted_recovery_password:
-        raise ValueError("access and restricted recovery passwords must be different")
+    passphrase_check = check_store_passphrases(
+        open_password, restricted_recovery_password
+    )
+    if not passphrase_check.ok:
+        raise ValueError(passphrase_check.message)
     return open_password, restricted_recovery_password
 
 
 def _confirm_face_lock_reset(input_func=input):
     print("\n[!] CAUTION: FACE UI LOCK RESET")
-    print("[!] This clears the enrolled face lock and initializes all stored vault data.")
+    print(
+        "[!] This clears the enrolled face lock and initializes all stored vault data."
+    )
     print("[!] Physical object bindings are also cleared.")
     answer = input_func(f'Type "{FACE_RESET_CONFIRMATION}" to continue: ').strip()
     return answer == FACE_RESET_CONFIRMATION
@@ -157,9 +171,13 @@ def _reset_face_lock_and_container(vault):
         else (False, "Face enrollment was not armed.")
     )
     audit_event("container_reinitialized", source="cli_face_reset")
-    audit_event("object_bindings_cleared", source="cli_face_reset", success=object_success)
+    audit_event(
+        "object_bindings_cleared", source="cli_face_reset", success=object_success
+    )
     audit_event("ui_face_lock_cleared", source="cli_face_reset", success=face_success)
-    audit_event("ui_face_enrollment_armed", source="cli_face_reset", success=enroll_success)
+    audit_event(
+        "ui_face_enrollment_armed", source="cli_face_reset", success=enroll_success
+    )
     return (
         object_success and face_success and enroll_success,
         object_message,
@@ -168,11 +186,38 @@ def _reset_face_lock_and_container(vault):
     )
 
 
+def _print_operation_report(report):
+    print(f"{report['name']}: {report['status']}")
+    for check in report["checks"]:
+        print(f"- {check['name']}: {check['status']} - {check['message']}")
+
+
+def _run_startup_checks():
+    try:
+        ensure_crypto_self_tests()
+        return True
+    except CryptoSelfTestError:
+        print("[!] Startup check failed.")
+        return False
+
+
 def main():
+    if not _run_startup_checks():
+        return
     parser = argparse.ArgumentParser(description="Phantasm - Local Protected Storage")
     parser.add_argument(
         "action",
-        choices=["init", "store", "retrieve", "brick", "reset-face-lock"],
+        choices=[
+            "init",
+            "store",
+            "retrieve",
+            "brick",
+            "reset-face-lock",
+            "verify-state",
+            "verify-audit-log",
+            "doctor",
+            "export-redacted-log",
+        ],
         help="operation to run",
     )
     parser.add_argument(
@@ -195,6 +240,23 @@ def main():
     parser.add_argument("--file", help="path to the input file")
     parser.add_argument("--out", help="path where decrypted output will be written")
     args = parser.parse_args()
+
+    if args.action == "verify-state":
+        _print_operation_report(verify_state())
+        return
+    if args.action == "verify-audit-log":
+        _print_operation_report(verify_audit_log())
+        return
+    if args.action == "doctor":
+        _print_operation_report(doctor())
+        return
+    if args.action == "export-redacted-log":
+        if not args.out:
+            print("[!] Error: Output path required.")
+            return
+        _print_operation_report(export_redacted_log(args.out))
+        return
+
     selected_value = args.legacy_entry if args.legacy_entry else args.entry
     selected_mode = resolve_mode(selected_value)
     if args.legacy_entry_mode in gate.MODES:
@@ -236,7 +298,9 @@ def main():
                 return
 
             print(f"\n[LOCAL] Calibrating object cue for {entry_label}...")
-            print("[INFO] The captured object will be stored as the local access cue for this entry.")
+            print(
+                "[INFO] The captured object will be stored as the local access cue for this entry."
+            )
             success, msg = _register_reference_key(selected_mode)
             if not success:
                 print(f"[!] Error: {msg}")
@@ -273,6 +337,12 @@ def main():
             print(" DEVICE STATUS: READY")
             print("=" * 55)
 
+            attempt_limiter = FileAttemptLimiter()
+            attempt_scope = "cli-retrieve"
+            if not attempt_limiter.check(attempt_scope).allowed:
+                print(f"\n[!] {text.ACCESS_TEMPORARILY_UNAVAILABLE}")
+                return
+
             pw = getpass.getpass("\n[AUTH] Access password: ")
 
             print("\n[LOCAL] Requesting bound object verification...")
@@ -280,10 +350,12 @@ def main():
 
             if gate.last_match_mode == gate.MATCH_AMBIGUOUS:
                 ui.show_alert("ACCESS ERROR\nAMBIGUOUS OBJECT")
+                attempt_limiter.record_failure(attempt_scope)
                 print("[!] Access rejected because the object match is ambiguous.")
                 return
             if not user_gesture_seq or user_gesture_seq[0] == gate.MATCH_NONE:
                 ui.show_alert("ACCESS ERROR\nOBJECT NOT FOUND")
+                attempt_limiter.record_failure(attempt_scope)
                 print("[!] No bound object matched.")
                 return
 
@@ -305,6 +377,7 @@ def main():
                 accessed_mode = gate.MODES[1]
 
             if result is not None:
+                attempt_limiter.record_success(attempt_scope)
                 ui.show_alert("ACCESS GRANTED")
 
                 show_loading("Preparing recovered payload", 2)
@@ -360,6 +433,7 @@ def main():
             else:
                 ui.show_alert("ACCESS DENIED\nINVALID CREDENTIALS")
                 audit_event("retrieve_failed")
+                attempt_limiter.record_failure(attempt_scope)
                 print("\n[!] Access failed.")
 
         elif args.action == "brick":
@@ -379,7 +453,9 @@ def main():
             print(f"[+] Face UI lock: {face_message}")
             print(f"[+] Face enrollment: {enroll_message}")
             if success:
-                print("[+] Reset complete. Reload /ui-lock in the WebUI to register a new face lock.")
+                print(
+                    "[+] Reset complete. Reload /ui-lock in the WebUI to register a new face lock."
+                )
             else:
                 print("[!] Reset completed with warnings. Review the messages above.")
     finally:

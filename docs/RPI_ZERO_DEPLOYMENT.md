@@ -26,6 +26,7 @@ Phantasm should remain local-only. The expected access path is localhost during 
 ## Storage and Temporary Files
 
 - Keep `vault.bin` and the configured state directory on encrypted local storage when possible.
+- For appliance deployments, `docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md` defines the optional LUKS2 storage-layer procedure.
 - Disable swap for the appliance deployment.
 - Use `tmpfs` for upload and temporary working directories where practical.
 - Keep audit logging disabled by default.

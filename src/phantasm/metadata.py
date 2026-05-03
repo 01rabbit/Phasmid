@@ -23,21 +23,29 @@ def metadata_risk_report(filename, data):
     if _looks_like_jpeg(data):
         if b"Exif\x00\x00" in data:
             risks.append("embedded image metadata")
-        _scan_ascii_tokens(data, risks, {
-            b"GPS": "possible location metadata",
-            b"Make": "camera maker metadata",
-            b"Model": "camera model metadata",
-            b"Serial": "device serial-like metadata",
-        })
+        _scan_ascii_tokens(
+            data,
+            risks,
+            {
+                b"GPS": "possible location metadata",
+                b"Make": "camera maker metadata",
+                b"Model": "camera model metadata",
+                b"Serial": "device serial-like metadata",
+            },
+        )
 
     if lower_name.endswith(".pdf") or data.startswith(b"%PDF"):
-        _scan_ascii_tokens(data, risks, {
-            b"/Author": "document author metadata",
-            b"/Creator": "creator application metadata",
-            b"/Producer": "creator application metadata",
-            b"/Title": "document title metadata",
-            b"/Subject": "document subject metadata",
-        })
+        _scan_ascii_tokens(
+            data,
+            risks,
+            {
+                b"/Author": "document author metadata",
+                b"/Creator": "creator application metadata",
+                b"/Producer": "creator application metadata",
+                b"/Title": "document title metadata",
+                b"/Subject": "document subject metadata",
+            },
+        )
 
     if _looks_like_zip(data):
         risks.extend(_office_zip_risks(data))
@@ -65,7 +73,9 @@ def scrub_metadata(filename, data):
     lower_name = os.path.basename(filename or "").lower()
     if _looks_like_text(data) and lower_name.endswith((".txt", ".md", ".csv", ".log")):
         text = data.decode("utf-8", errors="ignore")
-        scrubbed = re.sub(r"(/Users/|/home/|[A-Za-z]:\\Users\\)[^\s]+", "[local-path]", text)
+        scrubbed = re.sub(
+            r"(/Users/|/home/|[A-Za-z]:\\Users\\)[^\s]+", "[local-path]", text
+        )
         scrubbed = re.sub(
             r"(?im)^(author|creator|modified by|last saved by)\s*[:=].*$",
             r"\1: [removed]",
@@ -124,13 +134,17 @@ def _office_zip_risks(data):
             for info_name in ("docProps/core.xml", "docProps/app.xml"):
                 if info_name in names:
                     xml = archive.read(info_name)[:262144]
-                    _scan_ascii_tokens(xml, risks, {
-                        b"creator": "document author metadata",
-                        b"lastModifiedBy": "modification history metadata",
-                        b"title": "document title metadata",
-                        b"subject": "document subject metadata",
-                        b"Application": "creator application metadata",
-                    })
+                    _scan_ascii_tokens(
+                        xml,
+                        risks,
+                        {
+                            b"creator": "document author metadata",
+                            b"lastModifiedBy": "modification history metadata",
+                            b"title": "document title metadata",
+                            b"subject": "document subject metadata",
+                            b"Application": "creator application metadata",
+                        },
+                    )
             if any(name.startswith("docProps/thumbnail") for name in names):
                 risks.append("embedded thumbnail")
     except zipfile.BadZipFile:
@@ -139,7 +153,9 @@ def _office_zip_risks(data):
 
 
 def _scrub_supported(lower_name, data):
-    return _looks_like_text(data) and lower_name.endswith((".txt", ".md", ".csv", ".log"))
+    return _looks_like_text(data) and lower_name.endswith(
+        (".txt", ".md", ".csv", ".log")
+    )
 
 
 def _risk_level(risks):

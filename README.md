@@ -178,6 +178,21 @@ This operation has no WebUI route. It requires the confirmation phrase `RESET FA
 
 After a successful reset, Phantasm creates a short-lived local enrollment request. If the WebUI is already running, reload `/ui-lock` to register the new face lock.
 
+Local operations checks:
+
+```bash
+python3 main.py verify-state
+python3 main.py verify-audit-log
+python3 main.py doctor
+python3 main.py export-redacted-log --out review-events.jsonl
+```
+
+These commands report neutral readiness and audit-review status without printing local paths in normal output.
+
+New local state checks use a typed state-store helper for atomic writes, restrictive permissions, and transition validation. Existing vault and object-cue state files remain compatibility-managed by their owning modules.
+
+When audit logging is enabled, new audit records include sequence and integrity fields for local review. Audit logging remains disabled by default because audit records can create additional local metadata.
+
 ## WebUI v2
 
 ```bash
@@ -188,102 +203,7 @@ Open `http://127.0.0.1:8000`.
 
 WebUI v2 uses neutral entry-based terminology. Normal screens do not show internal storage labels, retrieval order, or restricted local-state behavior.
 
-Navigation:
-
-- `Home`: local device state, camera state, object state, and primary actions.
-- `Store`: create or update a protected entry by selecting a file, entering an access password, and binding an object.
-- `Retrieve`: unlock the matching local entry without choosing an internal slot.
-- `Maintenance`: diagnostics, token rotation, audit state, log export, and entry management.
-- `/emergency`: hidden route for restricted local actions with typed confirmation.
-
-Restricted actions are not shown in normal navigation. Hidden routes are UX concealment only, so restricted actions also require the Web mutation token, an unlocked UI session when face lock is enabled, a fresh restricted confirmation, and a typed action phrase. The hidden restricted route initially renders only a confirmation screen.
-
-Field Mode reduces Maintenance detail and other operational hints:
-
-```bash
-PHANTASM_FIELD_MODE=1 PYTHONPATH=src python3 -m phantasm.web_server
-```
-
-Field Mode is recommended for high-risk local appliance deployments. Field Mode is not a security boundary.
-
-Field Mode reduces casual local exposure in the WebUI and maintenance APIs. It does not prevent forensic inspection, filesystem analysis, memory capture, host compromise, browser compromise, physical coercion, or lawful compulsory process.
-
-Hidden Emergency routes are UX concealment only. They are not access control by themselves. Server-side confirmation, local tokens, UI unlock state, and typed confirmation are still required.
-
-Optional UI face lock:
-
-```bash
-PHANTASM_UI_FACE_LOCK=1 PYTHONPATH=src python3 -m phantasm.web_server
-```
-
-When enabled, the WebUI starts at `/ui-lock`. The face check only unlocks the local interface for a short session; it is not mixed into vault encryption or retrieval keys.
-
-First-time face enrollment is an explicit setup mode:
-
-```bash
-PHANTASM_UI_FACE_LOCK=1 PHANTASM_UI_FACE_ENROLL=1 PYTHONPATH=src python3 -m phantasm.web_server
-```
-
-Use setup mode only while provisioning the device. Normal locked sessions withhold the main object-matching preview until the UI is unlocked. The lock screen shows a local camera preview for enrollment and verification alignment without exposing the normal object-matching UI.
-
-## Object Matching
-
-Object-image matching is an operational access cue layered on top of password-based cryptographic recovery. It is not high-entropy cryptographic key material and is not a substitute for strong passwords, key management, or secure operational procedure.
-
-Matching can fail because of lighting, camera quality, object orientation, motion blur, or ambiguous objects. Failure messages are intentionally neutral.
-
-## Metadata Awareness
-
-The Store screen includes a local metadata risk check. It can warn when a file appears to contain GPS-like fields, camera or author metadata, creator application fields, embedded thumbnails, local path leakage, or original filename context.
-
-The optional metadata reduction path is best-effort, local-only, and conservative. It does not overwrite the original file and does not claim complete metadata removal.
-
-Metadata detection and reduction are best-effort. Metadata reduction may not remove every embedded identifier from every file format. Unsupported file types fail safely. Users should not treat metadata-reduced files as formal sanitization.
-
-## Runtime State
-
-By default, Phantasm writes runtime state to `.state/`:
-
-- `store.bin`: encrypted object-cue state blob
-- `lock.bin`: state encryption key
-- `access.bin`: local access key required for vault retrieval
-- `signal.key` / `signal.trigger`: panic trigger files
-- `events.log`: optional audit log
-- `face.bin`: optional encrypted WebUI face-lock template
-- `face.enroll`: short-lived first-time face enrollment request
-
-Override the state location with:
-
-```bash
-PHANTASM_STATE_DIR=/path/to/state python3 main.py init
-```
-
-## Important Environment Variables
-
-| Variable | Purpose |
-| --- | --- |
-| `PHANTASM_STATE_DIR` | Runtime state directory |
-| `PHANTASM_STATE_SECRET` | External value for object-cue state encryption |
-| `PHANTASM_HARDWARE_SECRET_FILE` | External value file mixed into Argon2id |
-| `PHANTASM_HARDWARE_SECRET_PROMPT=1` | Prompt for an external value |
-| `PHANTASM_PURGE_CONFIRMATION=0` | Disable explicit confirmation for configured recovery behavior |
-| `PHANTASM_DURESS_MODE=1` | Enable opt-in access-triggered local-state update |
-| `PHANTASM_WEB_TOKEN` | Web mutation token |
-| `PHANTASM_UI_FACE_LOCK=1` | Require local face check before using the WebUI |
-| `PHANTASM_UI_FACE_ENROLL=1` | Permit first-time WebUI face-lock enrollment during setup |
-| `PHANTASM_UI_FACE_ENROLL_SECONDS` | Face enrollment request lifetime |
-| `PHANTASM_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime |
-| `PHANTASM_RESTRICTED_SESSION_SECONDS` | Restricted confirmation lifetime |
-| `PHANTASM_FIELD_MODE=1` | Reduce normal WebUI operational detail |
-| `PHANTASM_AUDIT=1` | Enable audit logging |
-
-## Local-Only Trust Boundary
-
-Phantasm is intended for localhost or USB Ethernet gadget access. It should not be exposed to an untrusted network and should not be deployed as an Internet-facing service. Remote management, telemetry, cloud unlock, and analytics are intentionally out of scope.
-
-Restricted local data-loss behavior should be understood primarily as key-material destruction and local access-path invalidation. Best-effort overwrite may be attempted, but SD card behavior means overwrite must not be treated as guaranteed secure deletion.
-
-For high-risk deployments, do not store all recovery conditions on the same physical medium. Phantasm is strongest when the encrypted container, local state, memorized password, physical-object cue, and optional external key material are separated.
+Common WebUI/API wording is centralized where practical so terminology checks can audit capture-visible messages consistently.
 
 ## Test Command
 
@@ -291,28 +211,19 @@ For high-risk deployments, do not store all recovery conditions on the same phys
 python3 -m unittest discover -s tests
 ```
 
-Passing automated tests do not prove field safety. They verify expected local behavior, terminology boundaries, Field Mode behavior, metadata route behavior, and WebUI contract behavior. Field evaluation still requires the Field Test Procedure and Seizure Review Checklist.
-
-KDF benchmark:
+Coverage command:
 
 ```bash
-python3 scripts/bench_kdf.py
+coverage run -m unittest discover -s tests
+coverage report
 ```
 
-## Documentation
+Passing automated tests do not prove field safety. They verify expected local behavior and regression boundaries only.
 
-- [Specification](docs/SPECIFICATION.md)
-- [Threat Model](docs/THREAT_MODEL.md)
-- [Raspberry Pi Zero 2 W Appliance Deployment](docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md) authoritative appliance deployment guide
-- [Raspberry Pi Zero 2 W Deployment](docs/RPI_ZERO_DEPLOYMENT.md) compact deployment summary
-- [Source-Safe Storage Workflow](docs/SOURCE_SAFE_WORKFLOW.md)
-- [Seizure Review Checklist](docs/SEIZURE_REVIEW_CHECKLIST.md)
-- [Field Test Procedure](docs/FIELD_TEST_PROCEDURE.md)
-- [Review Validation Record](docs/REVIEW_VALIDATION_RECORD.md)
-- [Solution Readiness Plan](docs/SOLUTION_READINESS_PLAN.md)
+## License
 
-## Security Notes
+Phantasm is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
 
-Phantasm does not guarantee protection against a compromised host, live memory capture, keylogging, camera observation, shoulder surfing, active surveillance, forced disclosure, forensic analysis of the entire device, complete secure deletion, or unsafe network exposure.
+Third-party dependency licenses are listed in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 
-It is not a replacement for audited full-disk encryption, hardware-backed key storage, or formal classified-data handling systems.
+Phantasm is research software. The license grants software-use rights; it does not imply operational approval, field validation, classified-data handling approval, or suitability for any specific deployment.

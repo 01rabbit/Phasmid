@@ -19,6 +19,42 @@ This deployment plan reduces exposed services and local leakage for Raspberry Pi
 - Use `tmpfs` for uploads and temporary files when practical.
 - Do not add cloud dependencies, telemetry, analytics, remote unlock, or remote management.
 
+## Camera Module
+
+Recommended camera for the Raspberry Pi Zero 2 W prototype:
+
+- Raspberry Pi Camera Module 3 NoIR Wide
+- Sony IMX708 12MP sensor
+- Mechanical autofocus
+- Wide FoV
+- NoIR support for optional infrared illumination
+- CSI connection
+
+Raspberry Pi Zero 2 W requires a 22-pin to 15-pin Raspberry Pi Zero camera cable. The standard 15-pin camera cable is not compatible with the Pi Zero camera connector.
+
+The camera is used as an operational object-cue capture device. It is not treated as cryptographic key material, biometric identity proof, or a tamper-resistant sensor.
+
+## Physical Signature Reduction (Stealth)
+
+To prevent the device from drawing attention via LEDs or serial console activity:
+
+### Disable LEDs
+
+Add the following to `/boot/config.txt`:
+
+```text
+# Disable Power LED
+dtparam=pwr_led_trigger=none
+dtparam=pwr_led_activelow=off
+# Disable Activity LED
+dtparam=act_led_trigger=none
+dtparam=act_led_activelow=off
+```
+
+### Suppress Boot Console
+
+In `/boot/cmdline.txt`, add `consoleblank=0 loglevel=1 quiet` and remove `console=tty1` to ensure no text is emitted to a connected display during boot.
+
 ## Local-Only Network Posture
 
 - Bind the WebUI to `127.0.0.1` by default.
@@ -86,3 +122,52 @@ Example policy goals:
 On flash media, complete overwrite-based deletion cannot be guaranteed across every storage layer. Phantasm therefore treats restricted recovery primarily as key-path invalidation and key-material destruction, with best-effort overwrite as a secondary measure.
 
 External key material can be supplied with `PHANTASM_HARDWARE_SECRET_FILE` or `PHANTASM_HARDWARE_SECRET_PROMPT=1`. For high-risk deployment, store external key material away from the same SD card that holds `vault.bin` and the state directory.
+
+## Optional LUKS Storage Layer
+
+An optional dm-crypt/LUKS2 layer can be used as defense in depth for appliance deployments. This is not a compliance claim and does not make Phantasm certified data-at-rest infrastructure.
+
+Use this only after confirming the target SD card layout. The commands below can erase data if pointed at the wrong device.
+
+Recommended placement:
+
+- dedicate a separate partition or external local volume for Phantasm runtime data;
+- mount it at `/var/lib/phantasm-secure` or another dedicated path;
+- set `PHANTASM_STATE_DIR` to a directory on that mounted volume;
+- keep `vault.bin` on the same encrypted volume or another encrypted local path;
+- use a storage-layer passphrase that is different from Phantasm access passwords.
+
+Example setup outline:
+
+```bash
+sudo cryptsetup luksFormat --type luks2 /dev/mmcblk0p3
+sudo cryptsetup luksOpen /dev/mmcblk0p3 phantasm-state
+sudo mkfs.ext4 -m 0 /dev/mapper/phantasm-state
+sudo mkdir -p /var/lib/phantasm-secure
+sudo mount /dev/mapper/phantasm-state /var/lib/phantasm-secure
+sudo mkdir -p /var/lib/phantasm-secure/.state
+sudo chown -R phantasm:phantasm /var/lib/phantasm-secure
+sudo chmod 0700 /var/lib/phantasm-secure /var/lib/phantasm-secure/.state
+```
+
+Service environment example:
+
+```ini
+Environment=PHANTASM_STATE_DIR=/var/lib/phantasm-secure/.state
+WorkingDirectory=/var/lib/phantasm-secure
+ReadWritePaths=/var/lib/phantasm-secure
+```
+
+Boot and service ordering:
+
+- The encrypted volume must be opened and mounted before `phantasm.service` starts.
+- If the volume is unavailable, the service should fail closed rather than create a fallback state directory on unencrypted storage.
+- Record the mount procedure in the deployment notes.
+- Test reboot, mount failure, and no-network startup before field evaluation.
+
+Recovery and backup notes:
+
+- Losing the LUKS passphrase can make the local Phantasm state unavailable.
+- Backups of the encrypted volume should be handled as sensitive local media.
+- Do not store storage-layer passphrases, Phantasm access passwords, and optional external key material together.
+- SD card cloning can copy encrypted containers and stale state; review cloned media before reuse.

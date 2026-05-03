@@ -1,10 +1,12 @@
 import cv2
 import numpy as np
 
+
 class GhostUI:
     """
     Whisplay HAT (ST7789) UI Simulator for macOS
     """
+
     def __init__(self):
         self.width = 240
         self.height = 240
@@ -34,7 +36,7 @@ class GhostUI:
         self.draw_text("!!! ALERT !!!", (60, 60), color=(0, 0, 255), size=0.7)
         lines = message.split("\n")
         for i, line in enumerate(lines):
-            self.draw_text(line, (20, 100 + i*30), color=(255, 255, 255), size=0.5)
+            self.draw_text(line, (20, 100 + i * 30), color=(255, 255, 255), size=0.5)
         self.refresh()
 
     def refresh(self):
@@ -43,6 +45,7 @@ class GhostUI:
 
     def close(self):
         cv2.destroyWindow(self.window_name)
+
 
 # Shared UI instance.
 ui = GhostUI()

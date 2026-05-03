@@ -29,6 +29,9 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("docs/FIELD_TEST_PROCEDURE.md", readme)
         self.assertIn("docs/REVIEW_VALIDATION_RECORD.md", readme)
         self.assertIn("docs/SOLUTION_READINESS_PLAN.md", readme)
+        self.assertIn("docs/OPERATIONS.md", readme)
+        self.assertIn("docs/RESTRICTED_ACTIONS.md", readme)
+        self.assertIn("docs/STATE_RECOVERY.md", readme)
         self.assertIn("authoritative appliance deployment guide", readme)
         self.assertIn("metadata risk check", readme)
 
@@ -39,6 +42,12 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("Government and Organizational Use Boundary", readme)
         self.assertIn("When to Use Phantasm", readme)
         self.assertIn("Test Command", readme)
+        self.assertIn("Release Review Artifacts", readme)
+        self.assertIn("python3 -m black --check src tests scripts", readme)
+        self.assertIn("python3 -m bandit -r src", readme)
+        self.assertIn("PHANTASM_MIN_PASSPHRASE_LENGTH", readme)
+        self.assertIn("PHANTASM_ACCESS_MAX_FAILURES", readme)
+        self.assertIn("not a validated cryptographic-module certification", readme)
         self.assertIn("not approved classified-data handling infrastructure", readme)
         self.assertIn("Field Mode is not a security boundary", readme)
         self.assertIn("Metadata detection and reduction are best-effort", readme)
@@ -56,6 +65,10 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("Capture-Visible Surface Rule", spec)
         self.assertIn("Stress-Use UX Principle", spec)
         self.assertIn("Field Mode is not a security boundary", spec)
+        self.assertIn("PHANTASM_MIN_PASSPHRASE_LENGTH", spec)
+        self.assertIn("PHANTASM_ACCESS_LOCKOUT_SECONDS", spec)
+        self.assertIn("Cryptographic Boundary", spec)
+        self.assertIn("not a FIPS validation", spec)
 
     def test_threat_model_names_leakage_surfaces(self):
         threat = read_text("docs/THREAT_MODEL.md")
@@ -75,14 +88,18 @@ class DocsAndTemplateTests(unittest.TestCase):
 
     def test_field_test_procedure_addresses_field_use_limits(self):
         doc = read_text("docs/FIELD_TEST_PROCEDURE.md")
-        self.assertIn("Physical shock resistance and tamper-resistant casing are out of scope", doc)
+        self.assertIn(
+            "Physical shock resistance and tamper-resistant casing are out of scope",
+            doc,
+        )
         self.assertIn("Test sudden power loss during Retrieve", doc)
         self.assertIn("Review the systemd journal after each power-loss case", doc)
 
     def test_review_validation_record_exists(self):
         record = read_text("docs/REVIEW_VALIDATION_RECORD.md")
         self.assertIn("Review Validation Record", record)
-        self.assertIn("95 tests passed", record)
+        self.assertRegex(record, r"\d+ tests passed")
+        self.assertIn("tests/scenarios/restricted_flows.json", record)
         self.assertIn("Target-hardware validation result", record)
         self.assertIn("Not field-proven", record)
         self.assertIn("Solution Readiness", record)
@@ -93,12 +110,18 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("readiness gates", plan)
         self.assertIn("target-hardware validation", plan)
         self.assertIn("README claims match the validation record", plan)
+        self.assertIn("formatting and static-analysis result", plan)
+        self.assertIn("release manifest and SBOM generation result", plan)
 
     def test_rpi_appliance_doc_is_authoritative(self):
         summary = read_text("docs/RPI_ZERO_DEPLOYMENT.md")
         appliance = read_text("docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md")
         self.assertIn("authoritative appliance deployment guide", summary)
-        self.assertIn("authoritative Raspberry Pi Zero 2 W appliance deployment guide", appliance)
+        self.assertIn(
+            "authoritative Raspberry Pi Zero 2 W appliance deployment guide", appliance
+        )
+        self.assertIn("optional LUKS2 storage-layer procedure", summary)
+        self.assertIn("Optional LUKS Storage Layer", appliance)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ from .bridge_ui import ui
 from .config import PANIC_TOKEN_NAME, PANIC_TRIGGER_NAME, state_dir as default_state_dir
 from .gv_core import GhostVault
 
+
 class EmergencyDaemon:
     def __init__(self, vault_path="vault.bin", state_dir=None):
         self.vault = GhostVault(vault_path)
@@ -62,7 +63,7 @@ class EmergencyDaemon:
             if self._authorized_trigger_present():
                 print("\n[!!!] PANIC TRIGGER DETECTED! Clearing local access path...")
                 ui.show_alert("LOCAL ACCESS\nCLEARING...")
-                
+
                 try:
                     self.vault.silent_brick()
                     audit_event("access_path_cleared", source="panic_trigger")
@@ -70,7 +71,7 @@ class EmergencyDaemon:
                     os.remove(self.trigger_file)
                 except Exception as e:
                     print(f"[ERROR] Access-path clear failed: {e}")
-                
+
                 ui.show_alert("LOCAL ACCESS CLEARED.\nREBOOT REQUIRED.")
                 time.sleep(3)
                 # End the process after a panic event so the cleared state is not reused.

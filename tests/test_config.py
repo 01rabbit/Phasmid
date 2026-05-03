@@ -18,6 +18,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.PANIC_TOKEN_NAME, "signal.key")
         self.assertEqual(config.PANIC_TRIGGER_NAME, "signal.trigger")
         self.assertEqual(config.AUDIT_LOG_NAME, "events.log")
+        self.assertEqual(config.AUDIT_AUTH_NAME, "events.auth")
         self.assertEqual(config.FACE_TEMPLATE_NAME, "face.bin")
         self.assertEqual(config.FACE_ENROLL_FLAG_NAME, "face.enroll")
 
@@ -44,6 +45,33 @@ class ConfigTests(unittest.TestCase):
     def test_field_mode_defaults_to_disabled(self):
         with mock.patch.dict(os.environ, {}, clear=True):
             self.assertFalse(config.field_mode_enabled())
+
+    def test_passphrase_min_length_defaults_and_handles_invalid_env(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(config.passphrase_min_length(), 10)
+        with mock.patch.dict(
+            os.environ, {"PHANTASM_MIN_PASSPHRASE_LENGTH": "12"}, clear=True
+        ):
+            self.assertEqual(config.passphrase_min_length(), 12)
+        with mock.patch.dict(
+            os.environ, {"PHANTASM_MIN_PASSPHRASE_LENGTH": "bad"}, clear=True
+        ):
+            self.assertEqual(config.passphrase_min_length(), 10)
+
+    def test_access_attempt_limits_default_and_env(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(config.access_max_failures(), 5)
+            self.assertEqual(config.access_lockout_seconds(), 60)
+        with mock.patch.dict(
+            os.environ,
+            {
+                "PHANTASM_ACCESS_MAX_FAILURES": "2",
+                "PHANTASM_ACCESS_LOCKOUT_SECONDS": "9",
+            },
+            clear=True,
+        ):
+            self.assertEqual(config.access_max_failures(), 2)
+            self.assertEqual(config.access_lockout_seconds(), 9)
 
 
 if __name__ == "__main__":

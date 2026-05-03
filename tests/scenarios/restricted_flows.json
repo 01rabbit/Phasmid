@@ -1,0 +1,56 @@
+[
+  {
+    "id": "hidden-restricted-route-before-confirmation",
+    "kind": "restricted_policy",
+    "action": "clear_unmatched_entry",
+    "capability_allowed": true,
+    "restricted_confirmed": false,
+    "confirmation": "CLEAR LOCAL ENTRY",
+    "expected_error": "restricted confirmation required"
+  },
+  {
+    "id": "restricted-action-without-password-reentry",
+    "kind": "restricted_policy",
+    "action": "password_guarded_action",
+    "capability_allowed": true,
+    "restricted_confirmed": true,
+    "confirmation": "CONFIRM",
+    "password_reentered": false,
+    "expected_error": "operation rejected"
+  },
+  {
+    "id": "object-cue-mismatch-before-retrieve",
+    "kind": "web_retrieve",
+    "object_cue": "missing",
+    "expected_error": "No valid entry found."
+  },
+  {
+    "id": "field-mode-maintenance-without-confirmation",
+    "kind": "web_maintenance",
+    "field_mode": true,
+    "restricted_confirmed": false,
+    "expected_hidden": ["state_directory", "session_token", "audit_details"]
+  },
+  {
+    "id": "container-initialization-after-valid-confirmation",
+    "kind": "restricted_route",
+    "route": "initialize_container",
+    "restricted_confirmed": true,
+    "confirmation": "INITIALIZE LOCAL CONTAINER",
+    "expected_status": "Local container initialized. Protected entries are empty."
+  },
+  {
+    "id": "local-access-path-clear-after-valid-confirmation",
+    "kind": "restricted_route",
+    "route": "clear_local_access_path",
+    "restricted_confirmed": true,
+    "confirmation": "CLEAR LOCAL ACCESS PATH",
+    "expected_status": "Local access path cleared. Close this session."
+  },
+  {
+    "id": "stale-restricted-session-rejection",
+    "kind": "restricted_session",
+    "session_state": "stale",
+    "expected_error": "restricted confirmation required"
+  }
+]

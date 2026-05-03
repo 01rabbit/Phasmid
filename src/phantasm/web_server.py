@@ -5,12 +5,28 @@ import secrets
 import time
 import urllib.parse
 
-from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi import (
+    Depends,
+    FastAPI,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    Request,
+    UploadFile,
+)
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 from fastapi.templating import Jinja2Templates
 
 from .ai_gate import gate, get_gesture_sequence
+from .attempt_limiter import AttemptLimiter
 from .audit import audit_event
+from .capabilities import Capability, active_policy, capability_enabled
 from .config import (
     AUDIT_LOG_NAME,
     duress_mode_enabled,
@@ -20,11 +36,26 @@ from .config import (
     ui_face_enrollment_enabled,
     ui_face_lock_enabled,
 )
+from .crypto_boundary import ensure_crypto_self_tests
 from .face_lock import face_lock
 from .gv_core import GhostVault
 from .metadata import metadata_risk_report, scrub_metadata
+from .passphrase_policy import check_store_passphrases
+from .restricted_actions import (
+    RestrictedActionPolicy,
+    RestrictedActionRejected,
+    evaluate_restricted_action,
+)
+from . import strings as text
 
 app = FastAPI(title="Phantasm - Local Secure Interface")
+
+
+@app.on_event("startup")
+async def startup_self_tests():
+    ensure_crypto_self_tests()
+
+
 templates = Jinja2Templates(directory=str(Path(__file__).with_name("templates")))
 vault = GhostVault("vault.bin")
 WEB_TOKEN = os.environ.get("PHANTASM_WEB_TOKEN") or secrets.token_urlsafe(32)
@@ -35,9 +66,12 @@ FACE_SESSION_COOKIE = "phantasm_ui_session"
 RESTRICTED_SESSION_COOKIE = "phantasm_restricted_session"
 FACE_FRAME_SAMPLES = 8
 FACE_FRAME_DELAY_SECONDS = 0.10
-RESTRICTED_SESSION_TTL_SECONDS = int(os.environ.get("PHANTASM_RESTRICTED_SESSION_SECONDS", 120))
+RESTRICTED_SESSION_TTL_SECONDS = int(
+    os.environ.get("PHANTASM_RESTRICTED_SESSION_SECONDS", 120)
+)
 _rate_limit = {}
 _restricted_sessions = {}
+_access_attempts = AttemptLimiter()
 
 ENTRY_TO_MODE = {
     "entry_1": gate.MODES[0],
@@ -57,6 +91,61 @@ INITIALIZE_CONTAINER_PHRASE = "INITIALIZE LOCAL CONTAINER"
 EMERGENCY_BRICK_PHRASE = "CLEAR LOCAL ACCESS PATH"
 RESTRICTED_CONFIRMATION_PHRASE = "CONFIRM LOCAL CONTROL"
 OVERWRITE_CONFIRMATION_PHRASE = "REPLACE LOCAL ENTRY"
+RESTRICTED_ACTION_POLICIES = {
+    "clear_unmatched_entry": RestrictedActionPolicy(
+        action_id="clear_unmatched_entry",
+        capability=Capability.RESTRICTED_ACTION,
+        confirmation_phrase=DESTRUCTIVE_CLEAR_PHRASE,
+    ),
+    "clear_local_access_path": RestrictedActionPolicy(
+        action_id="clear_local_access_path",
+        capability=Capability.RESTRICTED_ACTION,
+        confirmation_phrase=EMERGENCY_BRICK_PHRASE,
+    ),
+    "initialize_container": RestrictedActionPolicy(
+        action_id="initialize_container",
+        capability=Capability.RESTRICTED_ACTION,
+        confirmation_phrase=INITIALIZE_CONTAINER_PHRASE,
+    ),
+    "rapid_local_clear": RestrictedActionPolicy(
+        action_id="rapid_local_clear",
+        capability=Capability.RAPID_LOCAL_CLEAR,
+        confirmation_phrase="BRICK",
+        require_restricted_confirmation=False,
+    ),
+}
+SECURITY_HEADERS = {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0",
+    "Content-Security-Policy": (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: blob:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "form-action 'self'; "
+        "base-uri 'self'"
+    ),
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(self), microphone=(), geolocation=(), payment=(), usb=()",
+    "Cross-Origin-Opener-Policy": "same-origin",
+}
+
+
+def _apply_security_headers(response):
+    for name, value in SECURITY_HEADERS.items():
+        response.headers[name] = value
+    return response
+
+
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    return _apply_security_headers(response)
 
 
 def display_entry_label(entry_id):
@@ -98,17 +187,25 @@ def _ui_unlocked(request):
 
 def _face_lock_status(request):
     if not ui_face_lock_enabled():
-        return {"enabled": False, "enrolled": False, "unlocked": True, "failures": 0, "max_failures": 0}
+        return {
+            "enabled": False,
+            "enrolled": False,
+            "unlocked": True,
+            "failures": 0,
+            "max_failures": 0,
+        }
     return face_lock.status(_client_id(request), _face_session_token(request))
 
 
 def _face_enrollment_allowed():
+    if not face_lock.is_enrolled():
+        return True
     return ui_face_enrollment_enabled() or face_lock.enrollment_pending()
 
 
 def require_ui_unlock(request: Request):
     if not _ui_unlocked(request):
-        raise HTTPException(status_code=423, detail="ui locked")
+        raise HTTPException(status_code=423, detail=text.UI_LOCKED)
 
 
 def _create_restricted_session(client_id):
@@ -137,12 +234,34 @@ def _restricted_session_valid(request):
 
 def require_restricted_confirmation(request: Request):
     if not _restricted_session_valid(request):
-        raise HTTPException(status_code=403, detail="restricted confirmation required")
+        raise HTTPException(
+            status_code=403, detail=text.RESTRICTED_CONFIRMATION_REQUIRED
+        )
 
 
 def _require_restricted_when_field_mode(request):
     if field_mode_enabled() and not _restricted_session_valid(request):
-        raise HTTPException(status_code=403, detail="restricted confirmation required")
+        raise HTTPException(
+            status_code=403, detail=text.RESTRICTED_CONFIRMATION_REQUIRED
+        )
+
+
+def require_capability(capability: Capability):
+    if not capability_enabled(capability):
+        raise HTTPException(status_code=403, detail=text.OPERATION_UNAVAILABLE)
+
+
+def require_restricted_action(action_id, request, confirmation=""):
+    policy = RESTRICTED_ACTION_POLICIES[action_id]
+    try:
+        evaluate_restricted_action(
+            policy,
+            capability_allowed=capability_enabled(policy.capability),
+            restricted_confirmed=_restricted_session_valid(request),
+            confirmation=confirmation,
+        )
+    except RestrictedActionRejected as exc:
+        raise HTTPException(status_code=403, detail=exc.message) from exc
 
 
 def _guard_page(request):
@@ -164,16 +283,20 @@ def _recent_camera_frames(count=FACE_FRAME_SAMPLES, delay=FACE_FRAME_DELAY_SECON
 
 def require_web_token(x_phantasm_token: str = Header(default="")):
     if not secrets.compare_digest(x_phantasm_token, WEB_TOKEN):
-        raise HTTPException(status_code=403, detail="invalid web token")
+        raise HTTPException(status_code=403, detail=text.INVALID_WEB_TOKEN)
 
 
 def enforce_rate_limit(request: Request):
     client = request.client.host if request.client else "unknown"
     key = (client, request.url.path)
     now = time.time()
-    bucket = [timestamp for timestamp in _rate_limit.get(key, []) if now - timestamp < RATE_LIMIT_WINDOW]
+    bucket = [
+        timestamp
+        for timestamp in _rate_limit.get(key, [])
+        if now - timestamp < RATE_LIMIT_WINDOW
+    ]
     if len(bucket) >= RATE_LIMIT_MAX:
-        raise HTTPException(status_code=429, detail="rate limit exceeded")
+        raise HTTPException(status_code=429, detail=text.RATE_LIMIT_EXCEEDED)
     bucket.append(now)
     _rate_limit[key] = bucket
 
@@ -181,7 +304,7 @@ def enforce_rate_limit(request: Request):
 async def read_limited_upload(file: UploadFile):
     data = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="upload too large")
+        raise HTTPException(status_code=413, detail=text.UPLOAD_TOO_LARGE)
     return data
 
 
@@ -195,6 +318,7 @@ def _template_context(request: Request, active="home", **extra):
         "purge_confirmation_required": purge_confirmation_required(),
         "duress_mode_enabled": duress_mode_enabled(),
         "field_mode": field_mode_enabled(),
+        "deployment_mode": active_policy().name,
         "restricted_confirmed": restricted_confirmed,
         "face_enrollment_enabled": _face_enrollment_allowed(),
         "face_lock": _face_lock_status(request),
@@ -204,12 +328,18 @@ def _template_context(request: Request, active="home", **extra):
         "restricted_confirmation_phrase": RESTRICTED_CONFIRMATION_PHRASE,
         "overwrite_confirmation_phrase": OVERWRITE_CONFIRMATION_PHRASE,
         "entries": [
-            {"id": entry_id, "label": label}
-            for entry_id, label in ENTRY_LABELS.items()
+            {"id": entry_id, "label": label} for entry_id, label in ENTRY_LABELS.items()
         ],
     }
     context.update(extra)
     return context
+
+
+def _deceptive_path(original_path: str):
+    """Provides a cover-story path when field mode is enabled."""
+    if field_mode_enabled() and original_path:
+        return "/usr/lib/firmware/updates/recovery_blob.bin"
+    return original_path
 
 
 def _raw_gate_status():
@@ -336,6 +466,7 @@ async def maintenance_page(request: Request):
     if guard:
         return guard
     restricted_confirmed = _restricted_session_valid(request)
+    is_field = field_mode_enabled()
     return templates.TemplateResponse(
         request=request,
         name="maintenance.html",
@@ -344,7 +475,11 @@ async def maintenance_page(request: Request):
             active="maintenance",
             restricted_confirmed=restricted_confirmed,
             audit_enabled=os.environ.get("PHANTASM_AUDIT", "0"),
-            state_path=state_dir() if (not field_mode_enabled() or restricted_confirmed) else "",
+            state_path=(
+                state_dir()
+                if (not field_mode_enabled() or restricted_confirmed)
+                else ""
+            ),
         ),
     )
 
@@ -375,7 +510,9 @@ async def emergency_page(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="emergency.html",
-        context=_template_context(request, active="maintenance", restricted_confirmed=restricted_confirmed),
+        context=_template_context(
+            request, active="maintenance", restricted_confirmed=restricted_confirmed
+        ),
     )
 
 
@@ -420,6 +557,7 @@ async def status(request: Request):
 @app.post("/face/enroll", dependencies=[Depends(require_web_token)])
 async def face_enroll(request: Request):
     enforce_rate_limit(request)
+    require_capability(Capability.FACE_ENROLL)
     if not ui_face_lock_enabled():
         return {"error": "Face UI lock is disabled."}
     if not face_lock.is_enrolled() and not _face_enrollment_allowed():
@@ -427,7 +565,9 @@ async def face_enroll(request: Request):
     if face_lock.is_enrolled() and not _ui_unlocked(request):
         return {"error": "UI must be unlocked before replacing the face lock."}
     if face_lock.is_enrolled() and not _restricted_session_valid(request):
-        return {"error": "Restricted confirmation required. Please confirm local control and retry."}
+        return {
+            "error": "Restricted confirmation required. Please confirm local control and retry."
+        }
     success, message = face_lock.enroll_from_frames(_recent_camera_frames())
     if success:
         face_lock.clear_enrollment_request()
@@ -439,6 +579,7 @@ async def face_enroll(request: Request):
 @app.post("/face/verify", dependencies=[Depends(require_web_token)])
 async def face_verify(request: Request):
     enforce_rate_limit(request)
+    require_capability(Capability.FACE_VERIFY)
     if not ui_face_lock_enabled():
         return {"error": "Face UI lock is disabled."}
     client_id = _client_id(request)
@@ -454,7 +595,11 @@ async def face_verify(request: Request):
     response.set_cookie(
         FACE_SESSION_COOKIE,
         token,
-        max_age=int(os.environ.get("PHANTASM_UI_FACE_SESSION_SECONDS", face_lock.SESSION_TTL_SECONDS)),
+        max_age=int(
+            os.environ.get(
+                "PHANTASM_UI_FACE_SESSION_SECONDS", face_lock.SESSION_TTL_SECONDS
+            )
+        ),
         httponly=True,
         samesite="strict",
     )
@@ -473,10 +618,15 @@ async def face_lock_session(request: Request):
 
 @app.get(
     "/maintenance/entry_status",
-    dependencies=[Depends(require_web_token), Depends(require_ui_unlock), Depends(require_restricted_confirmation)],
+    dependencies=[
+        Depends(require_web_token),
+        Depends(require_ui_unlock),
+        Depends(require_restricted_confirmation),
+    ],
 )
 async def entry_status(request: Request, entry_id: str = "entry_1"):
     enforce_rate_limit(request)
+    require_capability(Capability.ENTRY_MAINTENANCE)
     if entry_id not in ENTRY_TO_MODE:
         return {"error": "Unknown local entry."}
     status_data = entry_management_status()
@@ -488,16 +638,21 @@ async def entry_status(request: Request, entry_id: str = "entry_1"):
     }
 
 
-@app.post("/restricted/confirm", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+@app.post(
+    "/restricted/confirm",
+    dependencies=[Depends(require_web_token), Depends(require_ui_unlock)],
+)
 async def restricted_confirm(request: Request, confirmation: str = Form(...)):
     enforce_rate_limit(request)
     if confirmation != RESTRICTED_CONFIRMATION_PHRASE:
-        return {"error": "Confirmation rejected."}
+        return {"error": text.CONFIRMATION_REJECTED_DISPLAY}
     token = _create_restricted_session(_client_id(request))
-    response = JSONResponse({
-        "status": "Restricted confirmation accepted.",
-        "expires_in": RESTRICTED_SESSION_TTL_SECONDS,
-    })
+    response = JSONResponse(
+        {
+            "status": text.RESTRICTED_CONFIRMATION_ACCEPTED,
+            "expires_in": RESTRICTED_SESSION_TTL_SECONDS,
+        }
+    )
     response.set_cookie(
         RESTRICTED_SESSION_COOKIE,
         token,
@@ -509,7 +664,10 @@ async def restricted_confirm(request: Request, confirmation: str = Form(...)):
     return response
 
 
-@app.post("/register_key", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+@app.post(
+    "/register_key",
+    dependencies=[Depends(require_web_token), Depends(require_ui_unlock)],
+)
 async def register_key(
     request: Request,
     entry_hint: str = Form(default=""),
@@ -517,27 +675,40 @@ async def register_key(
 ):
     enforce_rate_limit(request)
     if replace and not _restricted_session_valid(request):
-        return {"error": "Restricted confirmation required. Please confirm local control and retry."}
-    entry_id = entry_hint if entry_hint in ENTRY_TO_MODE else _matched_entry() or _first_unbound_entry()
+        return {"error": text.RESTRICTED_CONFIRMATION_RETRY}
+    entry_id = (
+        entry_hint
+        if entry_hint in ENTRY_TO_MODE
+        else _matched_entry() or _first_unbound_entry()
+    )
     if entry_id is None:
         return {
-            "error": "No open local entry is available.",
+            "error": text.NO_OPEN_LOCAL_ENTRY,
             "overwrite_required": True,
             "entries": list(ENTRY_LABELS.values()),
         }
 
     mode = resolve_entry(entry_id)
-    if entry_hint in ENTRY_TO_MODE and not replace and _raw_gate_status()["registered_modes"].get(mode):
-        return {"error": "Entry already has a bound object. Confirm replacement first."}
+    if (
+        entry_hint in ENTRY_TO_MODE
+        and not replace
+        and _raw_gate_status()["registered_modes"].get(mode)
+    ):
+        return {"error": text.ENTRY_ALREADY_BOUND}
 
     success, message = _capture_entry_binding(mode)
     if success:
         audit_event("image_key_registered", entry="local_entry", source="web")
-        return {"status": "Object bound to protected entry.", "entry_state": "updated" if replace else "created"}
+        return {
+            "status": text.OBJECT_BOUND_TO_ENTRY,
+            "entry_state": "updated" if replace else "created",
+        }
     return {"error": message}
 
 
-@app.post("/store", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+@app.post(
+    "/store", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)]
+)
 async def store(
     request: Request,
     file: UploadFile = File(...),
@@ -554,18 +725,24 @@ async def store(
 
     try:
         if not password:
-            return {"error": "Access password must not be empty."}
-        if restricted_recovery_password and password == restricted_recovery_password:
-            return {"error": "Access and restricted recovery passwords must be different."}
+            return {"error": text.ACCESS_PASSWORD_REQUIRED}
+        passphrase_check = check_store_passphrases(
+            password,
+            restricted_recovery_password,
+        )
+        if not passphrase_check.ok:
+            return {"error": passphrase_check.message}
         if overwrite and overwrite_confirmation != OVERWRITE_CONFIRMATION_PHRASE:
-            return {"error": "Replacement confirmation required."}
+            return {"error": text.REPLACEMENT_CONFIRMATION_REQUIRED}
         if overwrite and not _restricted_session_valid(request):
-            return {"error": "Restricted confirmation required. Please confirm local control and retry."}
+            return {"error": text.RESTRICTED_CONFIRMATION_RETRY}
 
-        entry_id, needs_capture = _select_entry_for_store(entry_hint=entry_hint, overwrite=overwrite)
+        entry_id, needs_capture = _select_entry_for_store(
+            entry_hint=entry_hint, overwrite=overwrite
+        )
         if entry_id is None:
             return {
-                "error": "No open local entry is available. Confirm replacement to continue.",
+                "error": text.NO_OPEN_LOCAL_ENTRY_WITH_REPLACEMENT,
                 "overwrite_required": True,
                 "entries": [
                     {"id": item_id, "label": label}
@@ -595,22 +772,36 @@ async def store(
             label_present=bool(local_note_label),
             source="web",
         )
-        entry_state = "replaced" if overwrite else "created" if needs_capture else "updated"
-        return {"success": True, "message": "Protected entry saved.", "entry_state": entry_state}
+        entry_state = (
+            "replaced" if overwrite else "created" if needs_capture else "updated"
+        )
+        return {
+            "success": True,
+            "message": text.PROTECTED_ENTRY_SAVED,
+            "entry_state": entry_state,
+        }
     except Exception:
-        return {"error": "Store operation failed."}
+        return {"error": text.STORE_OPERATION_FAILED}
 
 
-@app.post("/metadata/check", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+@app.post(
+    "/metadata/check",
+    dependencies=[Depends(require_web_token), Depends(require_ui_unlock)],
+)
 async def metadata_check(request: Request, file: UploadFile = File(...)):
     enforce_rate_limit(request)
+    require_capability(Capability.METADATA_CHECK)
     data = await read_limited_upload(file)
     return metadata_risk_report(file.filename, data)
 
 
-@app.post("/metadata/scrub", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+@app.post(
+    "/metadata/scrub",
+    dependencies=[Depends(require_web_token), Depends(require_ui_unlock)],
+)
 async def metadata_scrub(request: Request, file: UploadFile = File(...)):
     enforce_rate_limit(request)
+    require_capability(Capability.METADATA_REDUCE)
     data = await read_limited_upload(file)
     result = scrub_metadata(file.filename, data)
     if not result["success"]:
@@ -629,17 +820,26 @@ async def metadata_scrub(request: Request, file: UploadFile = File(...)):
     )
 
 
-@app.post("/retrieve", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+@app.post(
+    "/retrieve", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)]
+)
 async def retrieve(request: Request, password: str = Form(...)):
     enforce_rate_limit(request)
+    attempt_scope = f"web:{_client_id(request)}"
+    if not _access_attempts.check(attempt_scope).allowed:
+        return {"error": text.ACCESS_TEMPORARILY_UNAVAILABLE}
     auth_sequence = get_gesture_sequence(length=1)
     if gate.last_match_mode == gate.MATCH_AMBIGUOUS:
-        return {"error": "Ambiguous object match."}
+        _access_attempts.record_failure(attempt_scope)
+        return {"error": text.AMBIGUOUS_OBJECT_MATCH}
     if auth_sequence[0] == gate.MATCH_NONE:
-        return {"error": "No valid entry found."}
+        _access_attempts.record_failure(attempt_scope)
+        return {"error": text.NO_VALID_ENTRY_FOUND}
 
     for mode in gate.MODES:
-        result, filename, password_role = vault.retrieve_with_policy(password, auth_sequence, mode=mode)
+        result, filename, password_role = vault.retrieve_with_policy(
+            password, auth_sequence, mode=mode
+        )
         if result is None:
             continue
 
@@ -652,6 +852,10 @@ async def retrieve(request: Request, password: str = Form(...)):
             source="web",
         )
         purge_applied = _purge_for_password_role(mode, password_role, source="web")
+        if result is not None:
+            # Release camera to save power and heat after successful retrieval
+            gate.close()
+        _access_attempts.record_success(attempt_scope)
         if not purge_applied:
             purge_applied = _maybe_auto_purge(mode, source="web")
         return create_file_response(
@@ -661,10 +865,14 @@ async def retrieve(request: Request, password: str = Form(...)):
         )
 
     audit_event("retrieve_failed", source="web")
-    return {"error": "No valid entry found."}
+    _access_attempts.record_failure(attempt_scope)
+    return {"error": text.NO_VALID_ENTRY_FOUND}
 
 
-@app.post("/purge_other", dependencies=[Depends(require_web_token), Depends(require_ui_unlock), Depends(require_restricted_confirmation)])
+@app.post(
+    "/purge_other",
+    dependencies=[Depends(require_web_token), Depends(require_ui_unlock)],
+)
 async def purge_other(
     request: Request,
     accessed_entry: str = Form(default=""),
@@ -672,45 +880,64 @@ async def purge_other(
     confirmation: str = Form(...),
 ):
     enforce_rate_limit(request)
+    require_restricted_action("clear_unmatched_entry", request, confirmation)
     entry_id = _plain_form_value(accessed_entry) or LEGACY_SELECTOR_TO_ENTRY.get(
         _plain_form_value(legacy_selector),
         _plain_form_value(legacy_selector),
     )
     mode = resolve_entry(entry_id)
-    if confirmation != DESTRUCTIVE_CLEAR_PHRASE:
-        return {"error": f"Confirmation required: {DESTRUCTIVE_CLEAR_PHRASE}"}
-
     vault.purge_other_mode(mode)
     audit_event("restricted_local_update", accessed_entry="local_entry", source="web")
-    return {"status": "Unmatched local entry cleared."}
+    return {"status": text.UNMATCHED_ENTRY_CLEARED}
 
 
-@app.post("/emergency/brick", dependencies=[Depends(require_web_token), Depends(require_ui_unlock), Depends(require_restricted_confirmation)])
+@app.post(
+    "/emergency/brick",
+    dependencies=[Depends(require_web_token), Depends(require_ui_unlock)],
+)
 async def emergency_brick(request: Request, confirmation: str = Form(...)):
     enforce_rate_limit(request)
-    if confirmation != EMERGENCY_BRICK_PHRASE:
-        return {"error": f"Confirmation required: {EMERGENCY_BRICK_PHRASE}"}
+    require_restricted_action("clear_local_access_path", request, confirmation)
     vault.silent_brick()
     audit_event("access_path_cleared", source="web")
-    return {"status": "Local access path cleared. Close this session."}
+    return {"status": text.LOCAL_ACCESS_PATH_CLEARED}
 
 
-@app.post("/emergency/initialize", dependencies=[Depends(require_web_token), Depends(require_ui_unlock), Depends(require_restricted_confirmation)])
+@app.post(
+    "/emergency/initialize",
+    dependencies=[Depends(require_web_token), Depends(require_ui_unlock)],
+)
 async def emergency_initialize(request: Request, confirmation: str = Form(...)):
     enforce_rate_limit(request)
-    if confirmation != INITIALIZE_CONTAINER_PHRASE:
-        return {"error": f"Confirmation required: {INITIALIZE_CONTAINER_PHRASE}"}
+    require_restricted_action("initialize_container", request, confirmation)
     vault.format_container(rotate_access_key=True)
     success, message = gate.clear_references()
     if not success:
         return {"error": message}
     audit_event("container_reinitialized", source="web")
-    return {"status": "Local container initialized. Protected entries are empty."}
+    return {"status": text.CONTAINER_INITIALIZED}
 
 
-@app.post("/maintenance/rotate_token", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+@app.post("/emergency/panic", dependencies=[Depends(require_web_token)])
+async def web_panic_trigger(request: Request, secret_trigger: str = Form(...)):
+    """Hidden endpoint for rapid local state destruction."""
+    enforce_rate_limit(request)
+    try:
+        require_restricted_action("rapid_local_clear", request, secret_trigger)
+    except HTTPException:
+        raise HTTPException(status_code=404)
+    vault.silent_brick()
+    audit_event("access_path_cleared", source="web_panic")
+    return {"status": text.CRITICAL_STATE_CLEARED}
+
+
+@app.post(
+    "/maintenance/rotate_token",
+    dependencies=[Depends(require_web_token), Depends(require_ui_unlock)],
+)
 async def rotate_token(request: Request):
     enforce_rate_limit(request)
+    require_capability(Capability.TOKEN_ROTATION)
     _require_restricted_when_field_mode(request)
     global WEB_TOKEN
     WEB_TOKEN = secrets.token_urlsafe(32)
@@ -718,42 +945,68 @@ async def rotate_token(request: Request):
     return {"status": "Session token rotated.", "web_token": WEB_TOKEN}
 
 
-@app.post("/maintenance/reset_session", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+@app.post(
+    "/maintenance/reset_session",
+    dependencies=[Depends(require_web_token), Depends(require_ui_unlock)],
+)
 async def reset_session(request: Request):
     enforce_rate_limit(request)
+    require_capability(Capability.SESSION_RESET)
     _require_restricted_when_field_mode(request)
     _rate_limit.clear()
     _restricted_sessions.pop(_restricted_session_token(request), None)
     return {"status": "Local session counters reset."}
 
 
-@app.get("/maintenance/diagnostics", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+@app.get(
+    "/maintenance/diagnostics",
+    dependencies=[Depends(require_web_token), Depends(require_ui_unlock)],
+)
 async def diagnostics(request: Request):
     enforce_rate_limit(request)
     status_data = neutral_status()
+    device_state = (
+        "active"
+        if status_data["device_state"] == "ready"
+        else status_data["device_state"]
+    )
     data = {
-        "device_state": status_data["device_state"],
+        "device_state": device_state,
         "camera_ready": status_data["camera_ready"],
         "object_state": status_data["object_state"],
         "local_mode": status_data["local_mode"],
         "restricted_confirmation_active": _restricted_session_valid(request),
     }
-    if not field_mode_enabled() or _restricted_session_valid(request):
-        data.update({
-            "state_directory": state_dir(),
-            "audit_enabled": os.environ.get("PHANTASM_AUDIT", "0").lower() not in {"0", "false", "off", "no"},
-            "upload_limit_bytes": MAX_UPLOAD_BYTES,
-        })
+    restricted = _restricted_session_valid(request)
+    if (not field_mode_enabled() or restricted) and capability_enabled(
+        Capability.DIAGNOSTICS_DETAIL
+    ):
+        data.update(
+            {
+                "sensor_link": status_data["object_state"] != "none",
+                "state_directory": state_dir(),
+                "storage_node": _deceptive_path(state_dir()),
+                "audit_enabled": os.environ.get("PHANTASM_AUDIT", "0").lower()
+                not in {"0", "false", "off", "no"},
+                "upload_limit_bytes": MAX_UPLOAD_BYTES,
+            }
+        )
     return data
 
 
-@app.get("/maintenance/logs", dependencies=[Depends(require_web_token), Depends(require_ui_unlock)])
+@app.get(
+    "/maintenance/logs",
+    dependencies=[Depends(require_web_token), Depends(require_ui_unlock)],
+)
 async def export_logs(request: Request):
     enforce_rate_limit(request)
+    require_capability(Capability.AUDIT_EXPORT)
     _require_restricted_when_field_mode(request)
     path = Path(state_dir()) / AUDIT_LOG_NAME
     if not path.exists():
-        return JSONResponse({"error": "No local event log is available."}, status_code=404)
+        return JSONResponse(
+            {"error": "No local event log is available."}, status_code=404
+        )
     data = path.read_bytes()
     return StreamingResponse(
         io.BytesIO(data),
@@ -812,5 +1065,4 @@ if __name__ == "__main__":
     port = int(os.environ.get("PHANTASM_PORT", "8000"))
     print(f"[WEB] Starting on http://{host}:{port}")
     print("[WEB] Mutating requests require X-Phantasm-Token from the served UI.")
-    uvicorn_run = __import__("uvicorn").run
-    uvicorn_run(app, host=host, port=port)
+    __import__("uvicorn").run(app, host=host, port=port)
