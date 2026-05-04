@@ -30,6 +30,8 @@ python3 main.py verify-audit-log
 python3 main.py export-redacted-log --out review-events.jsonl
 ```
 
+`verify-audit-log` checks the local audit chain and the verifier material used for local integrity review.
+
 The redacted export is intended for review. It should not include local paths, file labels, object-cue features, face-lock templates, or password-derived data.
 
 ## Field Review

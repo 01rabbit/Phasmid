@@ -28,6 +28,8 @@ python3 main.py verify-audit-log
 
 If audit logging is disabled or no audit log is present, the command reports `not_enabled`. This is not a failure by itself because audit logging is disabled by default for field deployments.
 
+When audit records include integrity fields, `verify-audit-log` also checks the local verifier material in `.state/events.auth` and reports attention if the verifier material is missing or if record integrity does not validate.
+
 Summarize local health:
 
 ```bash
