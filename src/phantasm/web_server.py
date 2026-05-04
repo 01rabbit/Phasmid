@@ -40,6 +40,7 @@ from .config import (
 from .crypto_boundary import ensure_crypto_self_tests
 from .face_lock import face_lock
 from .gv_core import GhostVault
+from .kdf_providers import hardware_binding_status
 from .metadata import metadata_risk_report, scrub_metadata
 from .passphrase_policy import check_store_passphrases
 from .restricted_actions import (
@@ -958,9 +959,11 @@ async def diagnostics(request: Request):
     if (not field_mode_enabled() or restricted) and capability_enabled(
         Capability.DIAGNOSTICS_DETAIL
     ):
+        binding_status = hardware_binding_status().to_dict()
         data.update(
             {
                 "sensor_link": status_data["object_state"] != "none",
+                "hardware_binding": binding_status,
                 "state_directory": state_dir(),
                 "storage_node": _deceptive_path(state_dir()),
                 "audit_enabled": os.environ.get("PHANTASM_AUDIT", "0").lower()

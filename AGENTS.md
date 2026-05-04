@@ -33,19 +33,16 @@ The goal is to transition from a "field-evaluation prototype" to a "local applia
 
 ### Next Priority Issues
 
-1. **#31 Audit Integrity**: Implement hash-chaining and integrity verification for audit logs.
-2. **#32 Tamper Evidence**: Implement hardware-binding status reporting for field-evaluation units.
-3. **#32 Tamper Evidence**: Implement hardware-binding status reporting for field-evaluation units.
-4. **#33 UX Hardening**: Optimize Field Mode emergency flows for high-stress operational use.
-5. **#16 Integrity Manifest**: Implement a workflow for generating signed release manifests and SBOMs.
-6. **#27 AI Gate Decoupling**: Separate camera handling, object matching, and face lock logic.
-5. **#16 Integrity Manifest**: Implement a workflow for generating signed release manifests and SBOMs.
-6. **#27 AI Gate Decoupling**: Separate camera handling, object matching, and face lock logic.
+1. **#33 UX Hardening**: Optimize Field Mode emergency flows for high-stress operational use.
+2. **#16 Integrity Manifest**: Implement a workflow for generating signed release manifests and SBOMs.
+3. **#27 AI Gate Decoupling**: Separate camera handling, object matching, and face lock logic.
 
 ### Completed Milestones
 
 - `#8` & `#9`: CI pipeline with static analysis (`ruff`, `mypy`) and 70% coverage gate. ✅
 - `#19`: Multi-source KDF provider pipeline with hardware binding. ✅
+- `#31`: Audit log hash-chaining and integrity verification. ✅
+- `#32`: Hardware-binding status reporting for field-evaluation units. ✅
 - `#22`: Centralized restricted action policy enforcement. ✅
 - `#30`: Rigorous metadata scrubbing for JPEG, PNG, and Office ZIP formats. ✅
 - `#23`: Typed local state store with atomic transitions. ✅
