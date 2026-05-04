@@ -2,26 +2,43 @@
 {% import "_components.html" as ui %}
 {% block title %}Phasmid | Maintenance{% endblock %}
 
+{% block head %}
+<style>
+    .maintenance-header .badge { border-color: rgba(200,156,54,.35); color: var(--status-caution); background: rgba(200,156,54,.07); }
+    .panel--maintenance { border-left-color: var(--status-caution); }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="grid-single">
-    <section class="panel">
+    <section class="panel panel--maintenance hero-panel">
+        <div class="panel-kicker">
+            <span class="eyebrow">Runtime Control</span>
+        </div>
         <div class="panel-head">
             <h2>Local Maintenance</h2>
-            <span class="badge">Local State</span>
+            <span class="badge warn">Local State</span>
         </div>
-        <p class="copy">Review runtime state and operational settings. Destructive local actions are isolated from this view.</p>
+        <p class="copy hero-copy">Review runtime state and operational settings. Destructive local actions are isolated from this view.</p>
         {% if field_mode and not restricted_confirmed %}
         <p class="copy">Field Mode is active. Sensitive maintenance details require restricted confirmation.</p>
         {% endif %}
+        {{ ui.hero_metrics([
+            {"label": "Scope", "value": "Local runtime only"},
+            {"label": "Sensitive actions", "value": "Separated"},
+            {"label": "Field Mode", "value": "Quiet by default" if field_mode else "Available"}
+        ]) }}
         <details>
             <summary>Restricted confirmation</summary>
-            <label class="field">
-                <span>Confirmation phrase</span>
-                <input type="text" id="restrictedConfirmation" placeholder="{{ restricted_confirmation_phrase }}">
-            </label>
-            <button type="button" class="secondary small" data-action="confirm-restricted">Confirm local control</button>
+            <div class="detail-body">
+                <label class="field">
+                    <span>Confirmation phrase</span>
+                    <input type="text" id="restrictedConfirmation" placeholder="{{ restricted_confirmation_phrase }}">
+                </label>
+                <button type="button" class="secondary small" data-action="confirm-restricted">Confirm local control</button>
+            </div>
         </details>
-        <div class="status-grid">
+        <div class="status-grid" style="margin-top: 16px;">
             {% if field_mode and not restricted_confirmed %}
             {{ ui.status_card("Device Health", "deviceState", "Ready") }}
             {{ ui.status_card("Camera", "cameraState", "Unavailable") }}
@@ -51,19 +68,32 @@
         </div>
     </section>
     {% if not field_mode or restricted_confirmed %}
-    {{ ui.diagnostics_panel() }}
+    <div class="split-grid">
+        {{ ui.diagnostics_panel() }}
+        <section class="panel panel--neutral">
+            <div class="panel-head">
+                <h2>Maintenance Notes</h2>
+                <span class="badge neutral">Local-only</span>
+            </div>
+            <ol class="flow-list">
+                <li><span class="copy">Confirm local control before exposing runtime detail or rotating local session material.</span></li>
+                <li><span class="copy">Use Entry Management for object binding changes instead of normal store and retrieve paths.</span></li>
+                <li><span class="copy">Keep restricted actions outside this screen to preserve a calmer normal workflow.</span></li>
+            </ol>
+        </section>
+    </div>
     {% else %}
-    <section class="panel">
+    <section class="panel panel--neutral">
         <div class="panel-head">
             <h2>Device Health</h2>
-            <span class="badge">Local-only</span>
+            <span class="badge neutral">Local-only</span>
         </div>
         <p class="copy">General device health is available from Home. Restricted confirmation is required for maintenance details.</p>
     </section>
     {% endif %}
-    <section class="panel">
+    <section class="panel panel--neutral">
         <h2>Security Notes</h2>
-        <p class="copy">
+        <p class="copy" style="margin-top: 10px;">
             Phasmid does not claim protection against a compromised host, live memory capture,
             keylogging, camera observation, forced disclosure, or guaranteed secure deletion.
         </p>
@@ -130,7 +160,7 @@
         const res = await apiFetch('/maintenance/logs');
         if (!res.ok) {
             const data = await res.json();
-            toast(data.error || 'No local event log is available.');
+            toast(data.error || 'No local event log is available.', 'error');
             return;
         }
         const blob = await res.blob();

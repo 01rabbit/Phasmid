@@ -21,6 +21,7 @@ from fastapi.responses import (
     RedirectResponse,
     StreamingResponse,
 )
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from . import strings as text
@@ -55,6 +56,7 @@ from .restricted_actions import (
 )
 
 app = FastAPI(title="Phasmid - Local Secure Interface")
+app.mount("/static", StaticFiles(directory=str(Path(__file__).with_name("static"))), name="static")
 
 
 @app.on_event("startup")

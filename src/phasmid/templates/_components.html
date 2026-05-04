@@ -1,19 +1,49 @@
 {% macro status_card(title, value_id, value, detail="") -%}
 <section class="status-card">
-    <span class="card-label">{{ title }}</span>
-    <strong id="{{ value_id }}">{{ value }}</strong>
-    {% if detail %}<small>{{ detail }}</small>{% endif %}
+    <div class="status-card__head">
+        <span class="led" id="{{ value_id }}Led"></span>
+        <span class="section-label">{{ title }}</span>
+    </div>
+    <strong class="status-card__value" id="{{ value_id }}">{{ value }}</strong>
+    {% if detail %}<small class="section-label">{{ detail }}</small>{% endif %}
 </section>
 {%- endmacro %}
 
-{% macro camera_preview() -%}
+{% macro camera_preview(src="/video_feed") -%}
 <section class="panel camera-panel">
+    <div class="panel-kicker">
+        <span class="eyebrow">Live Access Cue</span>
+    </div>
     <div class="panel-head">
         <h2>Camera Preview</h2>
-        <span id="objectBadge" class="badge neutral">Unavailable</span>
+        <span id="objectBadge" class="badge neutral">
+            <span class="led"></span>
+            <span class="badge-text">Unavailable</span>
+        </span>
     </div>
-    <img class="camera-feed" src="/video_feed" alt="Local camera preview">
+    <div class="camera-frame">
+        <img class="camera-feed" src="{{ src }}" alt="Local camera preview">
+        <span class="camera-corner tl"></span>
+        <span class="camera-corner tr"></span>
+        <span class="camera-corner bl"></span>
+        <span class="camera-corner br"></span>
+        <div class="camera-live">
+            <span class="led led--active"></span>
+            Live
+        </div>
+    </div>
 </section>
+{%- endmacro %}
+
+{% macro hero_metrics(items) -%}
+<div class="meta-grid">
+    {% for item in items %}
+    <div class="meta-card">
+        <span>{{ item.label }}</span>
+        <strong>{{ item.value }}</strong>
+    </div>
+    {% endfor %}
+</div>
 {%- endmacro %}
 
 {% macro password_field(name, label, placeholder, required=True) -%}
@@ -24,7 +54,7 @@
 {%- endmacro %}
 
 {% macro diagnostics_panel() -%}
-<section class="panel">
+<section class="panel panel--neutral">
     <div class="panel-head">
         <h2>Diagnostics</h2>
         <button class="secondary small" data-action="diagnostics">Run diagnostics</button>

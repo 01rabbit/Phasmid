@@ -5,12 +5,20 @@
 {% block content %}
 <div class="grid">
     {{ ui.camera_preview() }}
-    <section class="panel">
+    <section class="panel hero-panel">
+        <div class="panel-kicker">
+            <span class="eyebrow">Unlock Protected Entry</span>
+        </div>
         <div class="panel-head">
             <h2>Unlock Local Entry</h2>
-            <span class="badge">Retrieve</span>
+            <span class="badge neutral">Retrieve</span>
         </div>
-        <p class="copy">Present the bound object and enter the access password. Only a successful result is returned.</p>
+        <p class="copy hero-copy">Present the bound object and enter the access password. Only a successful result is returned.</p>
+        {{ ui.hero_metrics([
+            {"label": "Required", "value": "Password plus object cue"},
+            {"label": "Result", "value": "Single local download"},
+            {"label": "Behavior", "value": "Quiet on failure"}
+        ]) }}
         <form id="retrieveForm">
             {{ ui.password_field("password", "Access password", "Required") }}
             <div class="actions">
@@ -18,14 +26,33 @@
                 <button type="reset" class="secondary">Reset</button>
             </div>
         </form>
-        <section id="downloadPanel" class="result-panel">
-            <h3>Download Result</h3>
-            <p class="copy" id="downloadName">Access granted.</p>
+        <section id="downloadPanel" class="result-panel panel panel--neutral" style="margin-top: 16px;">
+            <div class="panel-head">
+                <h2>Download Result</h2>
+                <span class="badge active">
+                    <span class="led led--active"></span>
+                    Ready
+                </span>
+            </div>
+            <div class="result-summary">
+                <div class="result-summary__row">
+                    <span class="section-label">Package</span>
+                    <strong id="downloadName">Access granted.</strong>
+                </div>
+            </div>
             <div class="actions">
                 <button type="button" id="downloadButton">Download</button>
                 <button type="button" class="secondary" id="clearSession">Clear session</button>
             </div>
         </section>
+        <div class="action-group">
+            <span class="section-label">Retrieve Flow</span>
+            <ol class="flow-list">
+                <li><span class="copy">Place the bound object within the live preview until the cue is stable.</span></li>
+                <li><span class="copy">Enter the access password and unlock the local entry.</span></li>
+                <li><span class="copy">Download the result, then clear the local session if the device is shared.</span></li>
+            </ol>
+        </div>
     </section>
 </div>
 {% endblock %}
@@ -45,12 +72,12 @@
             const headerFilename = res.headers.get('X-Result-Filename');
             if (headerFilename) pendingFilename = decodeURIComponent(headerFilename);
             document.getElementById('downloadName').textContent = `Access granted: ${pendingFilename}`;
-            document.getElementById('downloadPanel').style.display = 'block';
+            document.getElementById('downloadPanel').classList.add('is-visible');
             toast('Access granted.');
             return;
         }
         const data = await res.json();
-        toast(data.error || 'No valid entry found.');
+        toast(data.error || 'No valid entry found.', 'error');
     });
 
     document.getElementById('downloadButton').addEventListener('click', () => {
@@ -67,7 +94,7 @@
 
     document.getElementById('clearSession').addEventListener('click', () => {
         pendingDownload = null;
-        document.getElementById('downloadPanel').style.display = 'none';
+        document.getElementById('downloadPanel').classList.remove('is-visible');
         document.getElementById('retrieveForm').reset();
         toast('Local session cleared.');
     });

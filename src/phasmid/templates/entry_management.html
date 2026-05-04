@@ -5,22 +5,32 @@
 {% block content %}
 <div class="grid">
     {{ ui.camera_preview() }}
-    <section class="panel">
+    <section class="panel hero-panel">
+        <div class="panel-kicker">
+            <span class="eyebrow">Controlled Maintenance</span>
+        </div>
         <div class="panel-head">
             <h2>Entry Management</h2>
-            <span class="badge">Maintenance</span>
+            <span class="badge warn">Maintenance</span>
         </div>
-        <p class="copy">Rebind a physical object, test matching, or rename a local label outside the normal flow.</p>
+        <p class="copy hero-copy">Rebind a physical object, test matching, or rename a local label outside the normal flow.</p>
         <details>
             <summary>Restricted confirmation</summary>
-            <label class="field">
-                <span>Confirmation phrase</span>
-                <input type="text" id="restrictedConfirmation" placeholder="{{ restricted_confirmation_phrase }}">
-            </label>
-            <button type="button" class="secondary small" id="confirmRestricted">Confirm local control</button>
+            <div class="detail-body">
+                <label class="field">
+                    <span>Confirmation phrase</span>
+                    <input type="text" id="restrictedConfirmation" placeholder="{{ restricted_confirmation_phrase }}">
+                </label>
+                <button type="button" class="secondary small" id="confirmRestricted">Confirm local control</button>
+            </div>
         </details>
         {% if restricted_confirmed %}
-        <label class="field">
+        {{ ui.hero_metrics([
+            {"label": "Object cue", "value": "Rebind or test"},
+            {"label": "Label changes", "value": "Reserved"},
+            {"label": "Surface", "value": "Restricted"}
+        ]) }}
+        <label class="field" style="margin-top: 12px;">
             <span>Entry label</span>
             <select id="entrySelect">
                 {% for entry in entries %}
@@ -32,12 +42,14 @@
             <button type="button" id="rebindButton">Rebind object</button>
             <button type="button" class="secondary" id="testButton">Test matching</button>
             <button type="button" class="secondary" id="renameButton">Rename local label</button>
-            <button type="button" class="secondary" id="clearTemplateButton">Clear local object template</button>
+            <button type="button" class="secondary" id="clearTemplateButton">Clear object template</button>
         </div>
-        <h3>Binding Status</h3>
-        <p id="entryOutput" class="copy">Select an entry and test matching to view local status.</p>
+        <div class="action-group">
+            <span class="section-label">Binding Status</span>
+            <p id="entryOutput" class="copy">Select an entry and test matching to view local status.</p>
+        </div>
         {% else %}
-        <p class="copy">Local entry maintenance requires confirmation.</p>
+        <p class="copy" style="margin-top: 12px;">Local entry maintenance requires confirmation.</p>
         {% endif %}
     </section>
 </div>
