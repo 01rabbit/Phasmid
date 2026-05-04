@@ -27,6 +27,7 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - The Web UI is intended for local use through `127.0.0.1` or USB gadget networking.
 - Camera matching is an operational gate, not a cryptographic biometric factor.
 - Device capture is realistic, so rendered UI and documentation should avoid explaining the internal disclosure model during normal use.
+- The device hardware (e.g., CPU serial, hardware revision) is relatively static and can be used as a source of device-binding entropy.
 - Field Mode reduces normal information exposure, but it is not a security boundary.
 - Hidden restricted routes reduce casual exposure, but they are not security boundaries.
 - Hidden routes are not access control by themselves; server-side token checks, UI unlock state, restricted confirmation, and typed confirmation remain required.
@@ -36,6 +37,7 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - New stores use GhostVault v3 records: random per-record Argon2id salt, random per-record AES-GCM nonce, no plaintext magic/header, and AEAD-authenticated encrypted metadata.
 - Startup self-tests check local AES-GCM, HMAC-SHA-256, and random byte generation behavior before normal CLI/WebUI operation.
 - The local access key is mixed into Argon2id by default, so copying `vault.bin` alone is insufficient for recovery.
+- Hardware-specific identifiers (e.g., CPU serial, revision) are incorporated into the KDF derivation pipeline, providing basic device-binding for the vault container.
 - Protected entries can be stored with normal access and restricted recovery passwords that share the same object cue.
 - Store flows reject empty, duplicate, short, or highly repetitive passphrases to reduce accidental weak input.
 - `PHANTASM_HARDWARE_SECRET_FILE`, `PHANTASM_HARDWARE_SECRET`, or `PHANTASM_HARDWARE_SECRET_PROMPT=1` can add an external value to Argon2id derivation. Data stored with any of these values requires the same value for retrieval.
