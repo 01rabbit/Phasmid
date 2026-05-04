@@ -19,11 +19,13 @@
 The goal is to transition from a "field-evaluation prototype" to a "local appliance solution" by strengthening boundaries and improving testability.
 
 ### 🛤 Roadmap (Next Priority Issues)
-1.  **#26 Split Vault Core**: Refactor `gv_core.py` into reviewable modules (IO, Crypto, Policy).
-    *   *Reference*: `docs/CRYPTO_MODULE_DESIGN.md`
-2.  **#19 Multi-source KDF**: Design and implement a pipeline for mixing local device-binding inputs into the KDF.
-3.  **#16 Integrity Manifest**: Implement a workflow for generating signed release manifests and SBOMs.
-4.  **#27 AI Gate Decoupling**: Separate camera handling, object matching, and face lock logic.
+1.  **#19 Multi-source KDF**: Design and implement a pipeline for mixing local device-binding inputs into the KDF.
+2.  **#30 Metadata Reduction**: Implement rigorous metadata scrubbing for exported payloads.
+3.  **#31 Audit Integrity**: Implement hash-chaining and integrity verification for audit logs.
+4.  **#32 Tamper Evidence**: Implement hardware-binding status reporting for field-evaluation units.
+5.  **#33 UX Hardening**: Optimize Field Mode emergency flows for high-stress operational use.
+6.  **#16 Integrity Manifest**: Implement a workflow for generating signed release manifests and SBOMs.
+7.  **#27 AI Gate Decoupling**: Separate camera handling, object matching, and face lock logic.
 
 ### ✅ Completed Milestones
 -   `#8` & `#9`: CI pipeline with static analysis (`ruff`, `mypy`) and 70% coverage gate.
