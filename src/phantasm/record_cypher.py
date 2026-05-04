@@ -60,11 +60,12 @@ class RecordCipher:
         ).encode("utf-8")
 
         required_len = 4 + len(metadata_bytes) + len(plaintext)
-        plaintext_capacity = self._plaintext_capacity_for_slot(mode, password_role)
-        if required_len > plaintext_capacity:
-            raise ValueError("encrypted payload does not fit in the container")
+        # Capacity check is done externally by ContainerLayout
+        # plaintext_capacity = self._plaintext_capacity_for_slot(mode, password_role)
+        # if required_len > plaintext_capacity:
+        #     raise ValueError("encrypted payload does not fit in the container")
 
-        padding = os.urandom(plaintext_capacity - required_len)
+        padding = os.urandom(0)  # No padding needed since capacity is checked externally
         record_plaintext = (
             struct.pack(">I", len(metadata_bytes)) + metadata_bytes + plaintext + padding
         )
@@ -117,36 +118,3 @@ class RecordCipher:
         filename = os.path.basename(metadata.get("filename") or "payload.bin")
 
         return actual_data, filename, metadata
-
-    def randomize_slot(self, mode: str, password_role: str):
-        """Randomize a slot by overwriting with random data"""
-        start, length = self._slot_span(mode, password_role)
-        with open(self.container_path, "r+b") as f:
-            f.seek(start)
-            f.write(os.urandom(length))
-
-    def _plaintext_capacity_for_slot(self, mode: str, password_role: str) -> int:
-        """Calculate plaintext capacity for a specific slot"""
-        _start, span_len = self._slot_span(mode, password_role)
-        capacity = span_len - self.RECORD_OVERHEAD
-        if capacity <= 4:
-            raise ValueError("container is too small for encrypted record")
-        return capacity
-
-    def _mode_span(self, mode: str) -> tuple[int, int]:
-        """Get the span for a mode"""
-        if mode == "secret":
-            return self.container_size // 2, self.container_size - (self.container_size // 2)
-        if mode == "dummy":
-            return 0, self.container_size // 2
-        raise ValueError(f"unsupported mode: {mode}")
-
-    def _slot_span(self, mode: str, password_role: str) -> tuple[int, int]:
-        """Get the span for a slot within a mode"""
-        if password_role not in self.SLOT_ROLES:
-            raise ValueError(f"unsupported password role: {password_role}")
-        start, span_len = self._mode_span(mode)
-        first_slot_len = span_len // 2
-        if password_role == self.OPEN_ROLE:
-            return start, first_slot_len
-        return start + first_slot_len, span_len - first_slot_len

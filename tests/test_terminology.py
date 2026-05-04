@@ -100,6 +100,7 @@ class TerminologyAuditTests(unittest.TestCase):
             "src/phantasm/gv_core.py",
             "src/phantasm/kdf_engine.py",
             "src/phantasm/record_cypher.py",
+            "src/phantasm/container_layout.py",
         }
         self.assertEqual(all_modules, scanned | internal_allowlist)
 

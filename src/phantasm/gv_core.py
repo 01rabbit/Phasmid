@@ -10,6 +10,7 @@ from .config import VAULT_KEY_NAME
 from .config import state_dir as default_state_dir
 from .kdf_engine import KDFEngine
 from .record_cypher import RecordCipher
+from .container_layout import ContainerLayout
 
 
 class GhostVault:
@@ -34,6 +35,7 @@ class GhostVault:
         self.access_key_path = os.path.join(self.state_dir, VAULT_KEY_NAME)
         self.kdf_engine = KDFEngine(self.state_dir)
         self.record_cipher = RecordCipher(self.path, self.size)
+        self.container_layout = ContainerLayout(self.path, self.size)
 
     def _normalize_size(self, size_mb):
         try:
@@ -71,11 +73,7 @@ class GhostVault:
     def rotate_access_key(self):
         self.kdf_engine.rotate_access_key()
 
-    def _require_container(self):
-        if not os.path.exists(self.path):
-            raise FileNotFoundError(
-                f"container file not found: {self.path}. Run format_container() first."
-            )
+
 
 
 
@@ -88,12 +86,7 @@ class GhostVault:
             self.rotate_access_key()
         else:
             self._load_or_create_access_key(create=True)
-        with open(self.path, "wb") as f:
-            f.write(os.urandom(self.size))
-        try:
-            os.chmod(self.path, 0o600)
-        except OSError:
-            pass
+        self.container_layout.format_container()
 
     def store(
         self,
@@ -104,7 +97,7 @@ class GhostVault:
         mode="dummy",
         restricted_recovery_password=None,
     ):
-        self._require_container()
+        self.container_layout._require_container()
         if (
             restricted_recovery_password is not None
             and restricted_recovery_password == password
@@ -135,7 +128,7 @@ class GhostVault:
     def _write_slot(
         self, password, data, gesture_sequence, filename, mode, password_role
     ):
-        start, span_len = self.record_cipher._slot_span(mode, password_role)
+        start, span_len = self.container_layout.get_slot_span(mode, password_role)
 
         salt = os.urandom(self.SALT_SIZE)
         key = self._derive_key(
@@ -167,7 +160,7 @@ class GhostVault:
         return data, filename
 
     def retrieve_with_policy(self, password, gesture_sequence, mode="dummy"):
-        self._require_container()
+        self.container_layout._require_container()
         for password_role in self.SLOT_ROLES:
             data, filename = self._retrieve_slot(
                 password, gesture_sequence, mode, password_role
@@ -177,7 +170,7 @@ class GhostVault:
         return None, None, None
 
     def _retrieve_slot(self, password, gesture_sequence, mode, password_role):
-        start, span_len = self.record_cipher._slot_span(mode, password_role)
+        start, span_len = self.container_layout.get_slot_span(mode, password_role)
         ciphertext_len = span_len - self.SALT_SIZE - self.NONCE_SIZE
 
         with open(self.path, "rb") as f:
@@ -216,30 +209,17 @@ class GhostVault:
 
 
     def _randomize_slot(self, mode, password_role):
-        self.record_cipher.randomize_slot(mode, password_role)
+        self.container_layout.randomize_slot(mode, password_role)
 
     def silent_brick(self):
         self.destroy_access_keys()
-        self._require_container()
-        with open(self.path, "r+b") as f:
-            f.seek(0)
-            f.write(os.urandom(self.size))
+        self.container_layout.silent_brick()
 
     def destroy_access_keys(self):
         self.kdf_engine.destroy_access_keys()
 
     def purge_mode(self, mode):
-        self._require_container()
-        start, length = self.record_cipher._mode_span(mode)
-        with open(self.path, "r+b") as f:
-            f.seek(start)
-            f.write(os.urandom(length))
+        self.container_layout.purge_mode(mode)
 
     def purge_other_mode(self, accessed_mode):
-        if accessed_mode == "dummy":
-            self.purge_mode("secret")
-            return
-        if accessed_mode == "secret":
-            self.purge_mode("dummy")
-            return
-        raise ValueError(f"unsupported mode: {accessed_mode}")
+        self.container_layout.purge_other_mode(accessed_mode)
