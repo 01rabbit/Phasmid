@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 from dataclasses import asdict, dataclass
 
+from .audit import verify_log_integrity
 from .config import (
+    AUDIT_AUTH_NAME,
     AUDIT_LOG_NAME,
     STATE_BLOB_NAME,
     STATE_KEY_NAME,
@@ -139,12 +140,17 @@ def _audit_path(path: str | None = None) -> str:
     return path or os.path.join(state_dir(), AUDIT_LOG_NAME)
 
 
-def _canonical_record(record: dict):
-    return json.dumps(record, sort_keys=True, separators=(",", ":")).encode("utf-8")
+def _audit_auth_path(path: str | None = None, audit_path: str | None = None) -> str:
+    if path:
+        return path
+    if audit_path:
+        return os.path.join(os.path.dirname(audit_path), AUDIT_AUTH_NAME)
+    return os.path.join(state_dir(), AUDIT_AUTH_NAME)
 
 
-def verify_audit_log(path: str | None = None):
+def verify_audit_log(path: str | None = None, auth_path: str | None = None):
     path = _audit_path(path)
+    auth_path = _audit_auth_path(auth_path, audit_path=path)
     checks: list[OperationCheck] = []
 
     if not os.path.exists(path):
@@ -197,26 +203,28 @@ def verify_audit_log(path: str | None = None):
         if _previous_hash_field(record) and _entry_hash_field(record)
     ]
     if chain_records and len(chain_records) == len(records):
-        expected_prev = "sha256:GENESIS"
-        chain_ok = True
-        for record in chain_records:
-            if record.get(_previous_hash_field(record)) != expected_prev:
-                chain_ok = False
-                break
-            event_hash = record.get(_entry_hash_field(record))
-            data = _entry_hashable_record(record)
-            expected_hash = (
-                "sha256:" + hashlib.sha256(_canonical_record(data)).hexdigest()
+        auth_present = os.path.exists(auth_path)
+        checks.append(
+            OperationCheck(
+                "audit_verifier",
+                STATUS_READY if auth_present else STATUS_ATTENTION,
+                (
+                    "audit verifier material is present"
+                    if auth_present
+                    else "audit verifier material is not present"
+                ),
             )
-            if event_hash != expected_hash:
-                chain_ok = False
-                break
-            expected_prev = event_hash
+        )
+        integrity_ok, _errors = verify_log_integrity(path=path, auth_path=auth_path)
         checks.append(
             OperationCheck(
                 "audit_chain",
-                STATUS_READY if chain_ok else STATUS_ATTENTION,
-                "audit chain verification completed",
+                STATUS_READY if integrity_ok else STATUS_ATTENTION,
+                (
+                    "audit integrity verification completed"
+                    if integrity_ok
+                    else "audit integrity verification requires attention"
+                ),
             )
         )
     else:
@@ -245,14 +253,6 @@ def _entry_hash_field(record):
     if "event_hash" in record:
         return "event_hash"
     return None
-
-
-def _entry_hashable_record(record):
-    return {
-        key: value
-        for key, value in record.items()
-        if key not in {"entry_hash", "event_hash", "hmac_sha256"}
-    }
 
 
 def redact_audit_record(record: dict):

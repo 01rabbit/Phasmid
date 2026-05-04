@@ -230,28 +230,36 @@ def _scrub_jpeg(data: bytes) -> Optional[bytes]:
         out = bytearray(b"\xff\xd8")
         pos = 2
         n = len(data)
+        saw_terminal_marker = False
         while pos + 3 < n:
             if data[pos] != 0xFF:
-                out += data[pos:]
-                break
+                return None
             marker = data[pos + 1]
             if marker == 0xDA:  # SOS: copy everything from here to end verbatim
                 out += data[pos:]
+                saw_terminal_marker = True
                 break
             if marker == 0xD9:  # EOI
                 out += b"\xff\xd9"
+                saw_terminal_marker = True
                 break
             if 0xD0 <= marker <= 0xD7:  # RST0–RST7: standalone, no length field
                 out += bytes([0xFF, marker])
                 pos += 2
                 continue
             if pos + 4 > n:
-                break
+                return None
             seg_len = struct.unpack(">H", data[pos + 2 : pos + 4])[0]
+            if seg_len < 2:
+                return None
             seg_end = pos + 2 + seg_len
+            if seg_end > n:
+                return None
             if marker not in _JPEG_STRIP_MARKERS:
                 out += data[pos:seg_end]
             pos = seg_end
+        if not saw_terminal_marker:
+            return None
         return bytes(out)
     except Exception:
         return None

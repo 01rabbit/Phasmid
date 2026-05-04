@@ -10,8 +10,9 @@ from unittest import mock
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm import cli
+from phantasm import audit, cli
 from phantasm.config import (
+    AUDIT_AUTH_NAME,
     AUDIT_LOG_NAME,
     STATE_BLOB_NAME,
     STATE_KEY_NAME,
@@ -68,6 +69,44 @@ class LocalOperationTests(unittest.TestCase):
         rendered = json.dumps(report)
         self.assertIn("audit records parse as JSON lines", rendered)
         self.assertIn("audit chain data is not recorded", rendered)
+
+    def test_verify_audit_log_reports_missing_verifier_material(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with mock.patch.dict(
+                os.environ, {"PHANTASM_STATE_DIR": tmpdir, "PHANTASM_AUDIT": "1"}
+            ):
+                audit.audit_event("payload_stored", bytes=10)
+
+            os.remove(os.path.join(tmpdir, AUDIT_AUTH_NAME))
+            report = verify_audit_log(os.path.join(tmpdir, AUDIT_LOG_NAME))
+
+            self.assertEqual(report["status"], "attention")
+            rendered = json.dumps(report)
+            self.assertIn("audit verifier material is not present", rendered)
+            self.assertIn("audit integrity verification requires attention", rendered)
+
+    def test_verify_audit_log_reports_integrity_tamper(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with mock.patch.dict(
+                os.environ, {"PHANTASM_STATE_DIR": tmpdir, "PHANTASM_AUDIT": "1"}
+            ):
+                audit.audit_event("payload_stored", bytes=10)
+                audit.audit_event("payload_retrieved", bytes=10)
+
+            audit_path = os.path.join(tmpdir, AUDIT_LOG_NAME)
+            with open(audit_path, "r", encoding="utf-8") as handle:
+                records = [json.loads(line) for line in handle]
+            records[1]["bytes"] = 11
+            with open(audit_path, "w", encoding="utf-8") as handle:
+                for record in records:
+                    handle.write(json.dumps(record) + "\n")
+
+            report = verify_audit_log(audit_path)
+
+            self.assertEqual(report["status"], "attention")
+            rendered = json.dumps(report)
+            self.assertIn("audit verifier material is present", rendered)
+            self.assertIn("audit integrity verification requires attention", rendered)
 
     def test_verify_audit_log_reports_parse_error(self):
         tmpdir = tempfile.mkdtemp()

@@ -127,6 +127,13 @@ class MetadataScrubTests(unittest.TestCase):
         self.assertIn(b"\xff\xda", result["data"])  # SOS
         self.assertIn(b"\xff\xd9", result["data"])  # EOI
 
+    def test_malformed_jpeg_scrub_not_supported(self):
+        data = b"\xff\xd8Exif\x00\x00GPS"
+        result = scrub_metadata("photo.jpg", data)
+        self.assertFalse(result["success"])
+        self.assertEqual(result["data"], b"")
+        self.assertIn("not supported", result["message"])
+
     def test_png_text_chunk_is_stripped(self):
         data = _make_png_with_text()
         result = scrub_metadata("image.png", data)
