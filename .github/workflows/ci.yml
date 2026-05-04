@@ -45,4 +45,4 @@ jobs:
           python -m coverage report --fail-under=70
 
       - name: Generate release review artifacts
-        run: python scripts/generate_release_artifacts.py --output-dir /tmp/phantasm-release --archive
+        run: python scripts/generate_release_artifacts.py --output-dir /tmp/phasmid-release --archive

@@ -39,7 +39,7 @@ Avoid local labels that reveal a person, organization, role, location, investiga
 
 Before storing files, review whether they may contain metadata such as author names, camera model, GPS coordinates, creator application, embedded thumbnails, local paths, or original filenames.
 
-Phantasm includes a local metadata risk check and a limited best-effort metadata reduction path. Metadata removal is best-effort and may not remove every embedded identifier from every file format.
+Phasmid includes a local metadata risk check and a limited best-effort metadata reduction path. Metadata removal is best-effort and may not remove every embedded identifier from every file format.
 
 ## Retention
 

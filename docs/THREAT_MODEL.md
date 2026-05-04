@@ -1,8 +1,8 @@
-# Phantasm Threat Model
+# Phasmid Threat Model
 
 ## Scope
 
-Phantasm is a field-evaluation prototype for local-only coercion-aware storage. It protects payloads in `vault.bin` with password-based cryptographic recovery, a camera-matched physical object cue, a local access key, and authenticated encryption.
+Phasmid is a field-evaluation prototype for local-only coercion-aware storage. It protects payloads in `vault.bin` with password-based cryptographic recovery, a camera-matched physical object cue, a local access key, and authenticated encryption.
 
 It is not a substitute for audited full-disk encryption, hardware-backed key storage, classified-data handling procedures, or a complete answer to compelled disclosure.
 
@@ -13,7 +13,7 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - Encrypted camera reference state blob in the configured state directory.
 - Local vault access key in the configured state directory.
 - Panic token in the configured state directory.
-- Web UI mutation token created at process start or supplied through `PHANTASM_WEB_TOKEN`.
+- Web UI mutation token created at process start or supplied through `PHASMID_WEB_TOKEN`.
 - Browser-visible surfaces such as rendered HTML, console output, response headers, filenames, and cached pages.
 - CLI output, shell history, application stdout/stderr, and systemd logs.
 - camera overlay text and Maintenance diagnostics output.
@@ -21,7 +21,7 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 
 ## Assumptions
 
-- The host operating system account is trusted while Phantasm is running.
+- The host operating system account is trusted while Phasmid is running.
 - Attackers may obtain a copy of `vault.bin`.
 - Attackers may observe or copy files in the project directory if OS permissions are weak.
 - The Web UI is intended for local use through `127.0.0.1` or USB gadget networking.
@@ -40,20 +40,20 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - Hardware-specific identifiers (e.g., CPU serial, revision) are incorporated into the KDF derivation pipeline, providing basic device-binding for the vault container.
 - Protected entries can be stored with normal access and restricted recovery passwords that share the same object cue.
 - Store flows reject empty, duplicate, short, or highly repetitive passphrases to reduce accidental weak input.
-- `PHANTASM_HARDWARE_SECRET_FILE`, `PHANTASM_HARDWARE_SECRET`, or `PHANTASM_HARDWARE_SECRET_PROMPT=1` can add an external value to Argon2id derivation. Data stored with any of these values requires the same value for retrieval.
+- `PHASMID_HARDWARE_SECRET_FILE`, `PHASMID_HARDWARE_SECRET`, or `PHASMID_HARDWARE_SECRET_PROMPT=1` can add an external value to Argon2id derivation. Data stored with any of these values requires the same value for retrieval.
 - Default Argon2id parameters are tuned for Raspberry Pi Zero 2 W class hardware: `memory_cost=32768`, `iterations=2`, `lanes=1`.
 - Restricted recovery behavior and explicit restricted actions can update unmatched local state. These paths can cause irreversible data loss.
 - Reference keys are stored together in a single AES-GCM encrypted ORB state blob under the configured state directory, not as raw reference photos or semantic per-entry template filenames.
 - Image-key matching requires stable results across a short frame window rather than accepting a single-frame match.
-- Web mutation endpoints require `X-Phantasm-Token`, apply a simple per-client rate limit, and enforce upload size limits.
+- Web mutation endpoints require `X-Phasmid-Token`, apply a simple per-client rate limit, and enforce upload size limits.
 - Access recovery flows count repeated local failures and apply a bounded temporary lockout. WebUI limiting is process-local; CLI limiting is stored in local state.
 - Web responses include no-store cache headers, frame denial, MIME-sniffing protection, no-referrer policy, constrained browser permissions, and a local-only content security policy. These reduce browser residue and common Web embedding risks but do not make the WebUI safe for untrusted networks.
 - Sensitive Web actions require a fresh restricted confirmation session in addition to the Web token and UI unlock state. Restricted action pages and entry maintenance details are withheld until that confirmation is active.
-- Optional UI face lock (`PHANTASM_UI_FACE_LOCK=1`) can gate normal WebUI routes with a short-lived local session. This is a UI access control only and is not used for vault encryption.
+- Optional UI face lock (`PHASMID_UI_FACE_LOCK=1`) can gate normal WebUI routes with a short-lived local session. This is a UI access control only and is not used for vault encryption.
 - When UI face lock is enabled, the normal object-matching preview and object-match state are withheld until the UI is unlocked. The lock screen shows a separate camera preview for enrollment and verification alignment.
 - The Web server binds to `127.0.0.1` by default.
-- Audit logging is disabled by default. If `PHANTASM_AUDIT=1` is set, security-relevant operations append minimal versioned JSONL records to the state directory's event log without recording passwords, payload bytes, plaintext filenames, or internal slot labels. New records include local integrity fields for review.
-- Field Mode (`PHANTASM_FIELD_MODE=1`) hides Maintenance paths, audit export, token rotation, and detailed diagnostics until restricted confirmation is active.
+- Audit logging is disabled by default. If `PHASMID_AUDIT=1` is set, security-relevant operations append minimal versioned JSONL records to the state directory's event log without recording passwords, payload bytes, plaintext filenames, or internal slot labels. New records include local integrity fields for review.
+- Field Mode (`PHASMID_FIELD_MODE=1`) hides Maintenance paths, audit export, token rotation, and detailed diagnostics until restricted confirmation is active.
 - Store includes a local metadata risk check and limited best-effort metadata reduction for supported file types.
 - Documentation includes seizure review, source-safe storage separation, field testing, and Raspberry Pi Zero 2 W appliance deployment guidance.
 
@@ -72,7 +72,7 @@ These surfaces should not reveal the internal disclosure model, internal trial o
 - Secure deletion is best-effort only. SSD wear leveling, backups, snapshots, and journaling filesystems may retain previous data.
 - Startup self-tests detect some local primitive failures but are not cryptographic certification and do not prove the host is uncompromised.
 - On flash media, recovery resistance depends primarily on key-material destruction or removal, not overwrite guarantees.
-- The v3 format avoids a plaintext format marker, but surrounding tool files can still reveal that a Phantasm-style container may be in use.
+- The v3 format avoids a plaintext format marker, but surrounding tool files can still reveal that a Phasmid-style container may be in use.
 - Dual password slots duplicate encrypted payload material within the selected internal storage span. This improves operational control but reduces maximum payload size.
 - UI face lock can be affected by lighting, camera angle, false rejects, false accepts, and presentation attacks using photos or screens.
 - The in-memory Web rate limiter and restricted confirmation state reset on process restart and are not substitutes for a full access-control layer.
@@ -86,21 +86,21 @@ These surfaces should not reveal the internal disclosure model, internal trial o
 
 ## Operational Guidance
 
-- Keep `PHANTASM_HOST` at the default `127.0.0.1` unless the host is otherwise protected.
+- Keep `PHASMID_HOST` at the default `127.0.0.1` unless the host is otherwise protected.
 - Do not expose the WebUI to an untrusted network.
-- Set `PHANTASM_WEB_TOKEN` explicitly for repeatable controlled sessions.
-- Prefer `PHANTASM_HARDWARE_SECRET_FILE` or `PHANTASM_HARDWARE_SECRET_PROMPT=1` over long-lived environment variables when adding an external device value.
-- Set `PHANTASM_STATE_SECRET` from removable media, a password manager, or a device value if encrypted reference templates must survive project-directory disclosure.
-- Enable `PHANTASM_AUDIT=1` only when an audit trail is more important than minimizing local metadata.
+- Set `PHASMID_WEB_TOKEN` explicitly for repeatable controlled sessions.
+- Prefer `PHASMID_HARDWARE_SECRET_FILE` or `PHASMID_HARDWARE_SECRET_PROMPT=1` over long-lived environment variables when adding an external device value.
+- Set `PHASMID_STATE_SECRET` from removable media, a password manager, or a device value if encrypted reference templates must survive project-directory disclosure.
+- Enable `PHASMID_AUDIT=1` only when an audit trail is more important than minimizing local metadata.
 - Keep the configured state directory and `vault.bin` on encrypted local storage.
 - For high-risk deployments, separate `vault.bin`, local state, memorized password, object cue, and optional external key material across different control conditions.
-- Use `PHANTASM_FIELD_MODE=1` for appliance-style deployments.
+- Use `PHASMID_FIELD_MODE=1` for appliance-style deployments.
 - Treat UI face lock as a convenience barrier for local interface use, not as a substitute for passwords, object cues, or external values.
-- Use `PHANTASM_UI_FACE_ENROLL=1` only during controlled provisioning.
-- Reload `/ui-lock` after `python3 main.py reset-face-lock` to consume the short-lived enrollment request.
-- Use `python3 main.py reset-face-lock` when the authorized local UI user changes. This intentionally rotates the local access key, clears stored vault data, and clears object bindings as part of the reset.
+- Use `PHASMID_UI_FACE_ENROLL=1` only during controlled provisioning.
+- Reload `/ui-lock` after `phasmid reset-face-lock` to consume the short-lived enrollment request.
+- Use `phasmid reset-face-lock` when the authorized local UI user changes. This intentionally rotates the local access key, clears stored vault data, and clears object bindings as part of the reset.
 - Use distinct high-entropy values for normal access and restricted recovery passwords.
-- Keep `PHANTASM_PURGE_CONFIRMATION=1` unless the deployment explicitly accepts the data-loss risk of automatic local-state updates.
+- Keep `PHASMID_PURGE_CONFIRMATION=1` unless the deployment explicitly accepts the data-loss risk of automatic local-state updates.
 - Reinitialize the container after a panic event.
 - Run the seizure review checklist before field evaluation.
 - Review metadata before storing source, evidence, notes, or travel material.

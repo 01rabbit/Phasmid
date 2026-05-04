@@ -80,12 +80,12 @@ class HardwareBindingStatus:
 
 def hardware_binding_status(path: str = "/proc/cpuinfo") -> HardwareBindingStatus:
     provider = HardwareBindingProvider(path=path)
-    file_path = os.environ.get("PHANTASM_HARDWARE_SECRET_FILE", "")
+    file_path = os.environ.get("PHASMID_HARDWARE_SECRET_FILE", "")
     external_binding_configured = any(
         (
-            bool(os.environ.get("PHANTASM_HARDWARE_SECRET")),
+            bool(os.environ.get("PHASMID_HARDWARE_SECRET")),
             bool(file_path and os.path.exists(file_path)),
-            os.environ.get("PHANTASM_HARDWARE_SECRET_PROMPT") == "1",
+            os.environ.get("PHASMID_HARDWARE_SECRET_PROMPT") == "1",
         )
     )
     device_binding = provider.get_secret()

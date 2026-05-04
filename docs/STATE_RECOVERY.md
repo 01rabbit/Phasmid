@@ -1,6 +1,6 @@
 # State Recovery
 
-Phantasm treats local state recovery as a controlled diagnostic process, not as a bypass.
+Phasmid treats local state recovery as a controlled diagnostic process, not as a bypass.
 
 ## Principles
 
@@ -15,8 +15,8 @@ Phantasm treats local state recovery as a controlled diagnostic process, not as 
 Use:
 
 ```bash
-python3 main.py verify-state
-python3 main.py doctor
+phasmid verify-state
+phasmid doctor
 ```
 
 If local state is incomplete, the safest response is usually to reinitialize through the documented restricted flow rather than editing state files manually.
@@ -26,8 +26,8 @@ If local state is incomplete, the safest response is usually to reinitialize thr
 If audit logging was enabled:
 
 ```bash
-python3 main.py verify-audit-log
-python3 main.py export-redacted-log --out review-events.jsonl
+phasmid verify-audit-log
+phasmid export-redacted-log --out review-events.jsonl
 ```
 
 `verify-audit-log` checks the local audit chain and the verifier material used for local integrity review.

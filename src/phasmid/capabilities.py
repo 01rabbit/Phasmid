@@ -74,7 +74,7 @@ POLICIES = {
 
 
 def active_policy() -> DeploymentPolicy:
-    selected = os.environ.get("PHANTASM_PROFILE", "standard").strip().lower()
+    selected = os.environ.get("PHASMID_PROFILE", "standard").strip().lower()
     return POLICIES.get(selected, POLICIES["standard"])
 
 

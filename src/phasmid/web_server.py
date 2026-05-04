@@ -54,7 +54,7 @@ from .restricted_actions import (
     evaluate_restricted_action,
 )
 
-app = FastAPI(title="Phantasm - Local Secure Interface")
+app = FastAPI(title="Phasmid - Local Secure Interface")
 
 
 @app.on_event("startup")
@@ -64,16 +64,16 @@ async def startup_self_tests():
 
 templates = Jinja2Templates(directory=str(Path(__file__).with_name("templates")))
 vault = GhostVault("vault.bin")
-WEB_TOKEN = os.environ.get("PHANTASM_WEB_TOKEN") or secrets.token_urlsafe(32)
-MAX_UPLOAD_BYTES = int(os.environ.get("PHANTASM_MAX_UPLOAD_BYTES", 25 * 1024 * 1024))
+WEB_TOKEN = os.environ.get("PHASMID_WEB_TOKEN") or secrets.token_urlsafe(32)
+MAX_UPLOAD_BYTES = int(os.environ.get("PHASMID_MAX_UPLOAD_BYTES", 25 * 1024 * 1024))
 RATE_LIMIT_WINDOW = 60
 RATE_LIMIT_MAX = 20
-FACE_SESSION_COOKIE = "phantasm_ui_session"
-RESTRICTED_SESSION_COOKIE = "phantasm_restricted_session"
+FACE_SESSION_COOKIE = "phasmid_ui_session"
+RESTRICTED_SESSION_COOKIE = "phasmid_restricted_session"
 FACE_FRAME_SAMPLES = 8
 FACE_FRAME_DELAY_SECONDS = 0.10
 RESTRICTED_SESSION_TTL_SECONDS = int(
-    os.environ.get("PHANTASM_RESTRICTED_SESSION_SECONDS", 120)
+    os.environ.get("PHASMID_RESTRICTED_SESSION_SECONDS", 120)
 )
 _restricted_sessions = {}
 _access_attempts = AttemptLimiter()
@@ -258,8 +258,8 @@ def _recent_camera_frames(count=FACE_FRAME_SAMPLES, delay=FACE_FRAME_DELAY_SECON
     return frames
 
 
-def require_web_token(x_phantasm_token: str = Header(default="")):
-    if not secrets.compare_digest(x_phantasm_token, WEB_TOKEN):
+def require_web_token(x_phasmid_token: str = Header(default="")):
+    if not secrets.compare_digest(x_phasmid_token, WEB_TOKEN):
         raise HTTPException(status_code=403, detail=text.INVALID_WEB_TOKEN)
 
 
@@ -453,7 +453,7 @@ async def maintenance_page(request: Request):
             request,
             active="maintenance",
             restricted_confirmed=restricted_confirmed,
-            audit_enabled=os.environ.get("PHANTASM_AUDIT", "0"),
+            audit_enabled=os.environ.get("PHASMID_AUDIT", "0"),
             state_path=(
                 state_dir()
                 if (not field_mode_enabled() or restricted_confirmed)
@@ -576,7 +576,7 @@ async def face_verify(request: Request):
         token,
         max_age=int(
             os.environ.get(
-                "PHANTASM_UI_FACE_SESSION_SECONDS", face_lock.SESSION_TTL_SECONDS
+                "PHASMID_UI_FACE_SESSION_SECONDS", face_lock.SESSION_TTL_SECONDS
             )
         ),
         httponly=True,
@@ -966,7 +966,7 @@ async def diagnostics(request: Request):
                 "hardware_binding": binding_status,
                 "state_directory": state_dir(),
                 "storage_node": _deceptive_path(state_dir()),
-                "audit_enabled": os.environ.get("PHANTASM_AUDIT", "0").lower()
+                "audit_enabled": os.environ.get("PHASMID_AUDIT", "0").lower()
                 not in {"0", "false", "off", "no"},
                 "upload_limit_bytes": MAX_UPLOAD_BYTES,
             }
@@ -989,7 +989,7 @@ async def export_logs(request: Request):
     return StreamingResponse(
         io.BytesIO(data),
         media_type="application/jsonl",
-        headers={"Content-Disposition": "attachment; filename=phantasm-events.jsonl"},
+        headers={"Content-Disposition": "attachment; filename=phasmid-events.jsonl"},
     )
 
 
@@ -1039,8 +1039,8 @@ def create_file_response(content, filename, purge_applied=False):
 
 
 if __name__ == "__main__":
-    host = os.environ.get("PHANTASM_HOST", "127.0.0.1")
-    port = int(os.environ.get("PHANTASM_PORT", "8000"))
+    host = os.environ.get("PHASMID_HOST", "127.0.0.1")
+    port = int(os.environ.get("PHASMID_PORT", "8000"))
     print(f"[WEB] Starting on http://{host}:{port}")
-    print("[WEB] Mutating requests require X-Phantasm-Token from the served UI.")
+    print("[WEB] Mutating requests require X-Phasmid-Token from the served UI.")
     __import__("uvicorn").run(app, host=host, port=port)

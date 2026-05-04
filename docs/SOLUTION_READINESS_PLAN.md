@@ -1,12 +1,12 @@
 # Solution Readiness Plan
 
-This plan defines what must be true before Phantasm should be presented as more than a field-evaluation prototype.
+This plan defines what must be true before Phasmid should be presented as more than a field-evaluation prototype.
 
 The goal is not to add broad new features. The goal is to make the current local-only appliance behavior repeatable, testable, and honestly bounded.
 
 ## Product Boundary
 
-Phantasm may be treated as an operational solution only for deployment conditions that have been tested and recorded.
+Phasmid may be treated as an operational solution only for deployment conditions that have been tested and recorded.
 
 The solution boundary is:
 
@@ -22,7 +22,7 @@ The solution boundary is:
 
 ## Readiness Gates
 
-Phantasm remains a field-evaluation prototype until all of these readiness gates are completed for a release:
+Phasmid remains a field-evaluation prototype until all of these readiness gates are completed for a release:
 
 1. automated tests pass;
 2. Raspberry Pi Zero 2 W field test is completed;
@@ -56,7 +56,7 @@ Each release candidate should record:
 
 ## What Would Change the Status
 
-Phantasm can move from field-evaluation prototype to local appliance solution only after target-hardware validation is recorded.
+Phasmid can move from field-evaluation prototype to local appliance solution only after target-hardware validation is recorded.
 
 Even then, the claim should remain narrow:
 

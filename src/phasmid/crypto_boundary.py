@@ -39,7 +39,7 @@ def random_bytes(length: int):
 def _check_aes_gcm():
     key = bytes.fromhex("00" * 31 + "01")
     nonce = bytes.fromhex("00" * 11 + "01")
-    aad = b"phantasm-self-test"
+    aad = b"phasmid-self-test"
     plaintext = b"local primitive check"
     aesgcm = AESGCM(key)
     ciphertext = aesgcm.encrypt(nonce, plaintext, aad)
@@ -49,8 +49,8 @@ def _check_aes_gcm():
 
 
 def _check_hmac_sha256():
-    digest = hmac.new(b"phantasm", b"self-test", hashlib.sha256).hexdigest()
-    expected = "e22f31e13630eceeca685522387389b16ed3ef5378b55eb4f37871fd72d29cf5"
+    digest = hmac.new(b"phasmid", b"self-test", hashlib.sha256).hexdigest()
+    expected = "03d2b411e899d25f487010c32f26d23dfed38d041c49714ef3709f0388d163a3"
     if not hmac.compare_digest(digest, expected):
         raise CryptoSelfTestError("hmac check failed")
 

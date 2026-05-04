@@ -1,6 +1,6 @@
 # Third-Party Licenses
 
-This file lists third-party Python package licenses for Phantasm.
+This file lists third-party Python package licenses for Phasmid.
 
 Generated with:
 

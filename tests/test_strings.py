@@ -6,7 +6,7 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm import strings
+from phasmid import strings
 
 
 class UserVisibleStringTests(unittest.TestCase):

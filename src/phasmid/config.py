@@ -13,7 +13,7 @@ FACE_ENROLL_FLAG_NAME = "face.enroll"
 
 
 def state_dir():
-    return os.environ.get("PHANTASM_STATE_DIR", DEFAULT_STATE_DIR)
+    return os.environ.get("PHASMID_STATE_DIR", DEFAULT_STATE_DIR)
 
 
 def env_flag(name, default=False):
@@ -24,27 +24,27 @@ def env_flag(name, default=False):
 
 
 def purge_confirmation_required():
-    return env_flag("PHANTASM_PURGE_CONFIRMATION", default=True)
+    return env_flag("PHASMID_PURGE_CONFIRMATION", default=True)
 
 
 def duress_mode_enabled():
-    return env_flag("PHANTASM_DURESS_MODE", default=False)
+    return env_flag("PHASMID_DURESS_MODE", default=False)
 
 
 def ui_face_lock_enabled():
-    return env_flag("PHANTASM_UI_FACE_LOCK", default=False)
+    return env_flag("PHASMID_UI_FACE_LOCK", default=False)
 
 
 def ui_face_enrollment_enabled():
-    return env_flag("PHANTASM_UI_FACE_ENROLL", default=False)
+    return env_flag("PHASMID_UI_FACE_ENROLL", default=False)
 
 
 def field_mode_enabled():
-    return env_flag("PHANTASM_FIELD_MODE", default=False)
+    return env_flag("PHASMID_FIELD_MODE", default=False)
 
 
 def passphrase_min_length():
-    value = os.environ.get("PHANTASM_MIN_PASSPHRASE_LENGTH", "10")
+    value = os.environ.get("PHASMID_MIN_PASSPHRASE_LENGTH", "10")
     try:
         return max(1, int(value))
     except ValueError:
@@ -52,7 +52,7 @@ def passphrase_min_length():
 
 
 def access_max_failures():
-    value = os.environ.get("PHANTASM_ACCESS_MAX_FAILURES", "5")
+    value = os.environ.get("PHASMID_ACCESS_MAX_FAILURES", "5")
     try:
         return max(1, int(value))
     except ValueError:
@@ -60,7 +60,7 @@ def access_max_failures():
 
 
 def access_lockout_seconds():
-    value = os.environ.get("PHANTASM_ACCESS_LOCKOUT_SECONDS", "60")
+    value = os.environ.get("PHASMID_ACCESS_LOCKOUT_SECONDS", "60")
     try:
         return max(1, int(value))
     except ValueError:

@@ -5,7 +5,7 @@ import numpy as np
 
 
 def _display_enabled() -> bool:
-    return os.environ.get("PHANTASM_ENABLE_DISPLAY", "").lower() in {
+    return os.environ.get("PHASMID_ENABLE_DISPLAY", "").lower() in {
         "1",
         "true",
         "yes",
@@ -18,7 +18,7 @@ class GhostUI:
     Whisplay HAT (ST7789) UI Simulator.
 
     The simulator is disabled by default in CI/headless environments.
-    Set PHANTASM_ENABLE_DISPLAY=1 to open an OpenCV preview window.
+    Set PHASMID_ENABLE_DISPLAY=1 to open an OpenCV preview window.
     """
 
     def __init__(self):

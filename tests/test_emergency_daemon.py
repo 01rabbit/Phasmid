@@ -6,7 +6,7 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm.emergency_daemon import EmergencyDaemon
+from phasmid.emergency_daemon import EmergencyDaemon
 
 
 class EmergencyDaemonTests(unittest.TestCase):

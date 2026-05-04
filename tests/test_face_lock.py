@@ -9,7 +9,7 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm.face_lock import FaceUILock
+from phasmid.face_lock import FaceUILock
 
 
 class FaceUILockTests(unittest.TestCase):

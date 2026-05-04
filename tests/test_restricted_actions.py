@@ -5,8 +5,8 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm.capabilities import Capability
-from phantasm.restricted_actions import (
+from phasmid.capabilities import Capability
+from phasmid.restricted_actions import (
     RestrictedActionPolicy,
     RestrictedActionRejected,
     evaluate_restricted_action,

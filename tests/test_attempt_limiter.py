@@ -7,8 +7,8 @@ import sys
 
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm.attempt_limiter import AttemptLimiter, FileAttemptLimiter
-from phantasm.state_store import LocalStateStore
+from phasmid.attempt_limiter import AttemptLimiter, FileAttemptLimiter
+from phasmid.state_store import LocalStateStore
 
 
 class AttemptLimiterTests(unittest.TestCase):

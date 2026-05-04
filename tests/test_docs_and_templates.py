@@ -13,7 +13,7 @@ def read_text(path):
 
 class DocsAndTemplateTests(unittest.TestCase):
     def test_store_template_exposes_metadata_workflow_without_overclaiming(self):
-        store = read_text("src/phantasm/templates/store.html")
+        store = read_text("src/phasmid/templates/store.html")
         self.assertIn("Data minimization", store)
         self.assertIn("Metadata Risk", store)
         self.assertIn("Check metadata risk", store)
@@ -23,12 +23,14 @@ class DocsAndTemplateTests(unittest.TestCase):
 
     def test_readme_links_field_operational_docs(self):
         readme = read_text("README.md")
-        self.assertIn("PHANTASM_FIELD_MODE=1", readme)
+        self.assertIn("PHASMID_FIELD_MODE=1", readme)
         self.assertIn("docs/SOURCE_SAFE_WORKFLOW.md", readme)
         self.assertIn("docs/SEIZURE_REVIEW_CHECKLIST.md", readme)
         self.assertIn("docs/FIELD_TEST_PROCEDURE.md", readme)
         self.assertIn("docs/REVIEW_VALIDATION_RECORD.md", readme)
         self.assertIn("docs/SOLUTION_READINESS_PLAN.md", readme)
+        self.assertIn("docs/JANUS_EIDOLON_SYSTEM.md", readme)
+        self.assertIn("docs/PHASMID_ARCHITECTURE.md", readme)
         self.assertIn("docs/OPERATIONS.md", readme)
         self.assertIn("docs/RESTRICTED_ACTIONS.md", readme)
         self.assertIn("docs/STATE_RECOVERY.md", readme)
@@ -40,13 +42,14 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("Reviewer Notes and Known Limits", readme)
         self.assertIn("Safe Use Boundary", readme)
         self.assertIn("Government and Organizational Use Boundary", readme)
-        self.assertIn("When to Use Phantasm", readme)
+        self.assertIn("When to Use Phasmid", readme)
+        self.assertIn("Janus Eidolon System", readme)
         self.assertIn("Test Command", readme)
         self.assertIn("Release Review Artifacts", readme)
         self.assertIn("python3 -m black --check src tests scripts", readme)
         self.assertIn("python3 -m bandit -r src", readme)
-        self.assertIn("PHANTASM_MIN_PASSPHRASE_LENGTH", readme)
-        self.assertIn("PHANTASM_ACCESS_MAX_FAILURES", readme)
+        self.assertIn("PHASMID_MIN_PASSPHRASE_LENGTH", readme)
+        self.assertIn("PHASMID_ACCESS_MAX_FAILURES", readme)
         self.assertIn("not a validated cryptographic-module certification", readme)
         self.assertIn("not approved classified-data handling infrastructure", readme)
         self.assertIn("Field Mode is not a security boundary", readme)
@@ -57,7 +60,7 @@ class DocsAndTemplateTests(unittest.TestCase):
 
     def test_specification_defines_field_mode_and_metadata_routes(self):
         spec = read_text("docs/SPECIFICATION.md")
-        self.assertIn("PHANTASM_FIELD_MODE=1", spec)
+        self.assertIn("PHASMID_FIELD_MODE=1", spec)
         self.assertIn("/metadata/check", spec)
         self.assertIn("/metadata/scrub", spec)
         self.assertIn("no disk", spec.lower())
@@ -65,8 +68,8 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("Capture-Visible Surface Rule", spec)
         self.assertIn("Stress-Use UX Principle", spec)
         self.assertIn("Field Mode is not a security boundary", spec)
-        self.assertIn("PHANTASM_MIN_PASSPHRASE_LENGTH", spec)
-        self.assertIn("PHANTASM_ACCESS_LOCKOUT_SECONDS", spec)
+        self.assertIn("PHASMID_MIN_PASSPHRASE_LENGTH", spec)
+        self.assertIn("PHASMID_ACCESS_LOCKOUT_SECONDS", spec)
         self.assertIn("Cryptographic Boundary", spec)
         self.assertIn("not a FIPS validation", spec)
 
@@ -97,15 +100,22 @@ class DocsAndTemplateTests(unittest.TestCase):
 
     def test_operations_doc_links_command_checks_and_scenarios(self):
         doc = read_text("docs/OPERATIONS.md")
-        self.assertIn("python3 main.py verify-state", doc)
-        self.assertIn("python3 main.py verify-audit-log", doc)
-        self.assertIn("python3 main.py doctor", doc)
-        self.assertIn(
-            "python3 main.py export-redacted-log --out review-events.jsonl", doc
-        )
+        self.assertIn("phasmid verify-state", doc)
+        self.assertIn("phasmid verify-audit-log", doc)
+        self.assertIn("phasmid doctor", doc)
+        self.assertIn("phasmid export-redacted-log --out review-events.jsonl", doc)
         self.assertIn("tests/test_operations.py", doc)
         self.assertIn("tests/scenarios/restricted_flows.json", doc)
         self.assertIn("tests/test_scenarios.py", doc)
+
+    def test_architecture_docs_define_jes_and_phasmid_boundary(self):
+        janus = read_text("docs/JANUS_EIDOLON_SYSTEM.md")
+        architecture = read_text("docs/PHASMID_ARCHITECTURE.md")
+        self.assertIn("Janus Eidolon System", janus)
+        self.assertIn("Janus System", janus)
+        self.assertIn("Phasmid", architecture)
+        self.assertIn("src/phasmid", architecture)
+        self.assertIn("PHASMID_*", architecture)
 
     def test_review_validation_record_exists(self):
         record = read_text("docs/REVIEW_VALIDATION_RECORD.md")

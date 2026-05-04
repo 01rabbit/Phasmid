@@ -6,7 +6,7 @@ from unittest import mock
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm.capabilities import Capability, active_policy, capability_enabled
+from phasmid.capabilities import Capability, active_policy, capability_enabled
 
 
 class CapabilityPolicyTests(unittest.TestCase):
@@ -19,7 +19,7 @@ class CapabilityPolicyTests(unittest.TestCase):
             self.assertTrue(capability_enabled(Capability.RAPID_LOCAL_CLEAR))
 
     def test_field_mode_reduces_high_risk_capabilities(self):
-        with mock.patch.dict(os.environ, {"PHANTASM_PROFILE": "field"}, clear=True):
+        with mock.patch.dict(os.environ, {"PHASMID_PROFILE": "field"}, clear=True):
             self.assertEqual(active_policy().name, "field")
             self.assertTrue(capability_enabled(Capability.METADATA_CHECK))
             self.assertTrue(capability_enabled(Capability.RESTRICTED_ACTION))
@@ -29,7 +29,7 @@ class CapabilityPolicyTests(unittest.TestCase):
 
     def test_maintenance_mode_rejects_storage_workflow_capabilities(self):
         with mock.patch.dict(
-            os.environ, {"PHANTASM_PROFILE": "maintenance"}, clear=True
+            os.environ, {"PHASMID_PROFILE": "maintenance"}, clear=True
         ):
             self.assertEqual(active_policy().name, "maintenance")
             self.assertFalse(capability_enabled(Capability.METADATA_CHECK))
@@ -38,7 +38,7 @@ class CapabilityPolicyTests(unittest.TestCase):
             self.assertTrue(capability_enabled(Capability.TOKEN_ROTATION))
 
     def test_unknown_mode_falls_back_to_standard(self):
-        with mock.patch.dict(os.environ, {"PHANTASM_PROFILE": "unknown"}, clear=True):
+        with mock.patch.dict(os.environ, {"PHASMID_PROFILE": "unknown"}, clear=True):
             self.assertEqual(active_policy().name, "standard")
 
 

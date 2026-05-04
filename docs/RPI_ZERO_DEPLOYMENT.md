@@ -4,7 +4,7 @@ This is a compact deployment summary. The authoritative appliance deployment gui
 
 This document describes a conservative local appliance deployment for Raspberry Pi Zero 2 W class hardware.
 
-Phantasm should remain local-only. The expected access path is localhost during development or USB Ethernet gadget mode during appliance use. Do not expose the WebUI to an untrusted network.
+Phasmid should remain local-only. The expected access path is localhost during development or USB Ethernet gadget mode during appliance use. Do not expose the WebUI to an untrusted network.
 
 ## Network Posture
 
@@ -17,7 +17,7 @@ Phantasm should remain local-only. The expected access path is localhost during 
 
 ## Service Account
 
-- Run Phantasm as a dedicated unprivileged service user.
+- Run Phasmid as a dedicated unprivileged service user.
 - Keep the runtime state directory owned by that user.
 - Use `0700` for the state directory.
 - Use `0600` for state files.
@@ -46,21 +46,21 @@ Adjust paths and user names for the target image.
 
 ```ini
 [Unit]
-Description=Phantasm local WebUI
+Description=Phasmid local WebUI
 After=network.target
 
 [Service]
 Type=simple
-User=phantasm
-Group=phantasm
-WorkingDirectory=/opt/phantasm
-Environment=PYTHONPATH=/opt/phantasm/src
-Environment=PHANTASM_HOST=127.0.0.1
-Environment=PHANTASM_PORT=8000
-Environment=PHANTASM_FIELD_MODE=1
-Environment=PHANTASM_AUDIT=0
-Environment=PHANTASM_DEBUG=0
-ExecStart=/usr/bin/python3 -m phantasm.web_server
+User=phasmid
+Group=phasmid
+WorkingDirectory=/opt/phasmid
+Environment=PYTHONPATH=/opt/phasmid/src
+Environment=PHASMID_HOST=127.0.0.1
+Environment=PHASMID_PORT=8000
+Environment=PHASMID_FIELD_MODE=1
+Environment=PHASMID_AUDIT=0
+Environment=PHASMID_DEBUG=0
+ExecStart=/usr/bin/python3 -m phasmid.web_server
 Restart=on-failure
 RestartSec=2
 
@@ -68,7 +68,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/phantasm /var/lib/phantasm
+ReadWritePaths=/opt/phasmid /var/lib/phasmid
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 LockPersonality=true
 MemoryDenyWriteExecute=true
@@ -79,10 +79,10 @@ WantedBy=multi-user.target
 
 ## Operational Checklist
 
-- Create a dedicated `phantasm` user.
-- Place code under `/opt/phantasm`.
-- Place runtime state under `/var/lib/phantasm` or another dedicated directory.
-- Set `PHANTASM_STATE_DIR` to that runtime path.
+- Create a dedicated `phasmid` user.
+- Place code under `/opt/phasmid`.
+- Place runtime state under `/var/lib/phasmid` or another dedicated directory.
+- Set `PHASMID_STATE_DIR` to that runtime path.
 - Confirm directory mode `0700`.
 - Confirm state file mode `0600`.
 - Confirm SSH is disabled unless explicitly needed.

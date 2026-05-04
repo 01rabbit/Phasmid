@@ -9,7 +9,7 @@ import zlib
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm.metadata import metadata_risk_report, scrub_metadata
+from phasmid.metadata import metadata_risk_report, scrub_metadata
 
 
 def _make_jpeg_with_exif():

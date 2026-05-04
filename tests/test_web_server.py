@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm import web_server
+from phasmid import web_server
 
 
 class WebServerBoundaryTests(unittest.TestCase):
@@ -656,7 +656,7 @@ class WebServerBoundaryTests(unittest.TestCase):
                 cookies={},
                 url=SimpleNamespace(path="/maintenance/rotate_token"),
             )
-            with mock.patch.dict(os.environ, {"PHANTASM_PROFILE": "field"}, clear=True):
+            with mock.patch.dict(os.environ, {"PHASMID_PROFILE": "field"}, clear=True):
                 with self.assertRaises(HTTPException) as ctx:
                     await web_server.rotate_token(request)
             self.assertEqual(ctx.exception.status_code, 403)

@@ -12,7 +12,7 @@ venv/
 
 # Runtime state and generated secrets
 .state/
-.phantasm/
+.phasmid/
 vault.bin
 *.trigger
 *.key

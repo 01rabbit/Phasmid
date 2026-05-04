@@ -1,4 +1,4 @@
-"""Key Derivation Engine for Phantasm cryptographic operations."""
+"""Key Derivation Engine for Phasmid cryptographic operations."""
 
 import os
 
@@ -26,11 +26,11 @@ class KDFEngine:
         self.state_dir = state_dir
         self.access_key_path = os.path.join(state_dir, VAULT_KEY_NAME)
         self.providers: list[SecretProvider] = [
-            FileSecretProvider(os.environ.get("PHANTASM_HARDWARE_SECRET_FILE", "")),
-            EnvSecretProvider("PHANTASM_HARDWARE_SECRET"),
+            FileSecretProvider(os.environ.get("PHASMID_HARDWARE_SECRET_FILE", "")),
+            EnvSecretProvider("PHASMID_HARDWARE_SECRET"),
             HardwareBindingProvider(),
         ]
-        if os.environ.get("PHANTASM_HARDWARE_SECRET_PROMPT") == "1":
+        if os.environ.get("PHASMID_HARDWARE_SECRET_PROMPT") == "1":
             self.providers.append(PromptSecretProvider())
 
     def derive_key(

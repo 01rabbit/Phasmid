@@ -8,7 +8,7 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm import cli
+from phasmid import cli
 
 
 class CLITests(unittest.TestCase):
@@ -169,7 +169,7 @@ class CLITests(unittest.TestCase):
                 return type("Decision", (), {"allowed": False})()
 
         with (
-            unittest.mock.patch.object(sys, "argv", ["phantasm", "retrieve"]),
+            unittest.mock.patch.object(sys, "argv", ["phasmid", "retrieve"]),
             unittest.mock.patch.object(
                 cli, "_wait_for_camera_frame", return_value=True
             ),

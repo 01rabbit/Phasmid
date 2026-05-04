@@ -1,8 +1,14 @@
-# Phantasm
+# Phasmid
 
-Phantasm is a field-evaluation prototype for local-only coercion-aware storage. It explores how visible disclosure and protected local state can diverge when device seizure and compelled access are practical risks.
+<p align="center">
+  <img src="images/Phasmid_logo.png" alt="Phasmid logo" width="200">
+</p>
 
-Phantasm is research software. It is not a replacement for full-disk encryption, hardware-backed key storage, an audited classified-data handling system, or a complete solution to compelled disclosure.
+Phasmid is a field-evaluation prototype for local-only coercion-aware storage.
+
+It is the reference implementation of the Janus Eidolon System, a two-slot local storage architecture designed to separate visible disclosure from protected local state under practical risks such as device seizure, compelled access, and over-disclosure.
+
+Phasmid is research software. It is not a replacement for full-disk encryption, hardware-backed key storage, an audited classified-data handling system, or a complete solution to compelled disclosure.
 
 ## What It Does
 
@@ -17,29 +23,29 @@ Phantasm is research software. It is not a replacement for full-disk encryption,
 - Includes metadata risk check workflows for metadata-reduced copy review.
 - Metadata detection and reduction are best-effort.
 
-Phantasm does not promise perfect deniability. It reduces operational damage in some compelled-access scenarios by separating access conditions, local state, physical-object cues, and restricted recovery behavior.
+Phasmid does not promise perfect deniability. It reduces operational damage in some compelled-access scenarios by separating access conditions, local state, physical-object cues, and restricted recovery behavior.
 
 ## Philosophy
 
-Phantasm follows a simple rule: no lies, no unnecessary truth.
+Phasmid follows a simple rule: no lies, no unnecessary truth.
 
 The interface should report what the user needs to complete the current operation, but it should not reveal the internal disclosure model, storage structure, trial order, or restricted recovery behavior.
 
 Honest interface. Silent structure.
 
-Phantasm is not field-proven until it has been validated on target hardware with the Field Test Procedure and Seizure Review Checklist.
+Phasmid is not field-proven until it has been validated on target hardware with the Field Test Procedure and Seizure Review Checklist.
 
-## When to Use Phantasm
+## When to Use Phasmid
 
-Use Phantasm when the problem is not merely file encryption, but compelled access, device seizure, over-disclosure, metadata risk, or local UI/log leakage.
+Use Phasmid when the problem is not merely file encryption, but compelled access, device seizure, over-disclosure, metadata risk, or local UI/log leakage.
 
 If your only requirement is normal file encryption on a trusted device, a mature full-disk encryption system, password manager, or audited file-encryption tool may be more appropriate.
 
-Phantasm is intentionally specialized. It is not designed to be the simplest way to encrypt files.
+Phasmid is intentionally specialized. It is not designed to be the simplest way to encrypt files.
 
 ## From Prototype to Solution
 
-Phantasm should not become a stronger product by claiming more. It becomes stronger by making its operating boundary repeatable, testable, and boring.
+Phasmid should not become a stronger product by claiming more. It becomes stronger by making its operating boundary repeatable, testable, and boring.
 
 The path from field-evaluation prototype to operational solution is:
 
@@ -51,13 +57,13 @@ The path from field-evaluation prototype to operational solution is:
 6. record validation results for each release;
 7. publish only claims that are covered by tests or documented limits.
 
-Run the WebUI in Field Mode by setting `PHANTASM_FIELD_MODE=1`. Field Mode reduces normal exposure in capture-visible workflows, but it is not a security boundary. Field Mode is not a security boundary.
+Run the WebUI in Field Mode by setting `PHASMID_FIELD_MODE=1`. Field Mode reduces normal exposure in capture-visible workflows, but it is not a security boundary. Field Mode is not a security boundary.
 
-Until those validation gates are completed on target hardware, Phantasm should be described as a field-evaluation prototype. After those gates are completed and recorded, it can be described as a local coercion-aware storage appliance for the validated deployment conditions.
+Until those validation gates are completed on target hardware, Phasmid should be described as a field-evaluation prototype. After those gates are completed and recorded, it can be described as a local coercion-aware storage appliance for the validated deployment conditions.
 
 ## Safe Use Boundary
 
-Phantasm is intended for lawful local protection of sensitive material where device seizure, compelled access, or over-disclosure are realistic risks.
+Phasmid is intended for lawful local protection of sensitive material where device seizure, compelled access, or over-disclosure are realistic risks.
 
 It is appropriate for:
 
@@ -82,15 +88,15 @@ It is not intended for:
 
 ## Government and Organizational Use Boundary
 
-Phantasm is not approved classified-data handling infrastructure. It does not replace organizational records-management systems, certified encryption products, HSM-backed key management, full-disk encryption, or formal classified-data procedures.
+Phasmid is not approved classified-data handling infrastructure. It does not replace organizational records-management systems, certified encryption products, HSM-backed key management, full-disk encryption, or formal classified-data procedures.
 
-Use of Phantasm in government or organizational environments must follow applicable law, policy, records-retention requirements, and classification rules. Phantasm is intended for local field-evaluation and harm-reduction workflows, not as a substitute for approved systems of record.
+Use of Phasmid in government or organizational environments must follow applicable law, policy, records-retention requirements, and classification rules. Phasmid is intended for local field-evaluation and harm-reduction workflows, not as a substitute for approved systems of record.
 
 ## Reviewer Notes and Known Limits
 
-Phantasm is intentionally narrow.
+Phasmid is intentionally narrow.
 
-Configurable runtime parameters include `PHANTASM_FIELD_MODE=1`, `PHANTASM_MIN_PASSPHRASE_LENGTH`, and `PHANTASM_ACCESS_MAX_FAILURES`.
+Configurable runtime parameters include `PHASMID_FIELD_MODE=1`, `PHASMID_MIN_PASSPHRASE_LENGTH`, and `PHASMID_ACCESS_MAX_FAILURES`.
 
 Operational review and deployment guidance can be found in:
 
@@ -99,13 +105,15 @@ Operational review and deployment guidance can be found in:
 - `docs/FIELD_TEST_PROCEDURE.md`
 - `docs/REVIEW_VALIDATION_RECORD.md`
 - `docs/SOLUTION_READINESS_PLAN.md`
+- `docs/JANUS_EIDOLON_SYSTEM.md`
+- `docs/PHASMID_ARCHITECTURE.md`
 - `docs/OPERATIONS.md`
 - `docs/RESTRICTED_ACTIONS.md`
 - `docs/STATE_RECOVERY.md`
 
 This README is part of the authoritative appliance deployment guide and review workflow. Release Review Artifacts are generated by the CI pipeline to support review. This is not a validated cryptographic-module certification.
 
-Phantasm does not provide:
+Phasmid does not provide:
 
 - perfect deniability,
 - guaranteed secure deletion,
@@ -125,8 +133,8 @@ Phantasm does not provide:
 
 ```text
 .
-├── main.py                  # Compatibility CLI launcher
-├── src/phantasm/            # Application package
+├── main.py                  # Local CLI launcher
+├── src/phasmid/            # Application package
 │   ├── cli.py
 │   ├── gv_core.py
 │   ├── ai_gate.py
@@ -153,59 +161,59 @@ pip install -r requirements.txt
 Initialize a container:
 
 ```bash
-python3 main.py init
+phasmid init
 ```
 
 Store a file:
 
 ```bash
-python3 main.py store --entry a --file path/to/file
-python3 main.py store --entry b --file path/to/file
+phasmid store --entry a --file path/to/file
+phasmid store --entry b --file path/to/file
 ```
 
-The CLI keeps a compact entry selector for compatibility. The WebUI uses neutral entry-based language and does not expose the internal storage model during normal operation.
+The CLI keeps a compact entry selector. The WebUI uses neutral entry-based language and does not expose the internal storage model during normal operation.
 
 Retrieve a file:
 
 ```bash
-python3 main.py retrieve --out output.bin
+phasmid retrieve --out output.bin
 ```
 
 Clear the local access path:
 
 ```bash
-python3 main.py brick
+phasmid brick
 ```
 
 Reset the optional UI face lock from the CLI:
 
 ```bash
-python3 main.py reset-face-lock
+phasmid reset-face-lock
 ```
 
 This operation has no WebUI route. It requires the confirmation phrase `RESET FACE LOCK AND VAULT`, clears the enrolled face-lock template, rotates the local access key, initializes `vault.bin`, and clears physical-object bindings. Use it when the local UI user changes and stored data must be treated as no longer valid.
 
-After a successful reset, Phantasm creates a short-lived local enrollment request. If the WebUI is already running, reload `/ui-lock` to register the new face lock.
+After a successful reset, Phasmid creates a short-lived local enrollment request. If the WebUI is already running, reload `/ui-lock` to register the new face lock.
 
 Local operations checks:
 
 ```bash
-python3 main.py verify-state
-python3 main.py verify-audit-log
-python3 main.py doctor
-python3 main.py export-redacted-log --out review-events.jsonl
+phasmid verify-state
+phasmid verify-audit-log
+phasmid doctor
+phasmid export-redacted-log --out review-events.jsonl
 ```
 
 These commands report neutral readiness and audit-review status without printing local paths in normal output.
 
-New local state checks use a typed state-store helper for atomic writes, restrictive permissions, and transition validation. Existing vault and object-cue state files remain compatibility-managed by their owning modules.
+New local state checks use a typed state-store helper for atomic writes, restrictive permissions, and transition validation. Existing vault and object-cue state files remain managed by their owning modules until a documented state migration replaces them.
 
 When audit logging is enabled, new audit records include sequence and integrity fields for local review. Audit logging remains disabled by default because audit records can create additional local metadata.
 
 ## WebUI v2
 
 ```bash
-PYTHONPATH=src python3 -m phantasm.web_server
+PYTHONPATH=src python3 -m phasmid.web_server
 ```
 
 Open `http://127.0.0.1:8000`.
@@ -218,6 +226,8 @@ Common WebUI/API wording is centralized where practical so terminology checks ca
 
 ```bash
 python3 -m unittest discover -s tests
+python3 -m black --check src tests scripts
+python3 -m bandit -r src
 ```
 
 Static check commands:
@@ -234,7 +244,7 @@ python3 -m coverage run --source=src -m unittest discover -s tests
 python3 -m coverage report -m
 ```
 
-For compatibility with existing documentation checks:
+Alternative short coverage command:
 
 ```bash
 coverage run -m unittest discover -s tests
@@ -247,8 +257,8 @@ Passing automated tests do not prove field safety. They verify expected local be
 
 ## License
 
-Phantasm is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
+Phasmid is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
 
 Third-party dependency licenses are listed in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 
-Phantasm is research software. The license grants software-use rights; it does not imply operational approval, field validation, classified-data handling approval, or suitability for any specific deployment.
+Phasmid is research software. The license grants software-use rights; it does not imply operational approval, field validation, classified-data handling approval, or suitability for any specific deployment.

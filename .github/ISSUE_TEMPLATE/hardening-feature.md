@@ -1,6 +1,6 @@
 ---
 name: "Security Hardening Feature"
-about: "Track a bounded local security hardening improvement for Phantasm"
+about: "Track a bounded local security hardening improvement for Phasmid"
 title: "[FEAT] "
 labels: ["hardening", "security"]
 assignees: []

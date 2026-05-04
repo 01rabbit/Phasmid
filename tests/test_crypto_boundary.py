@@ -6,7 +6,7 @@ from unittest import mock
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm import crypto_boundary
+from phasmid import crypto_boundary
 
 
 class CryptoBoundaryTests(unittest.TestCase):

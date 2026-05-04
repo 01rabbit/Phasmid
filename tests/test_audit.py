@@ -8,8 +8,8 @@ from unittest import mock
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm import audit
-from phantasm.config import AUDIT_LOG_NAME
+from phasmid import audit
+from phasmid.config import AUDIT_LOG_NAME
 
 
 class AuditTests(unittest.TestCase):
@@ -18,9 +18,9 @@ class AuditTests(unittest.TestCase):
             with mock.patch.dict(
                 os.environ,
                 {
-                    "PHANTASM_STATE_DIR": tmp,
-                    "PHANTASM_AUDIT": "1",
-                    "PHANTASM_AUDIT_FILENAMES": "hash",
+                    "PHASMID_STATE_DIR": tmp,
+                    "PHASMID_AUDIT": "1",
+                    "PHASMID_AUDIT_FILENAMES": "hash",
                 },
             ):
                 audit.audit_event(
@@ -51,7 +51,7 @@ class AuditTests(unittest.TestCase):
 
     def test_audit_is_disabled_by_default(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with mock.patch.dict(os.environ, {"PHANTASM_STATE_DIR": tmp}, clear=True):
+            with mock.patch.dict(os.environ, {"PHASMID_STATE_DIR": tmp}, clear=True):
                 audit.audit_event("payload_stored", filename="payload-name.txt")
 
             self.assertFalse(os.path.exists(os.path.join(tmp, AUDIT_LOG_NAME)))
@@ -59,7 +59,7 @@ class AuditTests(unittest.TestCase):
     def test_audit_omits_filename_hash_by_default_when_enabled(self):
         with tempfile.TemporaryDirectory() as tmp:
             with mock.patch.dict(
-                os.environ, {"PHANTASM_STATE_DIR": tmp, "PHANTASM_AUDIT": "1"}
+                os.environ, {"PHASMID_STATE_DIR": tmp, "PHASMID_AUDIT": "1"}
             ):
                 audit.audit_event("payload_stored", filename="payload-name.txt")
 
@@ -75,7 +75,7 @@ class AuditTests(unittest.TestCase):
     def test_audit_integrity_detects_tamper(self):
         with tempfile.TemporaryDirectory() as tmp:
             with mock.patch.dict(
-                os.environ, {"PHANTASM_STATE_DIR": tmp, "PHANTASM_AUDIT": "1"}
+                os.environ, {"PHASMID_STATE_DIR": tmp, "PHASMID_AUDIT": "1"}
             ):
                 audit.audit_event("payload_stored", bytes=10)
                 audit.audit_event("payload_retrieved", bytes=10)
@@ -97,7 +97,7 @@ class AuditTests(unittest.TestCase):
     def test_audit_integrity_detects_deleted_record(self):
         with tempfile.TemporaryDirectory() as tmp:
             with mock.patch.dict(
-                os.environ, {"PHANTASM_STATE_DIR": tmp, "PHANTASM_AUDIT": "1"}
+                os.environ, {"PHASMID_STATE_DIR": tmp, "PHASMID_AUDIT": "1"}
             ):
                 audit.audit_event("payload_stored", bytes=10)
                 audit.audit_event("payload_retrieved", bytes=10)

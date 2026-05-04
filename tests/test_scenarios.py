@@ -12,9 +12,9 @@ from fastapi import HTTPException
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm import strings, web_server
-from phantasm.capabilities import Capability
-from phantasm.restricted_actions import (
+from phasmid import strings, web_server
+from phasmid.capabilities import Capability
+from phasmid.restricted_actions import (
     RestrictedActionPolicy,
     RestrictedActionRejected,
     evaluate_restricted_action,

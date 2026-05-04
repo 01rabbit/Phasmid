@@ -9,7 +9,7 @@ from unittest import mock
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm.kdf_engine import KDFEngine
+from phasmid.kdf_engine import KDFEngine
 
 
 class KDFEngineTests(unittest.TestCase):
@@ -33,9 +33,7 @@ class KDFEngineTests(unittest.TestCase):
         with open(secret_file, "wb") as f:
             f.write(b"hardware_secret")
 
-        with mock.patch.dict(
-            os.environ, {"PHANTASM_HARDWARE_SECRET_FILE": secret_file}
-        ):
+        with mock.patch.dict(os.environ, {"PHASMID_HARDWARE_SECRET_FILE": secret_file}):
             key1 = self.engine.derive_key(
                 password="test",
                 gesture_sequence=["a"],
@@ -53,7 +51,7 @@ class KDFEngineTests(unittest.TestCase):
             self.assertEqual(key1, key2)  # Deterministic with same inputs
 
     def test_derive_key_with_hardware_secret_env(self):
-        with mock.patch.dict(os.environ, {"PHANTASM_HARDWARE_SECRET": "env_secret"}):
+        with mock.patch.dict(os.environ, {"PHASMID_HARDWARE_SECRET": "env_secret"}):
             key = self.engine.derive_key(
                 password="test",
                 gesture_sequence=["a"],

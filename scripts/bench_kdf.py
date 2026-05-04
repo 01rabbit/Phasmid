@@ -8,7 +8,7 @@ import time
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm.gv_core import GhostVault
+from phasmid.gv_core import GhostVault
 
 
 def main():

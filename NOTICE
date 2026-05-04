@@ -1,7 +1,7 @@
-Phantasm
+Phasmid
 Copyright 2026 01rabbit
 
-Phantasm is a field-evaluation prototype for local-only coercion-aware storage.
+Phasmid is a field-evaluation prototype for local-only coercion-aware storage.
 
 This software is research software and is not a replacement for full-disk encryption,
 hardware-backed key storage, audited classified-data handling systems, organizational

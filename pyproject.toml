@@ -1,3 +1,12 @@
+[project]
+name = "phasmid"
+version = "0.1.0"
+description = "Phasmid local-only coercion-aware storage prototype"
+requires-python = ">=3.10"
+
+[project.scripts]
+phasmid = "phasmid.cli:main"
+
 [tool.ruff]
 line-length = 88
 target-version = "py310"
@@ -48,7 +57,7 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = [
-    "phantasm.ai_gate",
-    "phantasm.face_lock"
+    "phasmid.ai_gate",
+    "phasmid.face_lock"
 ]
 ignore_errors = true

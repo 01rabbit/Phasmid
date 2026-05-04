@@ -1,15 +1,15 @@
 # Raspberry Pi Zero 2 W Appliance Deployment
 
-This is the authoritative Raspberry Pi Zero 2 W appliance deployment guide for Phantasm.
+This is the authoritative Raspberry Pi Zero 2 W appliance deployment guide for Phasmid.
 
 This deployment plan reduces exposed services and local leakage for Raspberry Pi Zero 2 W class hardware. It does not provide physical tamper resistance, anti-forensic guarantees, or hardware-grade secure storage.
 
 ## Base System
 
 - Use Raspberry Pi OS Lite with only required packages installed.
-- Create a dedicated `phantasm` system user.
-- Place the application under `/opt/phantasm`.
-- Place runtime state under `/var/lib/phantasm` or another dedicated local directory.
+- Create a dedicated `phasmid` system user.
+- Place the application under `/opt/phasmid`.
+- Place runtime state under `/var/lib/phasmid` or another dedicated local directory.
 - Set `umask 077` for provisioning and service execution.
 - Keep the configured state directory mode `0700`.
 - Keep sensitive state files mode `0600`.
@@ -70,19 +70,19 @@ In `/boot/cmdline.txt`, add `consoleblank=0 loglevel=1 quiet` and remove `consol
 ## Recommended Environment
 
 ```text
-PHANTASM_FIELD_MODE=1
-PHANTASM_AUDIT=0
-PHANTASM_DEBUG=0
-PHANTASM_HOST=127.0.0.1
-PHANTASM_PORT=8000
-PHANTASM_STATE_DIR=/var/lib/phantasm
+PHASMID_FIELD_MODE=1
+PHASMID_AUDIT=0
+PHASMID_DEBUG=0
+PHASMID_HOST=127.0.0.1
+PHASMID_PORT=8000
+PHASMID_STATE_DIR=/var/lib/phasmid
 ```
 
-For high-risk deployments, do not store all recovery conditions on the same physical medium. Phantasm is strongest when the encrypted container, local state, memorized password, physical-object cue, and optional external key material are separated.
+For high-risk deployments, do not store all recovery conditions on the same physical medium. Phasmid is strongest when the encrypted container, local state, memorized password, physical-object cue, and optional external key material are separated.
 
 ## systemd Service
 
-An example unit is provided at `contrib/systemd/phantasm.service`.
+An example unit is provided at `contrib/systemd/phasmid.service`.
 
 Recommended hardening options include:
 
@@ -91,7 +91,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/phantasm /var/lib/phantasm /run/phantasm
+ReadWritePaths=/opt/phasmid /var/lib/phasmid /run/phasmid
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 SystemCallFilter=@system-service
 UMask=0077
@@ -119,55 +119,55 @@ Example policy goals:
 
 ## Key Material and Storage
 
-On flash media, complete overwrite-based deletion cannot be guaranteed across every storage layer. Phantasm therefore treats restricted recovery primarily as key-path invalidation and key-material destruction, with best-effort overwrite as a secondary measure.
+On flash media, complete overwrite-based deletion cannot be guaranteed across every storage layer. Phasmid therefore treats restricted recovery primarily as key-path invalidation and key-material destruction, with best-effort overwrite as a secondary measure.
 
-External key material can be supplied with `PHANTASM_HARDWARE_SECRET_FILE` or `PHANTASM_HARDWARE_SECRET_PROMPT=1`. For high-risk deployment, store external key material away from the same SD card that holds `vault.bin` and the state directory.
+External key material can be supplied with `PHASMID_HARDWARE_SECRET_FILE` or `PHASMID_HARDWARE_SECRET_PROMPT=1`. For high-risk deployment, store external key material away from the same SD card that holds `vault.bin` and the state directory.
 
 ## Optional LUKS Storage Layer
 
-An optional dm-crypt/LUKS2 layer can be used as defense in depth for appliance deployments. This is not a compliance claim and does not make Phantasm certified data-at-rest infrastructure.
+An optional dm-crypt/LUKS2 layer can be used as defense in depth for appliance deployments. This is not a compliance claim and does not make Phasmid certified data-at-rest infrastructure.
 
 Use this only after confirming the target SD card layout. The commands below can erase data if pointed at the wrong device.
 
 Recommended placement:
 
-- dedicate a separate partition or external local volume for Phantasm runtime data;
-- mount it at `/var/lib/phantasm-secure` or another dedicated path;
-- set `PHANTASM_STATE_DIR` to a directory on that mounted volume;
+- dedicate a separate partition or external local volume for Phasmid runtime data;
+- mount it at `/var/lib/phasmid-secure` or another dedicated path;
+- set `PHASMID_STATE_DIR` to a directory on that mounted volume;
 - keep `vault.bin` on the same encrypted volume or another encrypted local path;
-- use a storage-layer passphrase that is different from Phantasm access passwords.
+- use a storage-layer passphrase that is different from Phasmid access passwords.
 
 Example setup outline:
 
 ```bash
 sudo cryptsetup luksFormat --type luks2 /dev/mmcblk0p3
-sudo cryptsetup luksOpen /dev/mmcblk0p3 phantasm-state
-sudo mkfs.ext4 -m 0 /dev/mapper/phantasm-state
-sudo mkdir -p /var/lib/phantasm-secure
-sudo mount /dev/mapper/phantasm-state /var/lib/phantasm-secure
-sudo mkdir -p /var/lib/phantasm-secure/.state
-sudo chown -R phantasm:phantasm /var/lib/phantasm-secure
-sudo chmod 0700 /var/lib/phantasm-secure /var/lib/phantasm-secure/.state
+sudo cryptsetup luksOpen /dev/mmcblk0p3 phasmid-state
+sudo mkfs.ext4 -m 0 /dev/mapper/phasmid-state
+sudo mkdir -p /var/lib/phasmid-secure
+sudo mount /dev/mapper/phasmid-state /var/lib/phasmid-secure
+sudo mkdir -p /var/lib/phasmid-secure/.state
+sudo chown -R phasmid:phasmid /var/lib/phasmid-secure
+sudo chmod 0700 /var/lib/phasmid-secure /var/lib/phasmid-secure/.state
 ```
 
 Service environment example:
 
 ```ini
-Environment=PHANTASM_STATE_DIR=/var/lib/phantasm-secure/.state
-WorkingDirectory=/var/lib/phantasm-secure
-ReadWritePaths=/var/lib/phantasm-secure
+Environment=PHASMID_STATE_DIR=/var/lib/phasmid-secure/.state
+WorkingDirectory=/var/lib/phasmid-secure
+ReadWritePaths=/var/lib/phasmid-secure
 ```
 
 Boot and service ordering:
 
-- The encrypted volume must be opened and mounted before `phantasm.service` starts.
+- The encrypted volume must be opened and mounted before `phasmid.service` starts.
 - If the volume is unavailable, the service should fail closed rather than create a fallback state directory on unencrypted storage.
 - Record the mount procedure in the deployment notes.
 - Test reboot, mount failure, and no-network startup before field evaluation.
 
 Recovery and backup notes:
 
-- Losing the LUKS passphrase can make the local Phantasm state unavailable.
+- Losing the LUKS passphrase can make the local Phasmid state unavailable.
 - Backups of the encrypted volume should be handled as sensitive local media.
-- Do not store storage-layer passphrases, Phantasm access passwords, and optional external key material together.
+- Do not store storage-layer passphrases, Phasmid access passwords, and optional external key material together.
 - SD card cloning can copy encrypted containers and stale state; review cloned media before reuse.

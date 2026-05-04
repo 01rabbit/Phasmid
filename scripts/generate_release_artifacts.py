@@ -119,7 +119,7 @@ def write_sbom(base_dir: Path, output_path: Path):
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "component": {
                 "type": "application",
-                "name": "phantasm-vault",
+                "name": "phasmid-vault",
             },
         },
         "components": [dependency_component(dependency) for dependency in dependencies],
@@ -149,7 +149,7 @@ def generate(base_dir: Path, output_dir: Path, archive: bool = False):
     sbom = write_sbom(base_dir, sbom_path)
     archive_path = None
     if archive:
-        archive_path = output_dir / "phantasm-release.tar.gz"
+        archive_path = output_dir / "phasmid-release.tar.gz"
         write_archive(base_dir, archive_path, files)
 
     summary = {

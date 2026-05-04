@@ -1,6 +1,6 @@
 ---
 name: "Security Analysis"
-about: "Analyze a Phantasm component or workflow using a structured threat model"
+about: "Analyze a Phasmid component or workflow using a structured threat model"
 title: "[ANALYSIS] "
 labels: ["security", "threat-analysis"]
 assignees: []

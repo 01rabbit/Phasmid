@@ -10,8 +10,8 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm import strings as text
-from phantasm.ai_gate import AIGate
+from phasmid import strings as text
+from phasmid.ai_gate import AIGate
 
 
 class AIGateTemplateTests(unittest.TestCase):
@@ -130,7 +130,7 @@ class AIGateTemplateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             gate = AIGate(reference_dir=tmp)
             secret = "my_custom_secret"
-            with mock.patch.dict(os.environ, {"PHANTASM_STATE_SECRET": secret}):
+            with mock.patch.dict(os.environ, {"PHASMID_STATE_SECRET": secret}):
                 key = gate._state_encryption_key()
                 import hashlib
 

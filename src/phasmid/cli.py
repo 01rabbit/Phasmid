@@ -225,7 +225,7 @@ def _run_startup_checks():
 def main():
     if not _run_startup_checks():
         return
-    parser = argparse.ArgumentParser(description="Phantasm - Local Protected Storage")
+    parser = argparse.ArgumentParser(description="Phasmid - Local Protected Storage")
     parser.add_argument(
         "action",
         choices=[

@@ -88,7 +88,7 @@ class FaceUILock:
             "expires_at": time.time()
             + int(
                 os.environ.get(
-                    "PHANTASM_UI_FACE_SESSION_SECONDS", self.SESSION_TTL_SECONDS
+                    "PHASMID_UI_FACE_SESSION_SECONDS", self.SESSION_TTL_SECONDS
                 )
             ),
         }
@@ -146,7 +146,7 @@ class FaceUILock:
             return False
         if now - created_at > int(
             os.environ.get(
-                "PHANTASM_UI_FACE_ENROLL_SECONDS", self.ENROLLMENT_TTL_SECONDS
+                "PHASMID_UI_FACE_ENROLL_SECONDS", self.ENROLLMENT_TTL_SECONDS
             )
         ):
             self.clear_enrollment_request()
@@ -246,7 +246,7 @@ class FaceUILock:
         )
 
     def _state_encryption_key(self):
-        external_value = os.environ.get("PHANTASM_STATE_SECRET")
+        external_value = os.environ.get("PHASMID_STATE_SECRET")
         if external_value:
             return hashlib.sha256(external_value.encode("utf-8")).digest()
         return hashlib.sha256(
@@ -270,7 +270,7 @@ class FaceUILock:
         return key
 
     def _aad(self):
-        return b"phantasm-ui-face-lock:v1"
+        return b"phasmid-ui-face-lock:v1"
 
     def _correlation(self, left, right):
         left_flat = left.reshape(-1)

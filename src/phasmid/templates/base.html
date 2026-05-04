@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Phantasm{% endblock %}</title>
+    <title>{% block title %}Phasmid{% endblock %}</title>
     <style>
         :root {
             --bg: #0e1116;
@@ -174,7 +174,7 @@
     <main class="shell">
         <header class="topbar">
             <div class="brand">
-                <h1>Phantasm</h1>
+                <h1>Phasmid</h1>
                 <p>Local-only protected storage interface</p>
             </div>
             {% if active != "lock" %}
@@ -204,7 +204,7 @@
 
         async function apiFetch(url, options = {}) {
             const headers = options.headers || {};
-            headers['X-Phantasm-Token'] = webToken;
+            headers['X-Phasmid-Token'] = webToken;
             return fetch(url, { ...options, headers });
         }
 

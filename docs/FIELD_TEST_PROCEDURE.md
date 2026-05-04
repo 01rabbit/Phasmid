@@ -12,8 +12,8 @@ Physical shock resistance and tamper-resistant casing are out of scope for the R
 - Confirm audit is disabled by default.
 - Confirm debug is disabled by default.
 - Confirm Field Mode is enabled for appliance evaluation.
-- If the optional LUKS storage layer is used, confirm the encrypted volume opens and mounts before Phantasm starts.
-- If the optional LUKS storage layer is used, confirm Phantasm fails closed when the encrypted volume is not mounted.
+- If the optional LUKS storage layer is used, confirm the encrypted volume opens and mounts before Phasmid starts.
+- If the optional LUKS storage layer is used, confirm Phasmid fails closed when the encrypted volume is not mounted.
 
 ## Store and Retrieve
 

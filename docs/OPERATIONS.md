@@ -9,7 +9,7 @@ These commands do not unlock protected entries, do not perform restricted action
 Check local state readiness:
 
 ```bash
-python3 main.py verify-state
+phasmid verify-state
 ```
 
 On hosts that expose device-binding inputs, `verify-state` also reports whether local hardware binding material is available and whether a supplemental key-material source has been configured.
@@ -25,7 +25,7 @@ verify-state: ready
 Check the optional audit log:
 
 ```bash
-python3 main.py verify-audit-log
+phasmid verify-audit-log
 ```
 
 If audit logging is disabled or no audit log is present, the command reports `not_enabled`. This is not a failure by itself because audit logging is disabled by default for field deployments.
@@ -35,13 +35,13 @@ When audit records include integrity fields, `verify-audit-log` also checks the 
 Summarize local health:
 
 ```bash
-python3 main.py doctor
+phasmid doctor
 ```
 
 Export a redacted audit log for review:
 
 ```bash
-python3 main.py export-redacted-log --out review-events.jsonl
+phasmid export-redacted-log --out review-events.jsonl
 ```
 
 The redacted export uses a fixed schema and omits detailed fields that could reveal file labels, local paths, or operational grouping.

@@ -22,27 +22,27 @@ USER_FACING_FILES = [
     "docs/OPERATIONS.md",
     "docs/RESTRICTED_ACTIONS.md",
     "docs/STATE_RECOVERY.md",
-    "contrib/systemd/phantasm.service",
+    "contrib/systemd/phasmid.service",
 ]
 
-TEMPLATE_DIR = os.path.join(ROOT, "src", "phantasm", "templates")
+TEMPLATE_DIR = os.path.join(ROOT, "src", "phasmid", "templates")
 PYTHON_BOUNDARY_FILES = [
-    "src/phantasm/web_server.py",
-    "src/phantasm/cli.py",
-    "src/phantasm/audit.py",
-    "src/phantasm/capabilities.py",
-    "src/phantasm/emergency_daemon.py",
-    "src/phantasm/config.py",
-    "src/phantasm/metadata.py",
-    "src/phantasm/bridge_ui.py",
-    "src/phantasm/face_lock.py",
-    "src/phantasm/restricted_actions.py",
-    "src/phantasm/strings.py",
-    "src/phantasm/operations.py",
-    "src/phantasm/state_store.py",
-    "src/phantasm/passphrase_policy.py",
-    "src/phantasm/attempt_limiter.py",
-    "src/phantasm/crypto_boundary.py",
+    "src/phasmid/web_server.py",
+    "src/phasmid/cli.py",
+    "src/phasmid/audit.py",
+    "src/phasmid/capabilities.py",
+    "src/phasmid/emergency_daemon.py",
+    "src/phasmid/config.py",
+    "src/phasmid/metadata.py",
+    "src/phasmid/bridge_ui.py",
+    "src/phasmid/face_lock.py",
+    "src/phasmid/restricted_actions.py",
+    "src/phasmid/strings.py",
+    "src/phasmid/operations.py",
+    "src/phasmid/state_store.py",
+    "src/phasmid/passphrase_policy.py",
+    "src/phasmid/attempt_limiter.py",
+    "src/phasmid/crypto_boundary.py",
 ]
 
 FORBIDDEN_PATTERNS = [
@@ -91,17 +91,17 @@ class TerminologyAuditTests(unittest.TestCase):
     def test_all_python_modules_are_classified_for_terminology_audit(self):
         all_modules = {
             os.path.relpath(path, ROOT)
-            for path in glob.glob(os.path.join(ROOT, "src", "phantasm", "*.py"))
+            for path in glob.glob(os.path.join(ROOT, "src", "phasmid", "*.py"))
         }
         scanned = set(PYTHON_BOUNDARY_FILES)
         internal_allowlist = {
-            "src/phantasm/__init__.py",
-            "src/phantasm/ai_gate.py",
-            "src/phantasm/gv_core.py",
-            "src/phantasm/kdf_engine.py",
-            "src/phantasm/record_cypher.py",
-            "src/phantasm/container_layout.py",
-            "src/phantasm/kdf_providers.py",
+            "src/phasmid/__init__.py",
+            "src/phasmid/ai_gate.py",
+            "src/phasmid/gv_core.py",
+            "src/phasmid/kdf_engine.py",
+            "src/phasmid/record_cypher.py",
+            "src/phasmid/container_layout.py",
+            "src/phasmid/kdf_providers.py",
         }
         self.assertEqual(all_modules, scanned | internal_allowlist)
 
@@ -157,12 +157,12 @@ def _scan_paths(paths):
 
 def _line_is_allowed(line):
     return bool(
-        re.search(r"PHANTASM_[A-Z_]*SECRET", line)
+        re.search(r"PHASMID_[A-Z_]*SECRET", line)
         or re.search(r"import secrets|secrets\.", line)
         or re.search(r"argparse\.SUPPRESS", line)
         or re.search(r"no lies, no unnecessary truth", line, flags=re.IGNORECASE)
-        or re.search(r"PHANTASM_HARDWARE_SECRET", line)
-        or re.search(r"PHANTASM_STATE_SECRET", line)
+        or re.search(r"PHASMID_HARDWARE_SECRET", line)
+        or re.search(r"PHASMID_STATE_SECRET", line)
     )
 
 

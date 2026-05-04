@@ -23,8 +23,8 @@ class ReleaseArtifactTests(unittest.TestCase):
         module = load_release_script()
         tmpdir = Path(tempfile.mkdtemp())
         output_dir = tmpdir / "out"
-        (tmpdir / "src" / "phantasm").mkdir(parents=True)
-        (tmpdir / "src" / "phantasm" / "example.py").write_text(
+        (tmpdir / "src" / "phasmid").mkdir(parents=True)
+        (tmpdir / "src" / "phasmid" / "example.py").write_text(
             "print('ok')\n",
             encoding="utf-8",
         )
@@ -39,10 +39,10 @@ class ReleaseArtifactTests(unittest.TestCase):
         summary = module.generate(tmpdir, output_dir, archive=True)
 
         manifest = (output_dir / "MANIFEST.sha256").read_text(encoding="utf-8")
-        self.assertIn("src/phantasm/example.py", manifest)
+        self.assertIn("src/phasmid/example.py", manifest)
         self.assertNotIn(".state/access.bin", manifest)
         self.assertNotIn("vault.bin", manifest)
-        self.assertEqual(summary["archive"], "phantasm-release.tar.gz")
+        self.assertEqual(summary["archive"], "phasmid-release.tar.gz")
 
         sbom = json.loads(
             (output_dir / "sbom.cyclonedx.json").read_text(encoding="utf-8")

@@ -6,7 +6,7 @@ from unittest import mock
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm.passphrase_policy import check_passphrase, check_store_passphrases
+from phasmid.passphrase_policy import check_passphrase, check_store_passphrases
 
 
 class PassphrasePolicyTests(unittest.TestCase):
@@ -17,14 +17,14 @@ class PassphrasePolicyTests(unittest.TestCase):
         self.assertIn("must not be empty", result.message)
 
     def test_rejects_short_value(self):
-        with mock.patch.dict(os.environ, {"PHANTASM_MIN_PASSPHRASE_LENGTH": "10"}):
+        with mock.patch.dict(os.environ, {"PHASMID_MIN_PASSPHRASE_LENGTH": "10"}):
             result = check_passphrase("short")
 
         self.assertFalse(result.ok)
         self.assertIn("at least 10 characters", result.message)
 
     def test_rejects_repetitive_value(self):
-        with mock.patch.dict(os.environ, {"PHANTASM_MIN_PASSPHRASE_LENGTH": "6"}):
+        with mock.patch.dict(os.environ, {"PHASMID_MIN_PASSPHRASE_LENGTH": "6"}):
             result = check_passphrase("aaaaaaaa")
 
         self.assertFalse(result.ok)

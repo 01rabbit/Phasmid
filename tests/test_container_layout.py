@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from src.phantasm.container_layout import ContainerLayout
+from src.phasmid.container_layout import ContainerLayout
 
 
 class TestContainerLayout(unittest.TestCase):

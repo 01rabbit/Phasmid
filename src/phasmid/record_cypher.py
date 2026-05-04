@@ -22,10 +22,8 @@ class RecordCipher:
         self.container_layout = container_layout
 
     def _record_aad(self, mode, password_role):
-        return (
-            f"phantasm-record-v3:{mode}:{password_role}:{self.container_size}".encode(
-                "utf-8"
-            )
+        return f"phasmid-record-v3:{mode}:{password_role}:{self.container_size}".encode(
+            "utf-8"
         )
 
     def encrypt_record(

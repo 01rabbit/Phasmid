@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% import "_components.html" as ui %}
-{% block title %}Phantasm | Maintenance{% endblock %}
+{% block title %}Phasmid | Maintenance{% endblock %}
 
 {% block content %}
 <div class="grid-single">
@@ -64,7 +64,7 @@
     <section class="panel">
         <h2>Security Notes</h2>
         <p class="copy">
-            Phantasm does not claim protection against a compromised host, live memory capture,
+            Phasmid does not claim protection against a compromised host, live memory capture,
             keylogging, camera observation, forced disclosure, or guaranteed secure deletion.
         </p>
     </section>
@@ -137,7 +137,7 @@
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'phantasm-events.jsonl';
+        a.download = 'phasmid-events.jsonl';
         document.body.appendChild(a);
         a.click();
         a.remove();

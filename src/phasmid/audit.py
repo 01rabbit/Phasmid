@@ -155,7 +155,7 @@ def _sanitize_fields(fields):
         if key == "filename":
             if value:
                 sanitized["filename_present"] = "yes"
-                if os.environ.get("PHANTASM_AUDIT_FILENAMES") == "hash":
+                if os.environ.get("PHASMID_AUDIT_FILENAMES") == "hash":
                     filename = os.path.basename(str(value))
                     sanitized["filename_hash"] = hashlib.sha256(
                         filename.encode("utf-8")
@@ -168,5 +168,5 @@ def _sanitize_fields(fields):
 
 
 def _audit_enabled():
-    value = os.environ.get("PHANTASM_AUDIT", "0").lower()
+    value = os.environ.get("PHASMID_AUDIT", "0").lower()
     return value not in {"0", "false", "off", "no"}

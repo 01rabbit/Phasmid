@@ -2,7 +2,7 @@
 
 ## Objective
 
-Split `src/phantasm/gv_core.py` into reviewable, separately testable cryptographic modules while maintaining:
+Split `src/phasmid/gv_core.py` into reviewable, separately testable cryptographic modules while maintaining:
 
 - GhostVault v3 container format compatibility
 - No changes to encryption/decryption behavior
@@ -22,7 +22,7 @@ Split `src/phantasm/gv_core.py` into reviewable, separately testable cryptograph
 
 ### Phase 1: Extract KDF and Key Management
 
-**Module:** `src/phantasm/kdf_engine.py`
+**Module:** `src/phasmid/kdf_engine.py`
 
 Responsibilities:
 - Argon2id KDF invocation and parameter management
@@ -48,7 +48,7 @@ class KDFEngine:
 
 ### Phase 2: Extract Record Encryption/Decryption
 
-**Module:** `src/phantasm/encryption.py`
+**Module:** `src/phasmid/encryption.py`
 
 Responsibilities:
 - AES-GCM encryption and decryption
@@ -72,7 +72,7 @@ class RecordCrypher:
 
 ### Phase 3: Container Lifecycle
 
-**Module:** `src/phantasm/container.py`
+**Module:** `src/phasmid/container.py`
 
 Responsibilities:
 - Container initialization and format

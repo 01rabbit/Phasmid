@@ -6,7 +6,7 @@ from unittest import mock
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm import config
+from phasmid import config
 
 
 class ConfigTests(unittest.TestCase):
@@ -35,11 +35,11 @@ class ConfigTests(unittest.TestCase):
             self.assertFalse(config.ui_face_enrollment_enabled())
 
     def test_face_enrollment_can_be_enabled(self):
-        with mock.patch.dict(os.environ, {"PHANTASM_UI_FACE_ENROLL": "1"}, clear=True):
+        with mock.patch.dict(os.environ, {"PHASMID_UI_FACE_ENROLL": "1"}, clear=True):
             self.assertTrue(config.ui_face_enrollment_enabled())
 
     def test_field_mode_can_be_enabled(self):
-        with mock.patch.dict(os.environ, {"PHANTASM_FIELD_MODE": "1"}, clear=True):
+        with mock.patch.dict(os.environ, {"PHASMID_FIELD_MODE": "1"}, clear=True):
             self.assertTrue(config.field_mode_enabled())
 
     def test_field_mode_defaults_to_disabled(self):
@@ -50,11 +50,11 @@ class ConfigTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=True):
             self.assertEqual(config.passphrase_min_length(), 10)
         with mock.patch.dict(
-            os.environ, {"PHANTASM_MIN_PASSPHRASE_LENGTH": "12"}, clear=True
+            os.environ, {"PHASMID_MIN_PASSPHRASE_LENGTH": "12"}, clear=True
         ):
             self.assertEqual(config.passphrase_min_length(), 12)
         with mock.patch.dict(
-            os.environ, {"PHANTASM_MIN_PASSPHRASE_LENGTH": "bad"}, clear=True
+            os.environ, {"PHASMID_MIN_PASSPHRASE_LENGTH": "bad"}, clear=True
         ):
             self.assertEqual(config.passphrase_min_length(), 10)
 
@@ -65,8 +65,8 @@ class ConfigTests(unittest.TestCase):
         with mock.patch.dict(
             os.environ,
             {
-                "PHANTASM_ACCESS_MAX_FAILURES": "2",
-                "PHANTASM_ACCESS_LOCKOUT_SECONDS": "9",
+                "PHASMID_ACCESS_MAX_FAILURES": "2",
+                "PHASMID_ACCESS_LOCKOUT_SECONDS": "9",
             },
             clear=True,
         ):

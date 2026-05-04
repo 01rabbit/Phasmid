@@ -10,16 +10,16 @@ from unittest import mock
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phantasm import audit, cli
-from phantasm.config import (
+from phasmid import audit, cli
+from phasmid.config import (
     AUDIT_AUTH_NAME,
     AUDIT_LOG_NAME,
     STATE_BLOB_NAME,
     STATE_KEY_NAME,
     VAULT_KEY_NAME,
 )
-from phantasm.kdf_providers import HardwareBindingStatus
-from phantasm.operations import (
+from phasmid.kdf_providers import HardwareBindingStatus
+from phasmid.operations import (
     export_redacted_log,
     verify_audit_log,
     verify_state,
@@ -53,7 +53,7 @@ class LocalOperationTests(unittest.TestCase):
             handle.write(b"vault")
 
         with mock.patch(
-            "phantasm.operations.hardware_binding_status",
+            "phasmid.operations.hardware_binding_status",
             return_value=HardwareBindingStatus(
                 host_supported=True,
                 device_binding_available=True,
@@ -78,7 +78,7 @@ class LocalOperationTests(unittest.TestCase):
             handle.write(b"vault")
 
         with mock.patch(
-            "phantasm.operations.hardware_binding_status",
+            "phasmid.operations.hardware_binding_status",
             return_value=HardwareBindingStatus(
                 host_supported=True,
                 device_binding_available=False,
@@ -113,7 +113,7 @@ class LocalOperationTests(unittest.TestCase):
     def test_verify_audit_log_reports_missing_verifier_material(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with mock.patch.dict(
-                os.environ, {"PHANTASM_STATE_DIR": tmpdir, "PHANTASM_AUDIT": "1"}
+                os.environ, {"PHASMID_STATE_DIR": tmpdir, "PHASMID_AUDIT": "1"}
             ):
                 audit.audit_event("payload_stored", bytes=10)
 
@@ -128,7 +128,7 @@ class LocalOperationTests(unittest.TestCase):
     def test_verify_audit_log_reports_integrity_tamper(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with mock.patch.dict(
-                os.environ, {"PHANTASM_STATE_DIR": tmpdir, "PHANTASM_AUDIT": "1"}
+                os.environ, {"PHASMID_STATE_DIR": tmpdir, "PHASMID_AUDIT": "1"}
             ):
                 audit.audit_event("payload_stored", bytes=10)
                 audit.audit_event("payload_retrieved", bytes=10)
@@ -209,8 +209,8 @@ class LocalOperationTests(unittest.TestCase):
         output = io.StringIO()
 
         with (
-            mock.patch.object(sys, "argv", ["phantasm", "verify-state"]),
-            mock.patch.dict(os.environ, {"PHANTASM_STATE_DIR": tmpdir}),
+            mock.patch.object(sys, "argv", ["phasmid", "verify-state"]),
+            mock.patch.dict(os.environ, {"PHASMID_STATE_DIR": tmpdir}),
             mock.patch.object(cli.EmergencyDaemon, "start") as start,
             contextlib.redirect_stdout(output),
         ):
@@ -225,8 +225,8 @@ class LocalOperationTests(unittest.TestCase):
 
         with (
             mock.patch.object(cli, "ensure_crypto_self_tests", return_value=True),
-            mock.patch.object(sys, "argv", ["phantasm", "verify-audit-log"]),
-            mock.patch.dict(os.environ, {"PHANTASM_STATE_DIR": tmpdir}),
+            mock.patch.object(sys, "argv", ["phasmid", "verify-audit-log"]),
+            mock.patch.dict(os.environ, {"PHASMID_STATE_DIR": tmpdir}),
             contextlib.redirect_stdout(output),
         ):
             cli.main()
@@ -246,10 +246,10 @@ class LocalOperationTests(unittest.TestCase):
             output = io.StringIO()
             with (
                 mock.patch.object(cli, "ensure_crypto_self_tests", return_value=True),
-                mock.patch.object(sys, "argv", ["phantasm", "doctor"]),
+                mock.patch.object(sys, "argv", ["phasmid", "doctor"]),
                 mock.patch.object(cli, "verify_audit_log", wraps=cli.verify_audit_log),
                 mock.patch.object(cli, "verify_state", wraps=cli.verify_state),
-                mock.patch("phantasm.operations.state_dir", return_value=tmpdir),
+                mock.patch("phasmid.operations.state_dir", return_value=tmpdir),
                 contextlib.redirect_stdout(output),
             ):
                 cli.main()

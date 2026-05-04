@@ -2,7 +2,7 @@
 
 ## Scope
 
-This record tracks whether Phantasm has been validated as a field-evaluation prototype.
+This record tracks whether Phasmid has been validated as a field-evaluation prototype.
 
 ## Static Review
 

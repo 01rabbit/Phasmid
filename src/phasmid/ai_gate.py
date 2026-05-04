@@ -289,7 +289,7 @@ class AIGate:
             raise ValueError("reference template authentication failed") from exc
 
     def _state_encryption_key(self):
-        external_value = os.environ.get("PHANTASM_STATE_SECRET")
+        external_value = os.environ.get("PHASMID_STATE_SECRET")
         if external_value:
             return hashlib.sha256(external_value.encode("utf-8")).digest()
         return self._load_or_create_local_state_key()
@@ -311,7 +311,7 @@ class AIGate:
         return key
 
     def _template_aad(self, path):
-        return f"phantasm-reference-state:{os.path.basename(path)}".encode("utf-8")
+        return f"phasmid-reference-state:{os.path.basename(path)}".encode("utf-8")
 
     def _update_match_result(self, matches):
         active_modes = [mode for mode, result in matches.items() if result is not None]

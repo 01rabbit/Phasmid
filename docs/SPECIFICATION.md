@@ -1,8 +1,8 @@
-# Phantasm Specification
+# Phasmid Specification
 
 ## 1. Overview
 
-Phantasm is a field-evaluation prototype for local-only coercion-aware storage. It stores encrypted payloads in `vault.bin` and requires a password plus a camera-recognized physical object cue before recovery.
+Phasmid is a field-evaluation prototype for local-only coercion-aware storage. It stores encrypted payloads in `vault.bin` and requires a password plus a camera-recognized physical object cue before recovery.
 
 The project is intended for USB gadget mode or localhost access. It is not a replacement for full-disk encryption, hardware-backed key storage, audited classified-data handling, or a complete solution to compelled disclosure.
 
@@ -21,16 +21,16 @@ The project is intended for USB gadget mode or localhost access. It is not a rep
 
 | Path | Purpose |
 | --- | --- |
-| `main.py` | Compatibility CLI launcher |
-| `src/phantasm/cli.py` | CLI implementation |
-| `src/phantasm/gv_core.py` | Encrypted container logic |
-| `src/phantasm/ai_gate.py` | Camera input, object-cue registration, ORB matching |
-| `src/phantasm/web_server.py` | FastAPI Web UI/API |
-| `src/phantasm/bridge_ui.py` | OpenCV status UI |
-| `src/phantasm/emergency_daemon.py` | Panic trigger watcher and local access-path clear flow |
-| `src/phantasm/audit.py` | Optional audit log |
-| `src/phantasm/config.py` | Shared state names and runtime policy |
-| `src/phantasm/templates/` | WebUI v2 server-rendered templates |
+| `main.py` | Local CLI launcher |
+| `src/phasmid/cli.py` | CLI implementation |
+| `src/phasmid/gv_core.py` | Encrypted container logic |
+| `src/phasmid/ai_gate.py` | Camera input, object-cue registration, ORB matching |
+| `src/phasmid/web_server.py` | FastAPI Web UI/API |
+| `src/phasmid/bridge_ui.py` | OpenCV status UI |
+| `src/phasmid/emergency_daemon.py` | Panic trigger watcher and local access-path clear flow |
+| `src/phasmid/audit.py` | Optional audit log |
+| `src/phasmid/config.py` | Shared state names and runtime policy |
+| `src/phasmid/templates/` | WebUI v2 server-rendered templates |
 | `scripts/bench_kdf.py` | Argon2id benchmark helper |
 | `docs/THREAT_MODEL.md` | Threat model |
 | `tests/` | Unit tests |
@@ -50,26 +50,26 @@ The project is intended for USB gadget mode or localhost access. It is not a rep
 | `.state/face.bin` | Optional encrypted WebUI face-lock template |
 | `.state/face.enroll` | Short-lived first-time face enrollment request |
 
-The default state directory is `.state/` and can be changed with `PHANTASM_STATE_DIR`. The directory is intended to be mode `0700`; sensitive files are intended to be mode `0600`. Neutral filenames reduce obvious metadata, but they do not provide deniability.
+The default state directory is `.state/` and can be changed with `PHASMID_STATE_DIR`. The directory is intended to be mode `0700`; sensitive files are intended to be mode `0600`. Neutral filenames reduce obvious metadata, but they do not provide deniability.
 
-New local state code paths should use the typed state store for schema-versioned records, atomic writes, restrictive file permissions, and explicit transition checks. Existing binary state files remain compatibility-managed by their owning modules until a migration path is defined.
+New local state code paths should use the typed state store for schema-versioned records, atomic writes, restrictive file permissions, and explicit transition checks. Existing binary state files remain managed by their owning modules until a migration path is defined.
 
 ## 4.1 Cryptographic Boundary
 
-Phantasm defines a local cryptographic primitive boundary in `src/phantasm/crypto_boundary.py`. Startup checks cover AES-GCM round trip behavior, HMAC-SHA-256 behavior, and random byte generation health. Failure causes local startup to stop with a neutral message in the CLI path.
+Phasmid defines a local cryptographic primitive boundary in `src/phasmid/crypto_boundary.py`. Startup checks cover AES-GCM round trip behavior, HMAC-SHA-256 behavior, and random byte generation health. Failure causes local startup to stop with a neutral message in the CLI path.
 
 This boundary improves reviewability and failure detection. It is not a FIPS validation, certification claim, or replacement for independent cryptographic review.
 
 ## 5. Internal Entry Model
 
-The container uses two fixed internal storage spans. The CLI keeps a compact `--entry a` / `--entry b` selector for compatibility, while WebUI v2 maps the internal model to neutral protected-entry workflows and does not expose internal labels during normal operation.
+The container uses two fixed internal storage spans. The CLI keeps a compact `--entry a` / `--entry b` selector, while WebUI v2 maps the internal model to neutral protected-entry workflows and does not expose internal labels during normal operation.
 
 ## 6. CLI
 
 ### Initialize
 
 ```bash
-python3 main.py init
+phasmid init
 ```
 
 This rotates the local access key, overwrites `vault.bin` with random data, and leaves an empty container ready for new entries.
@@ -77,8 +77,8 @@ This rotates the local access key, overwrites `vault.bin` with random data, and 
 ### Store
 
 ```bash
-python3 main.py store --entry a --file path/to/file
-python3 main.py store --entry b --file path/to/file
+phasmid store --entry a --file path/to/file
+phasmid store --entry b --file path/to/file
 ```
 
 Store flow:
@@ -94,7 +94,7 @@ Store flow:
 ### Retrieve
 
 ```bash
-python3 main.py retrieve --out output.bin
+phasmid retrieve --out output.bin
 ```
 
 Retrieve flow:
@@ -108,14 +108,14 @@ Retrieve flow:
 
 These settings and passwords can cause data loss:
 
-- `PHANTASM_PURGE_CONFIRMATION=0`
-- `PHANTASM_DURESS_MODE=1`
+- `PHASMID_PURGE_CONFIRMATION=0`
+- `PHASMID_DURESS_MODE=1`
 - restricted recovery passwords
 
 ### Clear Local Access Path
 
 ```bash
-python3 main.py brick
+phasmid brick
 ```
 
 This flow destroys `.state/access.bin` first, then performs a best-effort overwrite of `vault.bin`. Flash media, snapshots, backups, and journaling filesystems may retain old data. Recovery resistance depends primarily on destruction, rotation, or removal of required key material, not on overwrite guarantees.
@@ -123,7 +123,7 @@ This flow destroys `.state/access.bin` first, then performs a best-effort overwr
 ### Reset UI Face Lock
 
 ```bash
-python3 main.py reset-face-lock
+phasmid reset-face-lock
 ```
 
 This CLI-only flow resets the optional WebUI face lock. It requires the typed confirmation phrase `RESET FACE LOCK AND VAULT`, removes the encrypted face-lock template, rotates the local access key, initializes `vault.bin`, clears physical-object bindings, clears active face-lock sessions, and creates a short-lived local enrollment request. This is a data-loss operation because changing the UI user invalidates the local trust boundary for stored entries.
@@ -133,7 +133,7 @@ This CLI-only flow resets the optional WebUI face lock. It requires the typed co
 Start the server:
 
 ```bash
-PYTHONPATH=src python3 -m phantasm.web_server
+PYTHONPATH=src python3 -m phasmid.web_server
 ```
 
 The default bind address is `127.0.0.1:8000`.
@@ -149,7 +149,7 @@ Normal navigation:
 
 The restricted action view is available only by direct route and is not shown in normal navigation. A direct `GET /emergency` renders only a restricted confirmation screen until the browser has a fresh restricted confirmation session. Hidden route concealment is not a security boundary.
 
-`PHANTASM_FIELD_MODE=1` reduces normal Maintenance detail for appliance use. Before restricted confirmation, Maintenance shows only general health, local-only posture, UI lock state, and a confirmation requirement for sensitive maintenance. It hides state paths, audit export, token rotation, and detailed diagnostics until a fresh restricted confirmation is active.
+`PHASMID_FIELD_MODE=1` reduces normal Maintenance detail for appliance use. Before restricted confirmation, Maintenance shows only general health, local-only posture, UI lock state, and a confirmation requirement for sensitive maintenance. It hides state paths, audit export, token rotation, and detailed diagnostics until a fresh restricted confirmation is active.
 
 Field Mode is not a security boundary. It reduces casual local exposure in the WebUI and maintenance APIs. It does not prevent forensic inspection, filesystem analysis, memory capture, host compromise, browser compromise, physical coercion, or lawful compulsory process.
 
@@ -185,7 +185,7 @@ WebUI responses include conservative browser hardening headers such as no-store 
 | `POST` | `/maintenance/reset_session` | Reset local session counters |
 | `GET` | `/maintenance/logs` | Export optional local audit log |
 
-Mutating endpoints require `X-Phantasm-Token`. Sensitive endpoints also require a short-lived restricted confirmation session and typed action confirmation where applicable. Entry Management withholds binding details until restricted confirmation is active and returns only selected-entry neutral status.
+Mutating endpoints require `X-Phasmid-Token`. Sensitive endpoints also require a short-lived restricted confirmation session and typed action confirmation where applicable. Entry Management withholds binding details until restricted confirmation is active and returns only selected-entry neutral status.
 
 `/status` intentionally returns only neutral fields:
 
@@ -198,9 +198,9 @@ The normal UI must not display internal entry labels, internal retrieval order, 
 
 Detailed maintenance diagnostics may include neutral hardware-binding availability fields after restricted confirmation or when Field Mode is not suppressing detail.
 
-Optional UI face lock is enabled with `PHANTASM_UI_FACE_LOCK=1`. It gates access to normal WebUI routes with a short-lived local session cookie. Face templates are encrypted in the runtime state directory. This lock is not used in Argon2id input and does not participate in vault encryption or retrieval.
+Optional UI face lock is enabled with `PHASMID_UI_FACE_LOCK=1`. It gates access to normal WebUI routes with a short-lived local session cookie. Face templates are encrypted in the runtime state directory. This lock is not used in Argon2id input and does not participate in vault encryption or retrieval.
 
-First-time face enrollment is disabled unless the WebUI process is started with `PHANTASM_UI_FACE_ENROLL=1` or a valid `.state/face.enroll` request exists. The setup flag is intended for device provisioning only. The enrollment request is created by `python3 main.py reset-face-lock`, is checked when `/ui-lock` is reloaded, and is removed after successful enrollment.
+First-time face enrollment is disabled unless the WebUI process is started with `PHASMID_UI_FACE_ENROLL=1` or a valid `.state/face.enroll` request exists. The setup flag is intended for device provisioning only. The enrollment request is created by `phasmid reset-face-lock`, is checked when `/ui-lock` is reloaded, and is removed after successful enrollment.
 
 ## 8. Capture-Visible Surface Rule
 
@@ -212,7 +212,7 @@ Common user-facing wording should be centralized where practical. New UI, CLI, A
 
 ## 9. Stress-Use UX Principle
 
-Phantasm must prefer simple, low-choice flows under stress.
+Phasmid must prefer simple, low-choice flows under stress.
 
 Normal operation should remain:
 
@@ -266,7 +266,7 @@ Argon2id inputs:
 - Password role
 - Per-record random salt
 - `.state/access.bin`
-- Optional external values from `PHANTASM_HARDWARE_SECRET_FILE`, `PHANTASM_HARDWARE_SECRET`, or `PHANTASM_HARDWARE_SECRET_PROMPT`
+- Optional external values from `PHASMID_HARDWARE_SECRET_FILE`, `PHASMID_HARDWARE_SECRET`, or `PHASMID_HARDWARE_SECRET_PROMPT`
 
 Default Argon2id parameters are tuned for Raspberry Pi Zero 2 W class hardware: `memory_cost=32768`, `iterations=2`, `lanes=1`.
 
@@ -275,13 +275,13 @@ Recommended field hierarchy:
 1. strong access password;
 2. physical-object cue;
 3. `.state/access.bin`;
-4. optional external value via `PHANTASM_HARDWARE_SECRET_FILE` or `PHANTASM_HARDWARE_SECRET_PROMPT=1`.
+4. optional external value via `PHASMID_HARDWARE_SECRET_FILE` or `PHASMID_HARDWARE_SECRET_PROMPT=1`.
 
-For high-risk deployments, do not store all recovery conditions on the same physical medium. Phantasm is strongest when the encrypted container, local state, memorized password, physical-object cue, and optional external key material are separated.
+For high-risk deployments, do not store all recovery conditions on the same physical medium. Phasmid is strongest when the encrypted container, local state, memorized password, physical-object cue, and optional external key material are separated.
 
 ## 12. Physical-Key Matching
 
-Phantasm extracts ORB features from camera frames.
+Phasmid extracts ORB features from camera frames.
 
 Registration:
 
@@ -305,33 +305,33 @@ The physical object is an operational cue, not a high-entropy cryptographic fact
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
-| `PHANTASM_STATE_DIR` | Runtime state directory | `.state` |
-| `PHANTASM_STATE_SECRET` | External value for object-cue state encryption | unset |
-| `PHANTASM_HARDWARE_SECRET_FILE` | External value file mixed into Argon2id | unset |
-| `PHANTASM_HARDWARE_SECRET` | External value string mixed into Argon2id | unset |
-| `PHANTASM_HARDWARE_SECRET_PROMPT` | Prompt for an external value | unset |
-| `PHANTASM_PURGE_CONFIRMATION` | Require explicit confirmation for configured recovery behavior | `1` |
-| `PHANTASM_DURESS_MODE` | Enable opt-in access-triggered local-state update | `0` |
-| `PHANTASM_WEB_TOKEN` | Web mutation token | random at start |
-| `PHANTASM_HOST` | Web bind host | `127.0.0.1` |
-| `PHANTASM_PORT` | Web bind port | `8000` |
-| `PHANTASM_MAX_UPLOAD_BYTES` | Web upload limit | `26214400` |
-| `PHANTASM_UI_FACE_LOCK` | Require local face check before WebUI use | `0` |
-| `PHANTASM_UI_FACE_ENROLL` | Permit first-time face-lock enrollment during setup | `0` |
-| `PHANTASM_UI_FACE_ENROLL_SECONDS` | Face enrollment request lifetime | `600` |
-| `PHANTASM_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime | `300` |
-| `PHANTASM_RESTRICTED_SESSION_SECONDS` | Restricted confirmation lifetime | `120` |
-| `PHANTASM_FIELD_MODE` | Reduce normal WebUI operational detail | `0` |
-| `PHANTASM_PROFILE` | Select local capability mode: `standard`, `field`, or `maintenance` | `standard` |
-| `PHANTASM_MIN_PASSPHRASE_LENGTH` | Minimum Store passphrase length | `10` |
-| `PHANTASM_ACCESS_MAX_FAILURES` | Failed access attempts before temporary lockout | `5` |
-| `PHANTASM_ACCESS_LOCKOUT_SECONDS` | Temporary access lockout duration | `60` |
-| `PHANTASM_AUDIT` | Enable audit logging | `0` |
-| `PHANTASM_AUDIT_FILENAMES` | Record filename hashes | unset |
+| `PHASMID_STATE_DIR` | Runtime state directory | `.state` |
+| `PHASMID_STATE_SECRET` | External value for object-cue state encryption | unset |
+| `PHASMID_HARDWARE_SECRET_FILE` | External value file mixed into Argon2id | unset |
+| `PHASMID_HARDWARE_SECRET` | External value string mixed into Argon2id | unset |
+| `PHASMID_HARDWARE_SECRET_PROMPT` | Prompt for an external value | unset |
+| `PHASMID_PURGE_CONFIRMATION` | Require explicit confirmation for configured recovery behavior | `1` |
+| `PHASMID_DURESS_MODE` | Enable opt-in access-triggered local-state update | `0` |
+| `PHASMID_WEB_TOKEN` | Web mutation token | random at start |
+| `PHASMID_HOST` | Web bind host | `127.0.0.1` |
+| `PHASMID_PORT` | Web bind port | `8000` |
+| `PHASMID_MAX_UPLOAD_BYTES` | Web upload limit | `26214400` |
+| `PHASMID_UI_FACE_LOCK` | Require local face check before WebUI use | `0` |
+| `PHASMID_UI_FACE_ENROLL` | Permit first-time face-lock enrollment during setup | `0` |
+| `PHASMID_UI_FACE_ENROLL_SECONDS` | Face enrollment request lifetime | `600` |
+| `PHASMID_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime | `300` |
+| `PHASMID_RESTRICTED_SESSION_SECONDS` | Restricted confirmation lifetime | `120` |
+| `PHASMID_FIELD_MODE` | Reduce normal WebUI operational detail | `0` |
+| `PHASMID_PROFILE` | Select local capability mode: `standard`, `field`, or `maintenance` | `standard` |
+| `PHASMID_MIN_PASSPHRASE_LENGTH` | Minimum Store passphrase length | `10` |
+| `PHASMID_ACCESS_MAX_FAILURES` | Failed access attempts before temporary lockout | `5` |
+| `PHASMID_ACCESS_LOCKOUT_SECONDS` | Temporary access lockout duration | `60` |
+| `PHASMID_AUDIT` | Enable audit logging | `0` |
+| `PHASMID_AUDIT_FILENAMES` | Record filename hashes | unset |
 
 ## 14. Mission Presets and Retention
 
-Phantasm documentation defines neutral mission presets rather than role-revealing UI labels. Examples include:
+Phasmid documentation defines neutral mission presets rather than role-revealing UI labels. Examples include:
 
 - Local Notes;
 - Temporary Holding;
@@ -346,7 +346,7 @@ Retention principle: the safest sensitive data is data not carried. Users should
 
 ## 15. Restricted Recovery and Key Destruction
 
-On flash media, complete overwrite-based deletion cannot be guaranteed across every storage layer. Phantasm therefore treats restricted recovery primarily as key-path invalidation and key-material destruction, with best-effort overwrite as a secondary measure.
+On flash media, complete overwrite-based deletion cannot be guaranteed across every storage layer. Phasmid therefore treats restricted recovery primarily as key-path invalidation and key-material destruction, with best-effort overwrite as a secondary measure.
 
 Restricted recovery must not be represented as guaranteed secure deletion. User-facing surfaces should use neutral terms such as restricted local update, local access path, key material, and best-effort overwrite.
 
@@ -374,8 +374,8 @@ python3 scripts/bench_kdf.py
 
 ## 18. Compatibility
 
-This build reads and writes GhostVault v3 only. Older v1/v2 containers must be retrieved with an older build and then stored again with this build.
+This build reads and writes GhostVault v3 only. Earlier development containers that depend on superseded internal record labels are not supported and should be reinitialized before use.
 
 ## 19. Limits
 
-Phantasm does not guarantee protection against a compromised OS, live memory capture, keylogging, camera observation, forced disclosure, complete secure deletion, deniability, or unsafe network exposure.
+Phasmid does not guarantee protection against a compromised OS, live memory capture, keylogging, camera observation, forced disclosure, complete secure deletion, deniability, or unsafe network exposure.

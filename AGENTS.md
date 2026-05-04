@@ -17,9 +17,9 @@
 
 This file is the first context entry point for AI-assisted development in this repository.
 
-Phantasm is a field-evaluation prototype for local-only coercion-aware storage. It explores lawful local protection of sensitive material where device seizure, compelled access, over-disclosure, metadata risk, and local UI/log leakage are practical risks.
+Phasmid is a field-evaluation prototype for local-only coercion-aware storage. It explores lawful local protection of sensitive material where device seizure, compelled access, over-disclosure, metadata risk, and local UI/log leakage are practical risks.
 
-Phantasm is research software. It is not a replacement for full-disk encryption, hardware-backed key storage, an audited classified-data handling system, organizational records-management systems, or a complete solution to compelled disclosure.
+Phasmid is research software. It is not a replacement for full-disk encryption, hardware-backed key storage, an audited classified-data handling system, organizational records-management systems, or a complete solution to compelled disclosure.
 
 Use this file to keep AI-assisted changes small, scoped, and consistent with the project boundary.
 
@@ -59,7 +59,7 @@ Preserve this boundary in code, documentation, tests, and UI behavior:
 
 - local-only operation by default
 - protected entries stored in `vault.bin`
-- local runtime state under `.state/` or `PHANTASM_STATE_DIR`
+- local runtime state under `.state/` or `PHASMID_STATE_DIR`
 - password-based cryptographic recovery
 - Argon2id-derived keys
 - AES-GCM authenticated encryption
@@ -71,13 +71,13 @@ Preserve this boundary in code, documentation, tests, and UI behavior:
 - best-effort local access-path invalidation
 - target-hardware field evaluation before stronger claims
 
-Do not expand Phantasm into remote management, cloud recovery, telemetry, covert communication, censorship bypass, surveillance evasion, malware storage, offensive operations, or classified-data handling infrastructure.
+Do not expand Phasmid into remote management, cloud recovery, telemetry, covert communication, censorship bypass, surveillance evasion, malware storage, offensive operations, or classified-data handling infrastructure.
 
 ---
 
 ## Non-Negotiable Security Claims
 
-Do not claim that Phantasm provides:
+Do not claim that Phasmid provides:
 
 - perfect deniability
 - guaranteed secure deletion
@@ -140,12 +140,12 @@ Load only the relevant files for the requested change. Do not load the whole rep
 
 Use this context for changes involving `vault.bin`, GhostVault, Argon2id, AES-GCM, salts, nonces, local access key material, span layout, record parsing, restricted recovery slots, destructive behavior, or migration:
 
-- `src/phantasm/gv_core.py`
-- `src/phantasm/crypto_boundary.py`
-- `src/phantasm/kdf_engine.py`
-- `src/phantasm/kdf_providers.py`
-- `src/phantasm/container_layout.py`
-- `src/phantasm/record_cypher.py`
+- `src/phasmid/gv_core.py`
+- `src/phasmid/crypto_boundary.py`
+- `src/phasmid/kdf_engine.py`
+- `src/phasmid/kdf_providers.py`
+- `src/phasmid/container_layout.py`
+- `src/phasmid/record_cypher.py`
 - `docs/SPECIFICATION.md`, especially sections 11 and 15
 - `docs/THREAT_MODEL.md`
 - `tests/test_gv_core.py` and related tests
@@ -162,12 +162,12 @@ Relevant issues:
 
 Use this context for changes involving FastAPI routes, Web mutation token, restricted confirmation, hidden routes, Field Mode, face lock sessions, store/retrieve routes, maintenance routes, emergency routes, response headers, or neutral download filenames:
 
-- `src/phantasm/web_server.py`
-- `src/phantasm/templates/`
-- `src/phantasm/restricted_actions.py`
-- `src/phantasm/capabilities.py`
-- `src/phantasm/emergency_daemon.py`
-- `src/phantasm/bridge_ui.py`
+- `src/phasmid/web_server.py`
+- `src/phasmid/templates/`
+- `src/phasmid/restricted_actions.py`
+- `src/phasmid/capabilities.py`
+- `src/phasmid/emergency_daemon.py`
+- `src/phasmid/bridge_ui.py`
 - `docs/SPECIFICATION.md`, especially sections 7, 8, and 9
 - `docs/THREAT_MODEL.md`
 - `tests/test_web_server.py` and related tests
@@ -187,8 +187,8 @@ Relevant issues:
 Use this context for changes involving `main.py`, command syntax, CLI output, confirmations, retrieve/store/init/brick/reset-face-lock behavior, or CLI terminology:
 
 - `main.py`
-- `src/phantasm/cli.py`
-- `src/phantasm/passphrase_policy.py`
+- `src/phasmid/cli.py`
+- `src/phasmid/passphrase_policy.py`
 - `docs/SPECIFICATION.md`, especially section 6
 - `docs/THREAT_MODEL.md`
 - `tests/test_cli.py` and related tests
@@ -206,8 +206,8 @@ Relevant issues:
 
 Use this context for changes involving ORB matching, camera capture, object cue registration, match ambiguity, stable multi-frame matching, face template enrollment, or UI lock behavior:
 
-- `src/phantasm/ai_gate.py`
-- `src/phantasm/face_lock.py`
+- `src/phasmid/ai_gate.py`
+- `src/phasmid/face_lock.py`
 - `docs/SPECIFICATION.md`, especially section 12
 - `docs/THREAT_MODEL.md`
 - related tests in `tests/`
@@ -222,8 +222,8 @@ Relevant issues:
 
 Use this context for changes involving metadata risk detection, metadata reduction, uploads, in-memory processing, file type support, original filename handling, or neutral metadata-reduced downloads:
 
-- `src/phantasm/metadata.py`
-- `src/phantasm/web_server.py` metadata routes
+- `src/phasmid/metadata.py`
+- `src/phasmid/web_server.py` metadata routes
 - `docs/SPECIFICATION.md`, especially section 10
 - `docs/THREAT_MODEL.md`
 - related tests in `tests/`
@@ -238,9 +238,9 @@ Relevant issues:
 
 Use this context for changes involving event logs, audit record shape, hash chains, HMACs, log export, audit filenames, event names, or audit metadata:
 
-- `src/phantasm/audit.py`
-- `src/phantasm/operations.py`
-- `src/phantasm/web_server.py` maintenance log export
+- `src/phasmid/audit.py`
+- `src/phasmid/operations.py`
+- `src/phasmid/web_server.py` maintenance log export
 - `docs/THREAT_MODEL.md`
 - `docs/SPECIFICATION.md`
 - related tests in `tests/`
@@ -256,9 +256,9 @@ Relevant issues:
 
 Use this context for changes involving `.state/`, state file names, state permissions, typed state, attempt limiting, tmpfs, LUKS, deployment profile, appliance setup, service hardening, runtime secrets, or Raspberry Pi deployment:
 
-- `src/phantasm/config.py`
-- `src/phantasm/state_store.py`
-- `src/phantasm/attempt_limiter.py`
+- `src/phasmid/config.py`
+- `src/phasmid/state_store.py`
+- `src/phasmid/attempt_limiter.py`
 - `docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md`
 - `docs/RPI_ZERO_DEPLOYMENT.md`
 - `docs/FIELD_TEST_PROCEDURE.md`

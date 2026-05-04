@@ -4,8 +4,8 @@ import unittest
 
 from cryptography.exceptions import InvalidTag
 
-from src.phantasm.container_layout import ContainerLayout
-from src.phantasm.record_cypher import RecordCipher
+from src.phasmid.container_layout import ContainerLayout
+from src.phasmid.record_cypher import RecordCipher
 
 
 class TestRecordCipher(unittest.TestCase):
