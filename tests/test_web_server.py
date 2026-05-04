@@ -569,6 +569,48 @@ class WebServerBoundaryTests(unittest.TestCase):
 
         asyncio.run(run())
 
+    def test_diagnostics_include_hardware_binding_details_after_restricted_access(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={},
+                url=SimpleNamespace(path="/maintenance/diagnostics"),
+            )
+            with (
+                mock.patch.object(web_server, "field_mode_enabled", return_value=True),
+                mock.patch.object(
+                    web_server, "_restricted_session_valid", return_value=True
+                ),
+                mock.patch.object(
+                    web_server,
+                    "neutral_status",
+                    return_value={
+                        "camera_ready": True,
+                        "object_state": "none",
+                        "device_state": "ready",
+                        "local_mode": True,
+                    },
+                ),
+                mock.patch.object(
+                    web_server,
+                    "hardware_binding_status",
+                    return_value=SimpleNamespace(
+                        to_dict=lambda: {
+                            "host_supported": True,
+                            "device_binding_available": True,
+                            "external_binding_configured": False,
+                        }
+                    ),
+                ),
+            ):
+                response = await web_server.diagnostics(request)
+            self.assertIn("hardware_binding", response)
+            self.assertEqual(
+                response["hardware_binding"]["device_binding_available"], True
+            )
+
+        asyncio.run(run())
+
     def test_field_mode_rejects_log_export_without_restricted_confirmation(self):
         async def run():
             request = SimpleNamespace(

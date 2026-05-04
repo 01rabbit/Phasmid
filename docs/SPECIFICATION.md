@@ -196,6 +196,8 @@ Mutating endpoints require `X-Phantasm-Token`. Sensitive endpoints also require 
 
 The normal UI must not display internal entry labels, internal retrieval order, or restricted local-state behavior after retrieval.
 
+Detailed maintenance diagnostics may include neutral hardware-binding availability fields after restricted confirmation or when Field Mode is not suppressing detail.
+
 Optional UI face lock is enabled with `PHANTASM_UI_FACE_LOCK=1`. It gates access to normal WebUI routes with a short-lived local session cookie. Face templates are encrypted in the runtime state directory. This lock is not used in Argon2id input and does not participate in vault encryption or retrieval.
 
 First-time face enrollment is disabled unless the WebUI process is started with `PHANTASM_UI_FACE_ENROLL=1` or a valid `.state/face.enroll` request exists. The setup flag is intended for device provisioning only. The enrollment request is created by `python3 main.py reset-face-lock`, is checked when `/ui-lock` is reloaded, and is removed after successful enrollment.

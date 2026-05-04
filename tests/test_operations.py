@@ -18,6 +18,7 @@ from phantasm.config import (
     STATE_KEY_NAME,
     VAULT_KEY_NAME,
 )
+from phantasm.kdf_providers import HardwareBindingStatus
 from phantasm.operations import (
     export_redacted_log,
     verify_audit_log,
@@ -51,9 +52,48 @@ class LocalOperationTests(unittest.TestCase):
         with open(vault_path, "wb") as handle:
             handle.write(b"vault")
 
-        report = verify_state(base_dir=state_path, vault_path=vault_path)
+        with mock.patch(
+            "phantasm.operations.hardware_binding_status",
+            return_value=HardwareBindingStatus(
+                host_supported=True,
+                device_binding_available=True,
+                external_binding_configured=False,
+            ),
+        ):
+            report = verify_state(base_dir=state_path, vault_path=vault_path)
 
         self.assertEqual(report["status"], "ready")
+
+    def test_verify_state_reports_hardware_binding_attention_on_supported_host(self):
+        tmpdir = tempfile.mkdtemp()
+        state_path = os.path.join(tmpdir, ".state")
+        os.mkdir(state_path, 0o700)
+        for name in (STATE_BLOB_NAME, STATE_KEY_NAME, VAULT_KEY_NAME):
+            path = os.path.join(state_path, name)
+            with open(path, "wb") as handle:
+                handle.write(b"x")
+            os.chmod(path, 0o600)
+        vault_path = os.path.join(tmpdir, "vault.bin")
+        with open(vault_path, "wb") as handle:
+            handle.write(b"vault")
+
+        with mock.patch(
+            "phantasm.operations.hardware_binding_status",
+            return_value=HardwareBindingStatus(
+                host_supported=True,
+                device_binding_available=False,
+                external_binding_configured=False,
+            ),
+        ):
+            report = verify_state(base_dir=state_path, vault_path=vault_path)
+
+        self.assertEqual(report["status"], "attention")
+        rendered = json.dumps(report)
+        self.assertIn("device binding material is not present", rendered)
+        self.assertIn(
+            "supplemental key material source is not configured",
+            rendered,
+        )
 
     def test_verify_audit_log_accepts_minimal_schema(self):
         tmpdir = tempfile.mkdtemp()

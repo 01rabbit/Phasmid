@@ -15,6 +15,7 @@ from .config import (
     VAULT_KEY_NAME,
     state_dir,
 )
+from .kdf_providers import hardware_binding_status
 from .state_store import LocalStateStore
 
 STATUS_READY = "ready"
@@ -130,6 +131,48 @@ def verify_state(base_dir: str | None = None, vault_path: str = "vault.bin"):
                 "local container is present"
                 if os.path.exists(vault_path)
                 else "local container is not initialized"
+            ),
+        )
+    )
+
+    binding_status = hardware_binding_status()
+    if not binding_status.host_supported:
+        checks.append(
+            OperationCheck(
+                "hardware_binding",
+                STATUS_NOT_ENABLED,
+                "device binding status is not available on this host",
+            )
+        )
+    else:
+        checks.append(
+            OperationCheck(
+                "hardware_binding",
+                (
+                    STATUS_READY
+                    if binding_status.device_binding_available
+                    else STATUS_ATTENTION
+                ),
+                (
+                    "device binding material is available"
+                    if binding_status.device_binding_available
+                    else "device binding material is not present"
+                ),
+            )
+        )
+
+    checks.append(
+        OperationCheck(
+            "external_binding",
+            (
+                STATUS_READY
+                if binding_status.external_binding_configured
+                else STATUS_NOT_ENABLED
+            ),
+            (
+                "supplemental key material source is configured"
+                if binding_status.external_binding_configured
+                else "supplemental key material source is not configured"
             ),
         )
     )

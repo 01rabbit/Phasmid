@@ -3,6 +3,7 @@ from __future__ import annotations
 import getpass
 import os
 from abc import ABC, abstractmethod
+from dataclasses import asdict, dataclass
 
 
 class SecretProvider(ABC):
@@ -65,3 +66,31 @@ class PromptSecretProvider(SecretProvider):
             if val:
                 self._cache = val.encode("utf-8")
         return self._cache
+
+
+@dataclass(frozen=True)
+class HardwareBindingStatus:
+    host_supported: bool
+    device_binding_available: bool
+    external_binding_configured: bool
+
+    def to_dict(self):
+        return asdict(self)
+
+
+def hardware_binding_status(path: str = "/proc/cpuinfo") -> HardwareBindingStatus:
+    provider = HardwareBindingProvider(path=path)
+    file_path = os.environ.get("PHANTASM_HARDWARE_SECRET_FILE", "")
+    external_binding_configured = any(
+        (
+            bool(os.environ.get("PHANTASM_HARDWARE_SECRET")),
+            bool(file_path and os.path.exists(file_path)),
+            os.environ.get("PHANTASM_HARDWARE_SECRET_PROMPT") == "1",
+        )
+    )
+    device_binding = provider.get_secret()
+    return HardwareBindingStatus(
+        host_supported=os.path.exists(path),
+        device_binding_available=bool(device_binding),
+        external_binding_configured=external_binding_configured,
+    )

@@ -12,6 +12,8 @@ Check local state readiness:
 python3 main.py verify-state
 ```
 
+On hosts that expose device-binding inputs, `verify-state` also reports whether local hardware binding material is available and whether a supplemental key-material source has been configured.
+
 Expected neutral output shape:
 
 ```text
