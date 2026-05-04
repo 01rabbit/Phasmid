@@ -24,9 +24,9 @@ class GhostVault:
     ARGON2_LANES = 1
     ARGON2_MEMORY_COST = 32768
     ACCESS_KEY_SIZE = 32
-    OPEN_ROLE = "open"
-    PURGE_ROLE = "purge"
-    SLOT_ROLES = (OPEN_ROLE, PURGE_ROLE)
+    OPEN_ROLE = RecordCipher.OPEN_ROLE
+    PURGE_ROLE = RecordCipher.PURGE_ROLE
+    SLOT_ROLES = RecordCipher.SLOT_ROLES
 
     def __init__(self, container_path, size_mb=10, state_dir=None):
         self.path = container_path
@@ -34,8 +34,8 @@ class GhostVault:
         self.state_dir = state_dir or default_state_dir()
         self.access_key_path = os.path.join(self.state_dir, VAULT_KEY_NAME)
         self.kdf_engine = KDFEngine(self.state_dir)
-        self.record_cipher = RecordCipher(self.path, self.size)
         self.container_layout = ContainerLayout(self.path, self.size)
+        self.record_cipher = RecordCipher(self.path, self.size, self.container_layout)
 
     def _normalize_size(self, size_mb):
         try:
@@ -130,7 +130,7 @@ class GhostVault:
     ):
         start, span_len = self.container_layout.get_slot_span(mode, password_role)
 
-        salt = os.urandom(self.SALT_SIZE)
+        salt = os.urandom(self.record_cipher.SALT_SIZE)
         key = self._derive_key(
             password,
             gesture_sequence,
@@ -148,6 +148,9 @@ class GhostVault:
             salt=salt,
         )
         payload = salt + nonce + ciphertext
+        padding_len = span_len - len(payload)
+        if padding_len > 0:
+            payload += os.urandom(padding_len)
 
         with open(self.path, "r+b") as f:
             f.seek(start)
@@ -171,14 +174,21 @@ class GhostVault:
 
     def _retrieve_slot(self, password, gesture_sequence, mode, password_role):
         start, span_len = self.container_layout.get_slot_span(mode, password_role)
-        ciphertext_len = span_len - self.SALT_SIZE - self.NONCE_SIZE
+        ciphertext_len = (
+            span_len
+            - self.record_cipher.SALT_SIZE
+            - self.record_cipher.NONCE_SIZE
+        )
 
         with open(self.path, "rb") as f:
             f.seek(start)
-            salt = f.read(self.SALT_SIZE)
-            nonce = f.read(self.NONCE_SIZE)
+            salt = f.read(self.record_cipher.SALT_SIZE)
+            nonce = f.read(self.record_cipher.NONCE_SIZE)
             ciphertext = f.read(ciphertext_len)
-            if len(salt) != self.SALT_SIZE or len(nonce) != self.NONCE_SIZE:
+            if (
+                len(salt) != self.record_cipher.SALT_SIZE
+                or len(nonce) != self.record_cipher.NONCE_SIZE
+            ):
                 return None, None
             if len(ciphertext) != ciphertext_len:
                 return None, None

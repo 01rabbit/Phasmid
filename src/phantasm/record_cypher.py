@@ -17,9 +17,10 @@ class RecordCipher:
     PURGE_ROLE = "purge"
     SLOT_ROLES = (OPEN_ROLE, PURGE_ROLE)
 
-    def __init__(self, container_path, container_size):
+    def __init__(self, container_path, container_size, container_layout):
         self.container_path = container_path
         self.container_size = container_size
+        self.container_layout = container_layout
 
     def _record_aad(self, mode, password_role):
         return f"phantasm-record-v3:{mode}:{password_role}:{self.container_size}".encode("utf-8")
@@ -60,12 +61,11 @@ class RecordCipher:
         ).encode("utf-8")
 
         required_len = 4 + len(metadata_bytes) + len(plaintext)
-        # Capacity check is done externally by ContainerLayout
-        # plaintext_capacity = self._plaintext_capacity_for_slot(mode, password_role)
-        # if required_len > plaintext_capacity:
-        #     raise ValueError("encrypted payload does not fit in the container")
-
-        padding = os.urandom(0)  # No padding needed since capacity is checked externally
+        capacity = self.container_layout.get_plaintext_capacity(mode, password_role)
+        padding_len = capacity - required_len
+        if padding_len < 0:
+            raise ValueError("encrypted payload does not fit in the container")
+        padding = os.urandom(padding_len)
         record_plaintext = (
             struct.pack(">I", len(metadata_bytes)) + metadata_bytes + plaintext + padding
         )

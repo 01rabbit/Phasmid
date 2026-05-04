@@ -2,6 +2,7 @@ import unittest
 import os
 import tempfile
 from src.phantasm.record_cypher import RecordCipher
+from src.phantasm.container_layout import ContainerLayout
 
 
 class TestRecordCipher(unittest.TestCase):
@@ -9,7 +10,8 @@ class TestRecordCipher(unittest.TestCase):
         self.container_size = 1024
         self.temp_file = tempfile.NamedTemporaryFile(delete=False)
         self.temp_file.close()
-        self.cipher = RecordCipher(self.temp_file.name, self.container_size)
+        self.container_layout = ContainerLayout(self.temp_file.name, self.container_size)
+        self.cipher = RecordCipher(self.temp_file.name, self.container_size, self.container_layout)
 
     def tearDown(self):
         os.unlink(self.temp_file.name)
