@@ -292,7 +292,10 @@ def _scrub_office_zip(data: bytes) -> Optional[bytes]:
     """Blank sensitive author/title fields in docProps/core.xml and docProps/app.xml."""
     try:
         buf = io.BytesIO()
-        with zipfile.ZipFile(io.BytesIO(data)) as zin, zipfile.ZipFile(buf, "w") as zout:
+        with (
+            zipfile.ZipFile(io.BytesIO(data)) as zin,
+            zipfile.ZipFile(buf, "w") as zout,
+        ):
             for info in zin.infolist():
                 content = zin.read(info.filename)
                 if info.filename == "docProps/core.xml":

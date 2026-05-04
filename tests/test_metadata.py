@@ -42,7 +42,7 @@ def _make_docx_with_author():
     """Minimal DOCX-like ZIP with docProps/core.xml containing author fields."""
     core_xml = (
         b'<?xml version="1.0" encoding="UTF-8"?>'
-        b'<cp:coreProperties'
+        b"<cp:coreProperties"
         b' xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"'
         b' xmlns:dc="http://purl.org/dc/elements/1.1/">'
         b"<dc:creator>Alice Smith</dc:creator>"
