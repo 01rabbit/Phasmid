@@ -135,7 +135,7 @@ def verify_state(base_dir: str | None = None, vault_path: str = "vault.bin"):
     return _report("verify-state", checks)
 
 
-def _audit_path(path: str | None = None):
+def _audit_path(path: str | None = None) -> str:
     return path or os.path.join(state_dir(), AUDIT_LOG_NAME)
 
 
