@@ -1,101 +1,18 @@
 # AGENTS.md
 
-<<<<<<< HEAD
 > **Notice**: This file is the primary context entry point for AI-assisted development.
 > It defines the project boundaries, security invariants, and the current roadmap.
 
 ## 0. Quick Start for AI Agents
-1. **Identify the Task**: Match your task to a domain in the [Canonical Source Map](#2-canonical-source-map).
+
+1. **Identify the Task**: Match your task to a domain in the [Canonical Source Map](#canonical-source-map).
 2. **Load Minimal Context**: Load only the files and documentation sections listed for that domain.
-3. **Verify Invariants**: Check your proposed changes against the [Core Invariants](#3-core-invariants).
-4. **Follow Language Rules**: Ensure all user-visible text follows [Neutral Language Rules](#4-user-facing-language-rules).
-5. **Run Tests**: Execute the relevant tests and static analysis.
+3. **Verify Invariants**: Check your proposed changes against the [Core Invariants](#core-invariants).
+4. **Follow Language Rules**: Ensure all user-visible text follows [User-Facing Language Rules](#user-facing-language-rules).
+5. **Run Tests**: Execute the relevant tests and static analysis before submitting.
 
 ---
 
-## 1. Project Status & Roadmap
-
-### 🚩 Current Focus: Hardening & Modularity
-The goal is to transition from a "field-evaluation prototype" to a "local appliance solution" by strengthening boundaries and improving testability.
-
-### 🛤 Roadmap (Next Priority Issues)
-1.  **#19 Multi-source KDF**: Design and implement a pipeline for mixing local device-binding inputs into the KDF.
-2.  **#30 Metadata Reduction**: Implement rigorous metadata scrubbing for exported payloads.
-3.  **#31 Audit Integrity**: Implement hash-chaining and integrity verification for audit logs.
-4.  **#32 Tamper Evidence**: Implement hardware-binding status reporting for field-evaluation units.
-5.  **#33 UX Hardening**: Optimize Field Mode emergency flows for high-stress operational use.
-6.  **#16 Integrity Manifest**: Implement a workflow for generating signed release manifests and SBOMs.
-7.  **#27 AI Gate Decoupling**: Separate camera handling, object matching, and face lock logic.
-
-### ✅ Completed Milestones
--   `#8` & `#9`: CI pipeline with static analysis (`ruff`, `mypy`) and 70% coverage gate.
--   `#22`: Centralized restricted action policy enforcement.
--   `#23`: Typed local state store with atomic transitions.
--   `#24`: Local coercion scenario matrix and restricted-flow tests.
--   `#25`: Centralized user-visible strings in `strings.py`.
--   `#29`: Local operations commands (`doctor`, `verify-state`) and documentation alignment.
-
----
-
-## 2. Canonical Source Map
-
-| Domain | Key Source Files | Key Documentation | Relevant Issues |
-| :--- | :--- | :--- | :--- |
-| **Cryptography** | `gv_core.py`, `crypto_boundary.py` | `SPECIFICATION.md` (11, 15), `THREAT_MODEL.md` | #4, #5, #10, #19, #26 |
-| **WebUI / API** | `web_server.py`, `templates/` | `SPECIFICATION.md` (7-9), `THREAT_MODEL.md` | #3, #7, #15, #21 |
-| **CLI / Main** | `main.py`, `cli.py` | `SPECIFICATION.md` (6), `OPERATIONS.md` | #4, #6, #7, #11, #29 |
-| **Biometrics / AI**| `ai_gate.py`, `face_lock.py` | `SPECIFICATION.md` (12), `THREAT_MODEL.md` | #20, #27, #28 |
-| **State / Config** | `config.py`, `state_store.py` | `STATE_RECOVERY.md`, `DEPLOYMENT.md` | #12, #13, #17, #23 |
-| **Metadata** | `metadata.py` | `SPECIFICATION.md` (10) | #24, #25 |
-| **Audit / Logs** | `audit.py`, `operations.py` | `THREAT_MODEL.md` | #2, #16, #29 |
-| **CI / Testing** | `tests/`, `.github/workflows/` | `REVIEW_VALIDATION_RECORD.md` | #9, #16 |
-
----
-
-## 3. Core Invariants
-*Preserve these unless an explicit Threat Model update is requested.*
-
-- **Local-Only**: No cloud, no telemetry, binds to `127.0.0.1`.
-- **Deniable Access**: `vault.bin` + password is insufficient without local state (`lock.bin`).
-- **Access Cues**: Object matching is a *cue*, not a cryptographic key. Never treat low-entropy biometric data as high-entropy secrets.
-- **Neutral Language**: UI/CLI must not reveal internal semantics (dummy/secret, real/fake, decoy).
-- **Hardened Actions**: Restricted actions (e.g., `brick`) require server-side checks and short-lived confirmation.
-- **Quiet Mode**: "Field Mode" must reduce casual exposure without creating detectable timing or error differences.
-
----
-
-## 4. User-Facing Language Rules
-
-| Prefer | Avoid |
-| :--- | :--- |
-| Protected entry, Local entry | Dummy, Secret, Hidden slot |
-| Object cue, Access cue | Biometric proof, Image key |
-| Key-path invalidation, Access-path clearing | Secure delete, Self-destruct, Wipe |
-| Restricted local update | Panic password, Duress password |
-| Metadata risk, Metadata reduction | Sanitization, Unbreakable, Military grade |
-
----
-
-## 5. Operational Discipline
-
-### AI Context Management
-- Load only the **minimal set of files** required for the current domain.
-- Do not initiate broad repository-wide rewrites.
-- Check `ruff` and `mypy` before submitting any Python changes.
-
-### Change & Test Strategy
-- **Surgical Edits**: Use `replace` instead of `write_file` for large files.
-- **Verification**: Always run `python3 -m unittest discover -s tests` after changes.
-- **No Regressions**: Ensure coverage stays above **70%**.
-
----
-
-## 6. Scope & Authority
-1. `docs/THREAT_MODEL.md`: Controls security assumptions and risks.
-2. `docs/SPECIFICATION.md`: Controls behavior and implementation contracts.
-3. `README.md`: Controls project summary and installation.
-4. `AGENTS.md`: This file (Development Guidance only).
-=======
 ## Purpose
 
 This file is the first context entry point for AI-assisted development in this repository.
@@ -105,6 +22,36 @@ Phantasm is a field-evaluation prototype for local-only coercion-aware storage. 
 Phantasm is research software. It is not a replacement for full-disk encryption, hardware-backed key storage, an audited classified-data handling system, organizational records-management systems, or a complete solution to compelled disclosure.
 
 Use this file to keep AI-assisted changes small, scoped, and consistent with the project boundary.
+
+---
+
+## Project Status & Roadmap
+
+### Current Focus: Hardening & Modularity
+
+The goal is to transition from a "field-evaluation prototype" to a "local appliance solution" by strengthening boundaries and improving testability.
+
+### Next Priority Issues
+
+1. **#30 Metadata Reduction**: Implement rigorous metadata scrubbing for exported payloads.
+2. **#31 Audit Integrity**: Implement hash-chaining and integrity verification for audit logs.
+3. **#32 Tamper Evidence**: Implement hardware-binding status reporting for field-evaluation units.
+4. **#33 UX Hardening**: Optimize Field Mode emergency flows for high-stress operational use.
+5. **#16 Integrity Manifest**: Implement a workflow for generating signed release manifests and SBOMs.
+6. **#27 AI Gate Decoupling**: Separate camera handling, object matching, and face lock logic.
+
+### Completed Milestones
+
+- `#8` & `#9`: CI pipeline with static analysis (`ruff`, `mypy`) and 70% coverage gate. ✅
+- `#19`: Multi-source KDF provider pipeline with hardware binding. ✅
+- `#22`: Centralized restricted action policy enforcement. ✅
+- `#23`: Typed local state store with atomic transitions. ✅
+- `#24`: Local coercion scenario matrix and restricted-flow tests. ✅
+- `#25`: Centralized user-visible strings in `strings.py`. ✅
+- `#26`: Vault cryptographic core split (KDFEngine / RecordCipher / ContainerLayout). ✅
+- `#29`: Local operations commands (`doctor`, `verify-state`) and documentation alignment. ✅
+
+---
 
 ## Project Boundary
 
@@ -125,6 +72,8 @@ Preserve this boundary in code, documentation, tests, and UI behavior:
 - target-hardware field evaluation before stronger claims
 
 Do not expand Phantasm into remote management, cloud recovery, telemetry, covert communication, censorship bypass, surveillance evasion, malware storage, offensive operations, or classified-data handling infrastructure.
+
+---
 
 ## Non-Negotiable Security Claims
 
@@ -159,6 +108,8 @@ When discussing deletion, restricted recovery, panic behavior, bricking, or emer
 
 Never describe it as guaranteed secure deletion.
 
+---
+
 ## Core Invariants
 
 Preserve these invariants unless a change explicitly updates the threat model, specification, tests, and user-facing documentation.
@@ -179,6 +130,8 @@ Preserve these invariants unless a change explicitly updates the threat model, s
 - Metadata reduction is best-effort and must not be described as complete sanitization.
 - Passing automated tests does not prove field safety.
 
+---
+
 ## Canonical Source Map
 
 Load only the relevant files for the requested change. Do not load the whole repository by default.
@@ -188,6 +141,11 @@ Load only the relevant files for the requested change. Do not load the whole rep
 Use this context for changes involving `vault.bin`, GhostVault, Argon2id, AES-GCM, salts, nonces, local access key material, span layout, record parsing, restricted recovery slots, destructive behavior, or migration:
 
 - `src/phantasm/gv_core.py`
+- `src/phantasm/crypto_boundary.py`
+- `src/phantasm/kdf_engine.py`
+- `src/phantasm/kdf_providers.py`
+- `src/phantasm/container_layout.py`
+- `src/phantasm/record_cypher.py`
 - `docs/SPECIFICATION.md`, especially sections 11 and 15
 - `docs/THREAT_MODEL.md`
 - `tests/test_gv_core.py` and related tests
@@ -197,8 +155,8 @@ Relevant issues:
 - `#4` cryptographic erase and local access-path invalidation
 - `#5` Argon2id + HKDF-SHA-256 migration
 - `#10` cryptographic module boundary and startup self-tests
-- `#19` local multi-source key derivation pipeline
-- `#26` vault cryptographic core split
+- `#19` local multi-source key derivation pipeline ✅
+- `#26` vault cryptographic core split ✅
 
 ### WebUI, API Routes, and Restricted Actions
 
@@ -206,6 +164,10 @@ Use this context for changes involving FastAPI routes, Web mutation token, restr
 
 - `src/phantasm/web_server.py`
 - `src/phantasm/templates/`
+- `src/phantasm/restricted_actions.py`
+- `src/phantasm/capabilities.py`
+- `src/phantasm/emergency_daemon.py`
+- `src/phantasm/bridge_ui.py`
 - `docs/SPECIFICATION.md`, especially sections 7, 8, and 9
 - `docs/THREAT_MODEL.md`
 - `tests/test_web_server.py` and related tests
@@ -216,9 +178,9 @@ Relevant issues:
 - `#7` authentication attempt limiting and backoff
 - `#15` WebUI security headers and CSRF review
 - `#21` deployment profiles and capability table
-- `#22` restricted action policy enforcement
-- `#24` local coercion and restricted-flow scenario matrix
-- `#25` user-visible UI and CLI strings
+- `#22` restricted action policy enforcement ✅
+- `#24` local coercion and restricted-flow scenario matrix ✅
+- `#25` user-visible UI and CLI strings ✅
 
 ### CLI Behavior
 
@@ -226,6 +188,7 @@ Use this context for changes involving `main.py`, command syntax, CLI output, co
 
 - `main.py`
 - `src/phantasm/cli.py`
+- `src/phantasm/passphrase_policy.py`
 - `docs/SPECIFICATION.md`, especially section 6
 - `docs/THREAT_MODEL.md`
 - `tests/test_cli.py` and related tests
@@ -236,8 +199,8 @@ Relevant issues:
 - `#6` access passphrase policy and strength checks
 - `#7` authentication attempt limiting and backoff
 - `#11` process hardening and secure memory best-effort support
-- `#25` user-visible UI and CLI strings
-- `#29` local operations commands and docs alignment
+- `#25` user-visible UI and CLI strings ✅
+- `#29` local operations commands and docs alignment ✅
 
 ### Object Cue, Camera Matching, and Face Lock
 
@@ -267,14 +230,16 @@ Use this context for changes involving metadata risk detection, metadata reducti
 
 Relevant issues:
 
-- `#24` scenario matrix
-- `#25` user-visible UI and CLI strings
+- `#24` scenario matrix ✅
+- `#25` user-visible UI and CLI strings ✅
+- `#30` metadata reduction for exported payloads
 
 ### Audit Logging
 
 Use this context for changes involving event logs, audit record shape, hash chains, HMACs, log export, audit filenames, event names, or audit metadata:
 
 - `src/phantasm/audit.py`
+- `src/phantasm/operations.py`
 - `src/phantasm/web_server.py` maintenance log export
 - `docs/THREAT_MODEL.md`
 - `docs/SPECIFICATION.md`
@@ -284,13 +249,16 @@ Relevant issues:
 
 - `#2` hash-chained audit log integrity checks
 - `#16` release integrity manifest and SBOM workflow
-- `#29` local operations commands and docs alignment
+- `#29` local operations commands and docs alignment ✅
+- `#31` audit integrity and hash-chaining
 
 ### Local State and Deployment Posture
 
-Use this context for changes involving `.state/`, state file names, state permissions, typed state, tmpfs, LUKS, deployment profile, appliance setup, service hardening, runtime secrets, or Raspberry Pi deployment:
+Use this context for changes involving `.state/`, state file names, state permissions, typed state, attempt limiting, tmpfs, LUKS, deployment profile, appliance setup, service hardening, runtime secrets, or Raspberry Pi deployment:
 
 - `src/phantasm/config.py`
+- `src/phantasm/state_store.py`
+- `src/phantasm/attempt_limiter.py`
 - `docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md`
 - `docs/RPI_ZERO_DEPLOYMENT.md`
 - `docs/FIELD_TEST_PROCEDURE.md`
@@ -307,8 +275,8 @@ Relevant issues:
 - `#17` optional LUKS layer
 - `#18` restricted recovery observability on target hardware
 - `#21` deployment profiles and capability table
-- `#23` typed local state store and transition checks
-- `#29` local operations commands and docs alignment
+- `#23` typed local state store and transition checks ✅
+- `#29` local operations commands and docs alignment ✅
 
 ### Testing, CI, Coverage, and Release Review
 
@@ -326,7 +294,9 @@ Use this context for changes involving tests, CI, static analysis, coverage, rel
 Relevant issues:
 
 - `#16` release integrity manifest and SBOM workflow
-- `#24` scenario matrix
+- `#24` scenario matrix ✅
+
+---
 
 ## Documentation Authority
 
@@ -340,6 +310,8 @@ When documents overlap, use this authority order:
 6. Issue descriptions describe planned work but do not override merged documentation.
 
 Do not silently resolve contradictions. If code, tests, README, specification, threat model, and issue text conflict, state the conflict and update the affected artifacts in the same change when appropriate.
+
+---
 
 ## User-Facing Language Rules
 
@@ -390,6 +362,8 @@ Avoid in normal user-facing surfaces:
 
 Internal implementation names may remain in code when necessary, but normal capture-visible behavior should stay neutral.
 
+---
+
 ## Capture-Visible Surface Rule
 
 Before changing any of the following, check whether the change reveals internal disclosure structure:
@@ -421,6 +395,8 @@ Do not reveal during normal operation:
 - original filenames where neutral filenames are required
 - whether a failure was caused by password, object cue, local state, restricted policy, or internal candidate mismatch, unless required for safe operation
 
+---
+
 ## AI Context Discipline
 
 For any AI-assisted task:
@@ -436,26 +412,7 @@ For any AI-assisted task:
 9. Do not change cryptographic behavior and UI language in the same patch unless the issue explicitly requires it.
 10. Do not modify container compatibility without a documented migration or compatibility plan.
 
-## Current Issue Priority Guidance
-
-When choosing the next work item, prefer changes that reduce future risk and AI context cost before making compatibility-sensitive cryptographic changes.
-
-Recommended order:
-
-1. Add or maintain this `AGENTS.md`.
-2. `#24` add local coercion and restricted-flow scenario matrix. ✅ Complete
-3. `#23` introduce typed local state store and transition checks. ✅ Complete
-4. `#26` split vault cryptographic core into reviewable modules. ✅ Complete
-5. `#19` design local multi-source key derivation pipeline.
-
-Completed implementations:
-- `#8` CI and static analysis gates ✅
-- `#9` coverage gating and operational procedure testing ✅
-- `#22` centralized restricted action policy ✅
-- `#25` centralized user-visible strings ✅
-- `#26` split vault cryptographic core into reviewable modules ✅
-- `#29` local operations commands and docs alignment ✅
-
+---
 
 ## Testing Expectations
 
@@ -494,6 +451,8 @@ python3 scripts/bench_kdf.py
 
 Passing automated tests do not prove field safety. They verify implementation contracts only. Field safety still requires target-hardware field testing and seizure review.
 
+---
+
 ## Change Discipline
 
 Make small, reviewable changes.
@@ -523,6 +482,8 @@ Do not:
 
 If a proposed change would improve convenience but weaken capture-visible quietness, local-only posture, or recovery safety, reject the change or require an explicit threat-model update.
 
+---
+
 ## Review Checklist for AI-Generated Changes
 
 Before finalizing an AI-generated change, verify:
@@ -541,9 +502,26 @@ Before finalizing an AI-generated change, verify:
 - Documentation claims match actual implementation.
 - Existing container compatibility is preserved or migration is explicitly documented.
 
+---
+
+## Operational Discipline
+
+### AI Context Management
+
+- Load only the **minimal set of files** required for the current domain.
+- Do not initiate broad repository-wide rewrites.
+- Check `ruff` and `mypy` before submitting any Python changes.
+
+### Change & Test Strategy
+
+- **Surgical Edits**: Prefer targeted edits over full-file rewrites for large files.
+- **Verification**: Always run `python3 -m unittest discover -s tests` after changes.
+- **No Regressions**: Ensure coverage stays above **70%**.
+
+---
+
 ## Scope of This File
 
 This file is development guidance only. It does not define user-facing product claims, legal advice, operational approval, or deployment authorization.
 
 If this file conflicts with the threat model or specification, the threat model and specification take precedence according to the Documentation Authority section.
->>>>>>> 0c73292 (Update AGENTS.md: Mark issue #26 as completed)
