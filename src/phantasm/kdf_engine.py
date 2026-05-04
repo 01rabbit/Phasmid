@@ -19,7 +19,7 @@ class KDFEngine:
     def __init__(self, state_dir: str):
         self.state_dir = state_dir
         self.access_key_path = os.path.join(state_dir, VAULT_KEY_NAME)
-        self._prompt_secret_cache = None
+        self._prompt_secret_cache: bytes | None = None
 
     def derive_key(
         self,
@@ -57,9 +57,10 @@ class KDFEngine:
 
     def _kdf_secret(self, create_access_key: bool = False) -> bytes:
         """Build multi-source KDF input."""
-        parts = []
+        parts: list[bytes] = []
+
         local_key = self._load_or_create_access_key(create=create_access_key)
-        if local_key:
+        if local_key is not None:
             parts.append(local_key)
 
         secret_file = os.environ.get("PHANTASM_HARDWARE_SECRET_FILE")
@@ -112,7 +113,10 @@ class KDFEngine:
 
     def get_or_create_access_key(self) -> bytes:
         """Get existing access key or create new one."""
-        return self._load_or_create_access_key(create=True)
+        key = self._load_or_create_access_key(create=True)
+        if key is None:
+            raise RuntimeError("failed to create local vault access key")
+        return key
 
     def rotate_access_key(self) -> None:
         """Replace the current access key with a new random one."""
