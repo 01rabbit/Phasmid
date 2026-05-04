@@ -9,6 +9,7 @@ from .container_layout import ContainerLayout
 from .kdf_engine import KDFEngine
 from .record_cypher import RecordCipher
 
+
 class GhostVault:
     FORMAT_VERSION = 3
     MIN_CONTAINER_SIZE = 4096
