@@ -98,6 +98,7 @@ class TerminologyAuditTests(unittest.TestCase):
             "src/phantasm/__init__.py",
             "src/phantasm/ai_gate.py",
             "src/phantasm/gv_core.py",
+            "src/phantasm/kdf_engine.py",
         }
         self.assertEqual(all_modules, scanned | internal_allowlist)
 

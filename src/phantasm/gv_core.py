@@ -1,4 +1,3 @@
-import getpass
 import json
 import os
 import struct
@@ -6,10 +5,10 @@ import time
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
 
 from .config import VAULT_KEY_NAME
 from .config import state_dir as default_state_dir
+from .kdf_engine import KDFEngine
 
 
 class GhostVault:
@@ -32,7 +31,7 @@ class GhostVault:
         self.size = self._normalize_size(size_mb)
         self.state_dir = state_dir or default_state_dir()
         self.access_key_path = os.path.join(self.state_dir, VAULT_KEY_NAME)
-        self._prompt_secret_cache = None
+        self.kdf_engine = KDFEngine(self.state_dir)
 
     def _normalize_size(self, size_mb):
         try:
@@ -46,19 +45,6 @@ class GhostVault:
             )
         return size_bytes
 
-    def _context_password(
-        self,
-        password: str,
-        gesture_sequence: list,
-        mode="dummy",
-        password_role=OPEN_ROLE,
-    ):
-        # Combine the password, object-cue token, and local entry selector into
-        # the KDF input. The same local entry selector must be available to
-        # reproduce the KDF context.
-        gesture_str = "-".join(gesture_sequence)
-        return f"{password}_{gesture_str}_{mode}_{password_role}".encode()
-
     def _derive_key(
         self,
         password: str,
@@ -68,75 +54,20 @@ class GhostVault:
         create_access_key=False,
         password_role=OPEN_ROLE,
     ):
-        kdf = Argon2id(
+        return self.kdf_engine.derive_key(
+            password=password,
+            gesture_sequence=gesture_sequence,
+            mode=mode,
             salt=salt,
-            length=32,
-            iterations=self.ARGON2_ITERATIONS,
-            lanes=self.ARGON2_LANES,
-            memory_cost=self.ARGON2_MEMORY_COST,
-            secret=self._kdf_secret(create_access_key=create_access_key),
+            password_role=password_role,
+            create_access_key=create_access_key,
         )
-        return kdf.derive(
-            self._context_password(password, gesture_sequence, mode, password_role)
-        )
-
-    def _kdf_secret(self, create_access_key=False):
-        parts = []
-        local_key = self._load_or_create_access_key(create=create_access_key)
-        if local_key:
-            parts.append(local_key)
-
-        secret_file = os.environ.get("PHANTASM_HARDWARE_SECRET_FILE")
-        if secret_file:
-            with open(secret_file, "rb") as handle:
-                parts.append(handle.read().strip())
-
-        secret = os.environ.get("PHANTASM_HARDWARE_SECRET")
-        if secret:
-            parts.append(secret.encode("utf-8"))
-
-        if os.environ.get("PHANTASM_HARDWARE_SECRET_PROMPT") == "1":
-            if self._prompt_secret_cache is None:
-                self._prompt_secret_cache = getpass.getpass(
-                    "[AUTH] External device secret: "
-                ).encode("utf-8")
-            parts.append(self._prompt_secret_cache)
-
-        if not parts:
-            return None
-        return b"\x00".join(parts)
 
     def _load_or_create_access_key(self, create=False):
-        if os.path.exists(self.access_key_path):
-            with open(self.access_key_path, "rb") as handle:
-                key = handle.read()
-            if len(key) == self.ACCESS_KEY_SIZE:
-                return key
-            raise ValueError("invalid local vault access key")
-
-        if not create:
-            raise ValueError("local vault access key is missing")
-
-        return self._write_new_access_key()
-
-    def _write_new_access_key(self):
-        os.makedirs(self.state_dir, mode=0o700, exist_ok=True)
-        try:
-            os.chmod(self.state_dir, 0o700)
-        except OSError:
-            pass
-        key = os.urandom(self.ACCESS_KEY_SIZE)
-        with open(self.access_key_path, "wb") as handle:
-            handle.write(key)
-        try:
-            os.chmod(self.access_key_path, 0o600)
-        except OSError:
-            pass
-        return key
+        return self.kdf_engine._load_or_create_access_key(create=create)
 
     def rotate_access_key(self):
-        self.destroy_access_keys()
-        return self._write_new_access_key()
+        self.kdf_engine.rotate_access_key()
 
     def _require_container(self):
         if not os.path.exists(self.path):
@@ -357,17 +288,7 @@ class GhostVault:
             f.write(os.urandom(self.size))
 
     def destroy_access_keys(self):
-        for path in (self.access_key_path,):
-            if not os.path.exists(path):
-                continue
-            try:
-                length = os.path.getsize(path)
-                with open(path, "r+b") as handle:
-                    handle.seek(0)
-                    handle.write(os.urandom(max(length, self.ACCESS_KEY_SIZE)))
-                os.remove(path)
-            except OSError:
-                pass
+        self.kdf_engine.destroy_access_keys()
 
     def purge_mode(self, mode):
         self._require_container()
