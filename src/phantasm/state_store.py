@@ -19,6 +19,7 @@ class AttemptState:
     def to_dict(self):
         return asdict(self)
 
+
 from .config import state_dir
 
 SCHEMA_VERSION = 1
