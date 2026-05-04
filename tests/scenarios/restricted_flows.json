@@ -118,5 +118,20 @@
         "text": "Confirm stale restricted sessions are rejected."
       }
     ]
+  },
+  {
+    "id": "rapid-local-clear-without-confirmation",
+    "kind": "restricted_policy",
+    "action": "rapid_local_clear",
+    "capability_allowed": true,
+    "restricted_confirmed": false,
+    "confirmation": "WRONG",
+    "expected_error": "confirmation rejected",
+    "procedure_refs": [
+      {
+        "path": "docs/RESTRICTED_ACTIONS.md",
+        "text": "wrong typed phrase"
+      }
+    ]
   }
 ]

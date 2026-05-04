@@ -49,6 +49,7 @@ class RestrictedFlowScenarioTests(unittest.TestCase):
                 "container-initialization-after-valid-confirmation",
                 "local-access-path-clear-after-valid-confirmation",
                 "stale-restricted-session-rejection",
+                "rapid-local-clear-without-confirmation",
             },
             scenario_ids,
         )
@@ -80,6 +81,12 @@ class RestrictedFlowScenarioTests(unittest.TestCase):
                 capability=Capability.RESTRICTED_ACTION,
                 confirmation_phrase="CONFIRM",
                 require_password_reentry=True,
+            ),
+            "rapid_local_clear": RestrictedActionPolicy(
+                action_id="rapid_local_clear",
+                capability=Capability.RAPID_LOCAL_CLEAR,
+                confirmation_phrase="BRICK",
+                require_restricted_confirmation=False,
             ),
         }
 
