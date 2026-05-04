@@ -39,7 +39,9 @@ class KDFEngine:
             memory_cost=self.ARGON2_MEMORY_COST,
             secret=self._kdf_secret(create_access_key=create_access_key),
         )
-        context = self._context_password(password, gesture_sequence, mode, password_role)
+        context = self._context_password(
+            password, gesture_sequence, mode, password_role
+        )
         return kdf.derive(context)
 
     def _context_password(

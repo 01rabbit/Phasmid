@@ -99,9 +99,15 @@ class TestContainerLayout(unittest.TestCase):
             purged_data = f.read()
 
         # First half should be changed
-        self.assertNotEqual(original_data[:self.container_size//2], purged_data[:self.container_size//2])
+        self.assertNotEqual(
+            original_data[: self.container_size // 2],
+            purged_data[: self.container_size // 2],
+        )
         # Second half should be unchanged
-        self.assertEqual(original_data[self.container_size//2:], purged_data[self.container_size//2:])
+        self.assertEqual(
+            original_data[self.container_size // 2 :],
+            purged_data[self.container_size // 2 :],
+        )
 
     def test_purge_mode_secret(self):
         """Test purge_mode overwrites secret mode"""
@@ -114,9 +120,15 @@ class TestContainerLayout(unittest.TestCase):
             purged_data = f.read()
 
         # First half should be unchanged
-        self.assertEqual(original_data[:self.container_size//2], purged_data[:self.container_size//2])
+        self.assertEqual(
+            original_data[: self.container_size // 2],
+            purged_data[: self.container_size // 2],
+        )
         # Second half should be changed
-        self.assertNotEqual(original_data[self.container_size//2:], purged_data[self.container_size//2:])
+        self.assertNotEqual(
+            original_data[self.container_size // 2 :],
+            purged_data[self.container_size // 2 :],
+        )
 
     def test_purge_other_mode_from_dummy(self):
         """Test purge_other_mode purges secret when dummy was accessed"""
@@ -129,8 +141,14 @@ class TestContainerLayout(unittest.TestCase):
             purged_data = f.read()
 
         # Same as purging secret mode
-        self.assertEqual(original_data[:self.container_size//2], purged_data[:self.container_size//2])
-        self.assertNotEqual(original_data[self.container_size//2:], purged_data[self.container_size//2:])
+        self.assertEqual(
+            original_data[: self.container_size // 2],
+            purged_data[: self.container_size // 2],
+        )
+        self.assertNotEqual(
+            original_data[self.container_size // 2 :],
+            purged_data[self.container_size // 2 :],
+        )
 
     def test_purge_other_mode_from_secret(self):
         """Test purge_other_mode purges dummy when secret was accessed"""
@@ -143,8 +161,14 @@ class TestContainerLayout(unittest.TestCase):
             purged_data = f.read()
 
         # Same as purging dummy mode
-        self.assertNotEqual(original_data[:self.container_size//2], purged_data[:self.container_size//2])
-        self.assertEqual(original_data[self.container_size//2:], purged_data[self.container_size//2:])
+        self.assertNotEqual(
+            original_data[: self.container_size // 2],
+            purged_data[: self.container_size // 2],
+        )
+        self.assertEqual(
+            original_data[self.container_size // 2 :],
+            purged_data[self.container_size // 2 :],
+        )
 
     def test_purge_other_mode_invalid(self):
         """Test purge_other_mode raises ValueError for invalid mode"""

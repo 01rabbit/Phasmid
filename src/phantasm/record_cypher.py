@@ -23,7 +23,11 @@ class RecordCipher:
         self.container_layout = container_layout
 
     def _record_aad(self, mode, password_role):
-        return f"phantasm-record-v3:{mode}:{password_role}:{self.container_size}".encode("utf-8")
+        return (
+            f"phantasm-record-v3:{mode}:{password_role}:{self.container_size}".encode(
+                "utf-8"
+            )
+        )
 
     def encrypt_record(
         self,
@@ -67,7 +71,10 @@ class RecordCipher:
             raise ValueError("encrypted payload does not fit in the container")
         padding = os.urandom(padding_len)
         record_plaintext = (
-            struct.pack(">I", len(metadata_bytes)) + metadata_bytes + plaintext + padding
+            struct.pack(">I", len(metadata_bytes))
+            + metadata_bytes
+            + plaintext
+            + padding
         )
         aad = self._record_aad(mode, password_role)
         ciphertext = aesgcm.encrypt(nonce, record_plaintext, aad)

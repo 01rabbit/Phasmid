@@ -10,8 +10,12 @@ class TestRecordCipher(unittest.TestCase):
         self.container_size = 1024
         self.temp_file = tempfile.NamedTemporaryFile(delete=False)
         self.temp_file.close()
-        self.container_layout = ContainerLayout(self.temp_file.name, self.container_size)
-        self.cipher = RecordCipher(self.temp_file.name, self.container_size, self.container_layout)
+        self.container_layout = ContainerLayout(
+            self.temp_file.name, self.container_size
+        )
+        self.cipher = RecordCipher(
+            self.temp_file.name, self.container_size, self.container_layout
+        )
 
     def tearDown(self):
         os.unlink(self.temp_file.name)
@@ -23,8 +27,12 @@ class TestRecordCipher(unittest.TestCase):
         mode = "dummy"
         password_role = "open"
 
-        salt, nonce, ciphertext = self.cipher.encrypt_record(plaintext, key, mode, password_role)
-        decrypted, filename, metadata = self.cipher.decrypt_record(ciphertext, key, salt, nonce, mode, password_role)
+        salt, nonce, ciphertext = self.cipher.encrypt_record(
+            plaintext, key, mode, password_role
+        )
+        decrypted, filename, metadata = self.cipher.decrypt_record(
+            ciphertext, key, salt, nonce, mode, password_role
+        )
 
         self.assertEqual(decrypted, plaintext)
         self.assertEqual(filename, "payload.bin")
@@ -38,8 +46,12 @@ class TestRecordCipher(unittest.TestCase):
         mode = "secret"
         password_role = "open"
 
-        salt, nonce, ciphertext = self.cipher.encrypt_record(plaintext, key, mode, password_role, filename)
-        decrypted, dec_filename, dec_metadata = self.cipher.decrypt_record(ciphertext, key, salt, nonce, mode, password_role)
+        salt, nonce, ciphertext = self.cipher.encrypt_record(
+            plaintext, key, mode, password_role, filename
+        )
+        decrypted, dec_filename, dec_metadata = self.cipher.decrypt_record(
+            ciphertext, key, salt, nonce, mode, password_role
+        )
 
         self.assertEqual(decrypted, plaintext)
         self.assertEqual(dec_filename, filename)
@@ -53,10 +65,14 @@ class TestRecordCipher(unittest.TestCase):
         mode = "dummy"
         password_role = "open"
 
-        salt, nonce, ciphertext = self.cipher.encrypt_record(plaintext, key, mode, password_role)
+        salt, nonce, ciphertext = self.cipher.encrypt_record(
+            plaintext, key, mode, password_role
+        )
 
         with self.assertRaises(Exception):
-            self.cipher.decrypt_record(ciphertext, key2, salt, nonce, mode, password_role)
+            self.cipher.decrypt_record(
+                ciphertext, key2, salt, nonce, mode, password_role
+            )
 
     def test_decrypt_wrong_password_role(self):
         """Test that decrypting with wrong password_role fails"""
@@ -65,7 +81,9 @@ class TestRecordCipher(unittest.TestCase):
         mode = "dummy"
         password_role = "open"
 
-        salt, nonce, ciphertext = self.cipher.encrypt_record(plaintext, key, mode, password_role)
+        salt, nonce, ciphertext = self.cipher.encrypt_record(
+            plaintext, key, mode, password_role
+        )
 
         # Decrypt with wrong password_role should fail
         with self.assertRaises(Exception):

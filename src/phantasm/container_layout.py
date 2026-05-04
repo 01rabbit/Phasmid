@@ -17,7 +17,9 @@ class ContainerLayout:
     def get_mode_span(self, mode: str) -> tuple[int, int]:
         """Get the span for a mode"""
         if mode == "secret":
-            return self.container_size // 2, self.container_size - (self.container_size // 2)
+            return self.container_size // 2, self.container_size - (
+                self.container_size // 2
+            )
         if mode == "dummy":
             return 0, self.container_size // 2
         raise ValueError(f"unsupported mode: {mode}")

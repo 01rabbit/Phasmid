@@ -73,14 +73,6 @@ class GhostVault:
     def rotate_access_key(self):
         self.kdf_engine.rotate_access_key()
 
-
-
-
-
-
-
-
-
     def format_container(self, rotate_access_key=False):
         if rotate_access_key:
             self.rotate_access_key()
@@ -175,9 +167,7 @@ class GhostVault:
     def _retrieve_slot(self, password, gesture_sequence, mode, password_role):
         start, span_len = self.container_layout.get_slot_span(mode, password_role)
         ciphertext_len = (
-            span_len
-            - self.record_cipher.SALT_SIZE
-            - self.record_cipher.NONCE_SIZE
+            span_len - self.record_cipher.SALT_SIZE - self.record_cipher.NONCE_SIZE
         )
 
         with open(self.path, "rb") as f:
@@ -215,8 +205,6 @@ class GhostVault:
             KeyError,
         ):
             return None, None
-
-
 
     def _randomize_slot(self, mode, password_role):
         self.container_layout.randomize_slot(mode, password_role)

@@ -23,7 +23,7 @@ class KDFEngineTests(unittest.TestCase):
             gesture_sequence=["a", "b"],
             mode="dummy",
             salt=b"x" * 16,
-            password_role="open"
+            password_role="open",
         )
         self.assertEqual(len(key), 32)
         self.assertIsInstance(key, bytes)
@@ -33,20 +33,22 @@ class KDFEngineTests(unittest.TestCase):
         with open(secret_file, "wb") as f:
             f.write(b"hardware_secret")
 
-        with mock.patch.dict(os.environ, {"PHANTASM_HARDWARE_SECRET_FILE": secret_file}):
+        with mock.patch.dict(
+            os.environ, {"PHANTASM_HARDWARE_SECRET_FILE": secret_file}
+        ):
             key1 = self.engine.derive_key(
                 password="test",
                 gesture_sequence=["a"],
                 mode="dummy",
                 salt=b"x" * 16,
-                password_role="open"
+                password_role="open",
             )
             key2 = self.engine.derive_key(
                 password="test",
                 gesture_sequence=["a"],
                 mode="dummy",
                 salt=b"x" * 16,
-                password_role="open"
+                password_role="open",
             )
             self.assertEqual(key1, key2)  # Deterministic with same inputs
 
@@ -57,7 +59,7 @@ class KDFEngineTests(unittest.TestCase):
                 gesture_sequence=["a"],
                 mode="dummy",
                 salt=b"x" * 16,
-                password_role="open"
+                password_role="open",
             )
             self.assertEqual(len(key), 32)
 
