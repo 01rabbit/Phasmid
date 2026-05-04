@@ -347,20 +347,18 @@ When choosing the next work item, prefer changes that reduce future risk and AI 
 Recommended order:
 
 1. Add or maintain this `AGENTS.md`.
-2. `#24` add local coercion and restricted-flow scenario matrix.
-3. `#23` introduce typed local state store and transition checks.
-4. `#26` split vault cryptographic core into reviewable modules.
+2. `#24` add local coercion and restricted-flow scenario matrix. ✅ Complete
+3. `#23` introduce typed local state store and transition checks. ✅ Complete
+4. `#26` split vault cryptographic core into reviewable modules. 📋 Design document: `docs/CRYPTO_MODULE_DESIGN.md`
 5. `#19` design local multi-source key derivation pipeline.
 
-Defer implementation-heavy work on these until tests and compatibility boundaries are strong:
+Completed implementations:
+- `#8` CI and static analysis gates ✅
+- `#9` coverage gating and operational procedure testing ✅
+- `#22` centralized restricted action policy ✅
+- `#25` centralized user-visible strings ✅
+- `#29` local operations commands and docs alignment ✅
 
-- `#5` Argon2id + HKDF-SHA-256 migration
-- `#13` local device-binding inputs
-- `#14` threshold split-key recovery
-- `#19` multi-source key derivation implementation
-- `#28` local dual-passphrase approval flow
-
-Analysis-only documents for these issues are acceptable earlier if they do not change container behavior.
 
 ## Testing Expectations
 
