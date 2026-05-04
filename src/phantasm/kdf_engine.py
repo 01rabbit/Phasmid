@@ -8,6 +8,7 @@ from .config import VAULT_KEY_NAME
 from .kdf_providers import (
     EnvSecretProvider,
     FileSecretProvider,
+    HardwareBindingProvider,
     PromptSecretProvider,
     SecretProvider,
 )
@@ -27,6 +28,7 @@ class KDFEngine:
         self.providers: list[SecretProvider] = [
             FileSecretProvider(os.environ.get("PHANTASM_HARDWARE_SECRET_FILE", "")),
             EnvSecretProvider("PHANTASM_HARDWARE_SECRET"),
+            HardwareBindingProvider(),
         ]
         if os.environ.get("PHANTASM_HARDWARE_SECRET_PROMPT") == "1":
             self.providers.append(PromptSecretProvider())

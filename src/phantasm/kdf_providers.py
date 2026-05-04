@@ -32,6 +32,28 @@ class FileSecretProvider(SecretProvider):
             return handle.read().strip()
 
 
+class HardwareBindingProvider(SecretProvider):
+    def __init__(self, path: str = "/proc/cpuinfo"):
+        self.path = path
+
+    def get_secret(self) -> bytes | None:
+        """Retrieve system identifiers for hardware binding."""
+        if not os.path.exists(self.path):
+            return None
+
+        # Capture hardware-specific binding material (e.g., serial or model)
+        binding = []
+        try:
+            with open(self.path, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.startswith(("Serial", "Hardware", "Revision")):
+                        binding.append(line.split(":")[-1].strip())
+        except OSError:
+            return None
+
+        return "-".join(binding).encode("utf-8") if binding else None
+
+
 class PromptSecretProvider(SecretProvider):
     def __init__(self, prompt: str = "Enter additional key material: "):
         self.prompt = prompt
