@@ -95,6 +95,16 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("Test sudden power loss during Retrieve", doc)
         self.assertIn("Review the systemd journal after each power-loss case", doc)
 
+    def test_operations_doc_links_command_checks_and_scenarios(self):
+        doc = read_text("docs/OPERATIONS.md")
+        self.assertIn("python3 main.py verify-state", doc)
+        self.assertIn("python3 main.py verify-audit-log", doc)
+        self.assertIn("python3 main.py doctor", doc)
+        self.assertIn("python3 main.py export-redacted-log --out review-events.jsonl", doc)
+        self.assertIn("tests/test_operations.py", doc)
+        self.assertIn("tests/scenarios/restricted_flows.json", doc)
+        self.assertIn("tests/test_scenarios.py", doc)
+
     def test_review_validation_record_exists(self):
         record = read_text("docs/REVIEW_VALIDATION_RECORD.md")
         self.assertIn("Review Validation Record", record)

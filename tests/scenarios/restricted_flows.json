@@ -6,7 +6,17 @@
     "capability_allowed": true,
     "restricted_confirmed": false,
     "confirmation": "CLEAR LOCAL ENTRY",
-    "expected_error": "restricted confirmation required"
+    "expected_error": "restricted confirmation required",
+    "procedure_refs": [
+      {
+        "path": "docs/RESTRICTED_ACTIONS.md",
+        "text": "direct restricted-route access without confirmation"
+      },
+      {
+        "path": "docs/FIELD_TEST_PROCEDURE.md",
+        "text": "Confirm `/emergency` initially shows only restricted confirmation."
+      }
+    ]
   },
   {
     "id": "restricted-action-without-password-reentry",
@@ -16,20 +26,46 @@
     "restricted_confirmed": true,
     "confirmation": "CONFIRM",
     "password_reentered": false,
-    "expected_error": "operation rejected"
+    "expected_error": "operation rejected",
+    "procedure_refs": [
+      {
+        "path": "docs/RESTRICTED_ACTIONS.md",
+        "text": "wrong typed phrase"
+      }
+    ]
   },
   {
     "id": "object-cue-mismatch-before-retrieve",
     "kind": "web_retrieve",
     "object_cue": "missing",
-    "expected_error": "No valid entry found."
+    "expected_error": "No valid entry found.",
+    "procedure_refs": [
+      {
+        "path": "docs/FIELD_TEST_PROCEDURE.md",
+        "text": "Retrieve with object not detected."
+      },
+      {
+        "path": "docs/SEIZURE_REVIEW_CHECKLIST.md",
+        "text": "normal screens use neutral entry language"
+      }
+    ]
   },
   {
     "id": "field-mode-maintenance-without-confirmation",
     "kind": "web_maintenance",
     "field_mode": true,
     "restricted_confirmed": false,
-    "expected_hidden": ["state_directory", "session_token", "audit_details"]
+    "expected_hidden": ["state_directory", "session_token", "audit_details"],
+    "procedure_refs": [
+      {
+        "path": "docs/RESTRICTED_ACTIONS.md",
+        "text": "Field Mode before and after restricted confirmation"
+      },
+      {
+        "path": "docs/FIELD_TEST_PROCEDURE.md",
+        "text": "Confirm Maintenance hides state path before restricted confirmation."
+      }
+    ]
   },
   {
     "id": "container-initialization-after-valid-confirmation",
@@ -37,7 +73,17 @@
     "route": "initialize_container",
     "restricted_confirmed": true,
     "confirmation": "INITIALIZE LOCAL CONTAINER",
-    "expected_status": "Local container initialized. Protected entries are empty."
+    "expected_status": "Local container initialized. Protected entries are empty.",
+    "procedure_refs": [
+      {
+        "path": "docs/FIELD_TEST_PROCEDURE.md",
+        "text": "Confirm typed action phrases are required."
+      },
+      {
+        "path": "docs/STATE_RECOVERY.md",
+        "text": "reinitialize through the documented restricted flow"
+      }
+    ]
   },
   {
     "id": "local-access-path-clear-after-valid-confirmation",
@@ -45,12 +91,32 @@
     "route": "clear_local_access_path",
     "restricted_confirmed": true,
     "confirmation": "CLEAR LOCAL ACCESS PATH",
-    "expected_status": "Local access path cleared. Close this session."
+    "expected_status": "Local access path cleared. Close this session.",
+    "procedure_refs": [
+      {
+        "path": "docs/RESTRICTED_ACTIONS.md",
+        "text": "a typed action phrase"
+      },
+      {
+        "path": "docs/STATE_RECOVERY.md",
+        "text": "Do not treat flash-media overwrite as guaranteed deletion."
+      }
+    ]
   },
   {
     "id": "stale-restricted-session-rejection",
     "kind": "restricted_session",
     "session_state": "stale",
-    "expected_error": "restricted confirmation required"
+    "expected_error": "restricted confirmation required",
+    "procedure_refs": [
+      {
+        "path": "docs/RESTRICTED_ACTIONS.md",
+        "text": "expired restricted confirmation"
+      },
+      {
+        "path": "docs/FIELD_TEST_PROCEDURE.md",
+        "text": "Confirm stale restricted sessions are rejected."
+      }
+    ]
   }
 ]
