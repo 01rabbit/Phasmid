@@ -1,8 +1,11 @@
-import unittest
 import os
 import tempfile
-from src.phantasm.record_cypher import RecordCipher
+import unittest
+
+from cryptography.exceptions import InvalidTag
+
 from src.phantasm.container_layout import ContainerLayout
+from src.phantasm.record_cypher import RecordCipher
 
 
 class TestRecordCipher(unittest.TestCase):
@@ -69,7 +72,7 @@ class TestRecordCipher(unittest.TestCase):
             plaintext, key, mode, password_role
         )
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(InvalidTag):
             self.cipher.decrypt_record(
                 ciphertext, key2, salt, nonce, mode, password_role
             )
@@ -86,7 +89,7 @@ class TestRecordCipher(unittest.TestCase):
         )
 
         # Decrypt with wrong password_role should fail
-        with self.assertRaises(Exception):
+        with self.assertRaises(InvalidTag):
             self.cipher.decrypt_record(ciphertext, key, salt, nonce, mode, "purge")
 
 

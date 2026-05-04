@@ -1,16 +1,13 @@
 import json
 import os
-import struct
-import time
 
 from cryptography.exceptions import InvalidTag
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from .config import VAULT_KEY_NAME
 from .config import state_dir as default_state_dir
+from .container_layout import ContainerLayout
 from .kdf_engine import KDFEngine
 from .record_cypher import RecordCipher
-from .container_layout import ContainerLayout
 
 
 class GhostVault:

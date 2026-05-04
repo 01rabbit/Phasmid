@@ -3,7 +3,6 @@ import os
 import struct
 import time
 
-from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 
