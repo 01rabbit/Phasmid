@@ -35,9 +35,9 @@ class RecordCipher:
         mode: str,
         password_role: str,
         filename: str = "payload.bin",
-        payload_len: int = None,
-        created_at: int = None,
-        salt: bytes = None,
+        payload_len: int | None = None,
+        created_at: int | None = None,
+        salt: bytes | None = None,
     ) -> tuple[bytes, bytes, bytes]:
         """Encrypt a record and return (salt, nonce, ciphertext)"""
         if payload_len is None:
