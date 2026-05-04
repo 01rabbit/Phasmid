@@ -1,11 +1,16 @@
 """Key Derivation Engine for Phantasm cryptographic operations."""
 
-import getpass
 import os
 
 from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
 
 from .config import VAULT_KEY_NAME
+from .kdf_providers import (
+    EnvSecretProvider,
+    FileSecretProvider,
+    PromptSecretProvider,
+    SecretProvider,
+)
 
 
 class KDFEngine:
@@ -19,7 +24,12 @@ class KDFEngine:
     def __init__(self, state_dir: str):
         self.state_dir = state_dir
         self.access_key_path = os.path.join(state_dir, VAULT_KEY_NAME)
-        self._prompt_secret_cache: bytes | None = None
+        self.providers: list[SecretProvider] = [
+            FileSecretProvider(os.environ.get("PHANTASM_HARDWARE_SECRET_FILE", "")),
+            EnvSecretProvider("PHANTASM_HARDWARE_SECRET"),
+        ]
+        if os.environ.get("PHANTASM_HARDWARE_SECRET_PROMPT") == "1":
+            self.providers.append(PromptSecretProvider())
 
     def derive_key(
         self,
@@ -63,21 +73,10 @@ class KDFEngine:
         if local_key is not None:
             parts.append(local_key)
 
-        secret_file = os.environ.get("PHANTASM_HARDWARE_SECRET_FILE")
-        if secret_file:
-            with open(secret_file, "rb") as handle:
-                parts.append(handle.read().strip())
-
-        input_material = os.environ.get("PHANTASM_HARDWARE_SECRET")
-        if input_material:
-            parts.append(input_material.encode("utf-8"))
-
-        if os.environ.get("PHANTASM_HARDWARE_SECRET_PROMPT") == "1":
-            if self._prompt_secret_cache is None:
-                self._prompt_secret_cache = getpass.getpass(
-                    "Enter additional key material: "
-                ).encode("utf-8")
-            parts.append(self._prompt_secret_cache)
+        for provider in self.providers:
+            secret = provider.get_secret()
+            if secret:
+                parts.append(secret)
 
         return b"".join(parts)
 
