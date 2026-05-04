@@ -10,6 +10,15 @@ import time
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 
+
+@dataclass(frozen=True)
+class AttemptState:
+    failures: int = 0
+    locked_until: int = 0
+
+    def to_dict(self):
+        return asdict(self)
+
 from .config import state_dir
 
 SCHEMA_VERSION = 1
