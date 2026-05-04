@@ -1,10 +1,24 @@
+import os
+
 import cv2
 import numpy as np
 
 
+def _display_enabled() -> bool:
+    return os.environ.get("PHANTASM_ENABLE_DISPLAY", "").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 class GhostUI:
     """
-    Whisplay HAT (ST7789) UI Simulator for macOS
+    Whisplay HAT (ST7789) UI Simulator.
+
+    The simulator is disabled by default in CI/headless environments.
+    Set PHANTASM_ENABLE_DISPLAY=1 to open an OpenCV preview window.
     """
 
     def __init__(self):
@@ -12,6 +26,7 @@ class GhostUI:
         self.height = 240
         self.canvas = np.zeros((self.height, self.width, 3), dtype=np.uint8)
         self.window_name = "Whisplay HAT Simulator"
+        self.display_enabled = _display_enabled()
 
     def clear(self):
         self.canvas.fill(0)
@@ -31,7 +46,6 @@ class GhostUI:
 
     def show_alert(self, message):
         self.clear()
-        # Red alert frame.
         cv2.rectangle(self.canvas, (10, 10), (230, 230), (0, 0, 255), 2)
         self.draw_text("!!! ALERT !!!", (60, 60), color=(0, 0, 255), size=0.7)
         lines = message.split("\n")
@@ -40,12 +54,14 @@ class GhostUI:
         self.refresh()
 
     def refresh(self):
+        if not self.display_enabled:
+            return
         cv2.imshow(self.window_name, self.canvas)
         cv2.waitKey(1)
 
     def close(self):
-        cv2.destroyWindow(self.window_name)
+        if self.display_enabled:
+            cv2.destroyWindow(self.window_name)
 
 
-# Shared UI instance.
 ui = GhostUI()
