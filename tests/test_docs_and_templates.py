@@ -100,7 +100,9 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertIn("python3 main.py verify-state", doc)
         self.assertIn("python3 main.py verify-audit-log", doc)
         self.assertIn("python3 main.py doctor", doc)
-        self.assertIn("python3 main.py export-redacted-log --out review-events.jsonl", doc)
+        self.assertIn(
+            "python3 main.py export-redacted-log --out review-events.jsonl", doc
+        )
         self.assertIn("tests/test_operations.py", doc)
         self.assertIn("tests/scenarios/restricted_flows.json", doc)
         self.assertIn("tests/test_scenarios.py", doc)

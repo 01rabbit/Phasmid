@@ -260,7 +260,10 @@ def _recent_camera_frames(count=FACE_FRAME_SAMPLES, delay=FACE_FRAME_DELAY_SECON
 def require_web_token(x_phantasm_token: str = Header(default="")):
     if not secrets.compare_digest(x_phantasm_token, WEB_TOKEN):
         raise HTTPException(status_code=403, detail=text.INVALID_WEB_TOKEN)
+
+
 _rate_limit: dict[str, list[float]] = {}
+
 
 def enforce_rate_limit(request: Request):
     client = request.client.host if request.client else "unknown"
@@ -275,7 +278,6 @@ def enforce_rate_limit(request: Request):
         raise HTTPException(status_code=429, detail=text.RATE_LIMIT_EXCEEDED)
     bucket.append(now)
     _rate_limit[key] = bucket
-
 
 
 async def read_limited_upload(file: UploadFile):
@@ -979,9 +981,7 @@ async def export_logs(request: Request):
     _require_restricted_when_field_mode(request)
     path = Path(state_dir()) / AUDIT_LOG_NAME
     if not path.exists():
-        return JSONResponse(
-            {"error": text.NO_LOCAL_EVENT_LOG}, status_code=404
-        )
+        return JSONResponse({"error": text.NO_LOCAL_EVENT_LOG}, status_code=404)
     data = path.read_bytes()
     return StreamingResponse(
         io.BytesIO(data),

@@ -58,7 +58,9 @@ CLI_ERROR_NO_INPUT = "[!] Error: No input file specified."
 CLI_ERROR_OUTPUT_REQUIRED = "[!] Error: Output path required."
 CLI_ERROR_CAMERA_UNAVAILABLE = "[!] Error: Camera feed did not become available."
 CLI_INIT_SUCCESS = "[+] Local container initialized. Ready for protected entries."
-CLI_RESET_COMPLETE = "[+] Reset complete. Reload /ui-lock in the WebUI to register a new face lock."
+CLI_RESET_COMPLETE = (
+    "[+] Reset complete. Reload /ui-lock in the WebUI to register a new face lock."
+)
 
 # AI Gate Neutral Wording
 AI_GATE_ACTIVE = "PHANTASM: ACTIVE"

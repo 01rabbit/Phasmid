@@ -297,7 +297,6 @@ def main():
                 print(text.CLI_ERROR_CAMERA_UNAVAILABLE)
                 return 1
 
-
         vault = GhostVault("vault.bin")
 
         if args.action == "init":
