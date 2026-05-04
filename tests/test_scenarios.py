@@ -28,6 +28,11 @@ def load_scenarios():
         return json.load(handle)
 
 
+def read_repo_text(path):
+    with open(os.path.join(ROOT, path), "r", encoding="utf-8") as handle:
+        return handle.read()
+
+
 class RestrictedFlowScenarioTests(unittest.TestCase):
     def tearDown(self):
         web_server._rate_limit.clear()
@@ -47,6 +52,16 @@ class RestrictedFlowScenarioTests(unittest.TestCase):
             },
             scenario_ids,
         )
+
+    def test_scenarios_reference_documented_procedures(self):
+        for scenario in load_scenarios():
+            with self.subTest(scenario=scenario["id"]):
+                refs = scenario.get("procedure_refs")
+                self.assertTrue(refs, "scenario must define procedure_refs")
+                for ref in refs:
+                    with self.subTest(path=ref["path"]):
+                        doc = read_repo_text(ref["path"])
+                        self.assertIn(ref["text"], doc)
 
     def test_policy_scenarios(self):
         scenarios = [

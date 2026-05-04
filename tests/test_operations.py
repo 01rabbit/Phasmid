@@ -140,6 +140,48 @@ class LocalOperationTests(unittest.TestCase):
         start.assert_not_called()
         self.assertIn("verify-state:", output.getvalue())
 
+    def test_cli_verify_audit_log_command_reports_missing_audit_log(self):
+        tmpdir = tempfile.mkdtemp()
+        output = io.StringIO()
+
+        with (
+            mock.patch.object(cli, "ensure_crypto_self_tests", return_value=True),
+            mock.patch.object(sys, "argv", ["phantasm", "verify-audit-log"]),
+            mock.patch.dict(os.environ, {"PHANTASM_STATE_DIR": tmpdir}),
+            contextlib.redirect_stdout(output),
+        ):
+            cli.main()
+
+        self.assertIn("verify-audit-log: not_enabled", output.getvalue())
+
+    def test_cli_doctor_command_reports_attention_when_audit_or_state_checks_fail(self):
+        tmpdir = tempfile.mkdtemp()
+        os.mkdir(os.path.join(tmpdir, ".state"), 0o700)
+        audit_path = os.path.join(tmpdir, AUDIT_LOG_NAME)
+        with open(audit_path, "w", encoding="utf-8") as handle:
+            handle.write("{broken\n")
+
+        cwd = os.getcwd()
+        try:
+            os.chdir(tmpdir)
+            output = io.StringIO()
+            with (
+                mock.patch.object(cli, "ensure_crypto_self_tests", return_value=True),
+                mock.patch.object(sys, "argv", ["phantasm", "doctor"]),
+                mock.patch.object(cli, "verify_audit_log", wraps=cli.verify_audit_log),
+                mock.patch.object(cli, "verify_state", wraps=cli.verify_state),
+                mock.patch("phantasm.operations.state_dir", return_value=tmpdir),
+                contextlib.redirect_stdout(output),
+            ):
+                cli.main()
+        finally:
+            os.chdir(cwd)
+
+        rendered = output.getvalue()
+        self.assertIn("doctor: attention", rendered)
+        self.assertIn("state: attention", rendered)
+        self.assertIn("audit: attention", rendered)
+
 
 if __name__ == "__main__":
     unittest.main()

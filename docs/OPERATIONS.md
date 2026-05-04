@@ -62,3 +62,5 @@ Operational commands should not report:
 ## Test Linkage
 
 The local operations commands are covered by automated tests in `tests/test_operations.py`. Field validation still requires the Field Test Procedure and Seizure Review Checklist.
+
+Restricted-flow procedure coverage is tracked in `tests/scenarios/restricted_flows.json` and validated by `tests/test_scenarios.py`.
