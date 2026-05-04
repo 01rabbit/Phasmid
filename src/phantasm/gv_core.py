@@ -9,18 +9,14 @@ from .container_layout import ContainerLayout
 from .kdf_engine import KDFEngine
 from .record_cypher import RecordCipher
 
-
 class GhostVault:
     FORMAT_VERSION = 3
     MIN_CONTAINER_SIZE = 4096
-    AESGCM_TAG_SIZE = 16
-    SALT_SIZE = 16
-    NONCE_SIZE = 12
-    RECORD_OVERHEAD = SALT_SIZE + NONCE_SIZE + AESGCM_TAG_SIZE
     ARGON2_ITERATIONS = 2
     ARGON2_LANES = 1
     ARGON2_MEMORY_COST = 32768
-    ACCESS_KEY_SIZE = 32
+    SALT_SIZE = RecordCipher.SALT_SIZE
+    NONCE_SIZE = RecordCipher.NONCE_SIZE
     OPEN_ROLE = RecordCipher.OPEN_ROLE
     PURGE_ROLE = RecordCipher.PURGE_ROLE
     SLOT_ROLES = RecordCipher.SLOT_ROLES
