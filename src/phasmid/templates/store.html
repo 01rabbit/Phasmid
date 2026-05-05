@@ -5,52 +5,83 @@
 {% block content %}
 <div class="grid">
     {{ ui.camera_preview() }}
-    <section class="panel">
+    <section class="panel hero-panel">
+        <div class="panel-kicker">
+            <span class="eyebrow">Create Protected Entry</span>
+        </div>
         <div class="panel-head">
             <h2>Create Protected Entry</h2>
-            <span class="badge">Store</span>
+            <span class="badge neutral">Store</span>
         </div>
-        <p class="copy">
+        <p class="copy hero-copy">
             Select a file, enter an access password, and present a physical object to bind as an access cue.
             If the object already matches a local entry, that entry is updated.
         </p>
-        <details>
-            <summary>Data minimization</summary>
-            <p class="copy">Store only what you need to carry. Separate identities, evidence, notes, and operational context when possible.</p>
-        </details>
+        {{ ui.hero_metrics([
+            {"label": "Primary factor", "value": "Access password"},
+            {"label": "Local cue", "value": "Object binding"},
+            {"label": "Processing", "value": "Local-only"}
+        ]) }}
         <form id="storeForm">
+            <div class="action-group">
+                <span class="section-label">Payload</span>
             <label class="field">
                 <span>File to protect</span>
                 <input type="file" name="file" required>
+                <small>Choose only the file needed for this local entry.</small>
             </label>
+            </div>
+            <div class="action-group">
+                <span class="section-label">Access Control</span>
             {{ ui.password_field("password", "Access password", "Required") }}
+            <div class="surface-note">
+                <p class="copy">Capture the object cue before saving so the entry can be bound to the current local frame.</p>
+                <div class="actions tight">
+                    <button type="button" class="secondary" id="captureButton">Capture object</button>
+                </div>
+            </div>
+            </div>
             <details>
                 <summary>Advanced</summary>
-                {{ ui.password_field("restricted_recovery_password", "Optional restricted recovery password", "May update local state after successful recovery", False) }}
-                <label class="field">
-                    <span>Local note label</span>
-                    <input type="text" name="local_note_label" placeholder="Optional local label">
-                </label>
-                <p class="copy">Restricted recovery behavior may cause irreversible local data loss after successful access.</p>
-                <p class="copy">Audit preference is controlled by local environment settings.</p>
+                <div class="detail-body">
+                    {{ ui.password_field("restricted_recovery_password", "Optional restricted recovery password", "May update local state after successful recovery", False) }}
+                    <label class="field">
+                        <span>Local note label</span>
+                        <input type="text" name="local_note_label" placeholder="Optional local label">
+                        <small>This label is local-only and intended to stay neutral.</small>
+                    </label>
+                    <p class="copy">Restricted recovery behavior may cause irreversible local data loss after successful access.</p>
+                    <p class="copy">Audit preference is controlled by local environment settings.</p>
+                </div>
+            </details>
+            <div class="action-group">
+                <span class="section-label">Metadata Review</span>
+                <p class="copy">Check for local metadata risk before the payload is sealed into the protected entry.</p>
+                <div class="actions tight">
+                <button type="button" class="secondary small" id="metadataCheckButton">Check metadata risk</button>
+                <button type="button" class="secondary small" id="metadataScrubButton">Download metadata-reduced copy</button>
+                </div>
+            </div>
+            <details>
+                <summary>Data minimization</summary>
+                <div class="detail-body">
+                    <p class="copy">Store only what you need to carry. Separate identities, evidence, notes, and operational context when possible.</p>
+                </div>
             </details>
             <input type="hidden" name="entry_hint" id="entryHint">
             <input type="hidden" name="overwrite" id="overwriteFlag" value="false">
             <input type="hidden" name="overwrite_confirmation" id="overwriteConfirmation">
             <div class="actions">
-                <button type="button" class="secondary" id="metadataCheckButton">Check metadata risk</button>
-                <button type="button" class="secondary" id="metadataScrubButton">Download metadata-reduced copy</button>
-                <button type="button" class="secondary" id="captureButton">Capture object</button>
                 <button type="submit">Save entry</button>
-                <a class="button secondary" href="/">Cancel</a>
+                <a class="button secondary small" href="/">Cancel</a>
             </div>
         </form>
-        <section id="metadataPanel" class="panel hidden" style="margin-top: 16px;">
+        <section id="metadataPanel" class="panel panel--neutral hidden" style="margin-top: 16px;">
             <h2>Metadata Risk</h2>
             <p id="metadataOutput" class="copy">No metadata check has been run.</p>
             <p class="copy">Metadata detection and reduction are best-effort. Metadata removal may not remove every embedded identifier from every file format.</p>
         </section>
-        <section id="overwritePanel" class="panel hidden" style="margin-top: 16px;">
+        <section id="overwritePanel" class="panel panel--caution hidden" style="margin-top: 16px;">
             <h2>Replace Local Entry</h2>
             <p class="copy">No open local entry is available. Select a local entry label and confirm replacement.</p>
             <label class="field">
@@ -71,6 +102,14 @@
             </label>
             <button type="button" class="danger" id="confirmOverwrite">Replace selected local entry</button>
         </section>
+        <div class="action-group">
+            <span class="section-label">Store Flow</span>
+            <ol class="flow-list">
+                <li><span class="copy">Select the file and set the access password.</span></li>
+                <li><span class="copy">Capture a stable object cue from the local camera preview.</span></li>
+                <li><span class="copy">Review metadata risk only when needed, then save the local entry.</span></li>
+            </ol>
+        </div>
     </section>
 </div>
 {% endblock %}
@@ -147,13 +186,13 @@
         const formData = new FormData(form);
         const upload = formData.get('file');
         if (upload && upload.size > maxUploadBytes) {
-            toast('Selected file exceeds the local upload limit.');
+            toast('Selected file exceeds the local upload limit.', 'error');
             return;
         }
         const accessPassword = formData.get('password') || '';
         const restrictedPassword = formData.get('restricted_recovery_password') || '';
         if (restrictedPassword && restrictedPassword === accessPassword) {
-            toast('Access and restricted recovery passwords must be different.');
+            toast('Access and restricted recovery passwords must be different.', 'error');
             return;
         }
         const res = await apiFetch('/store', { method: 'POST', body: formData });

@@ -2,76 +2,96 @@
 {% import "_components.html" as ui %}
 {% block title %}Phasmid | Restricted Actions{% endblock %}
 
+{% block head %}
+<style>
+    body { background: var(--bg-void); }
+    .panel--restricted-gate {
+        border-left-color: var(--status-caution);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="grid-single">
-    <section class="panel">
+    <section class="panel panel--restricted-gate hero-panel">
+        <div class="panel-kicker">
+            <span class="eyebrow">Hidden Restricted Route</span>
+        </div>
         <div class="panel-head">
             <h2>Restricted Actions</h2>
-            <span class="badge bad">Local data risk</span>
+            <span class="badge bad">
+                <span class="led led--alert"></span>
+                Local data risk
+            </span>
         </div>
         {{ ui.destructive_warning() }}
         <p class="copy">This hidden route is separated from normal navigation. It still requires server-side confirmation.</p>
         <details open>
             <summary>Restricted confirmation</summary>
-            <label class="field">
-                <span>Confirmation phrase</span>
-                <input type="text" id="restrictedConfirmation" placeholder="{{ restricted_confirmation_phrase }}">
-            </label>
-            <button type="button" class="secondary small" id="confirmRestricted">Confirm local control</button>
+            <div class="detail-body">
+                <label class="field">
+                    <span>Confirmation phrase</span>
+                    <input type="text" id="restrictedConfirmation" placeholder="{{ restricted_confirmation_phrase }}">
+                </label>
+                <button type="button" class="secondary small" id="confirmRestricted">Confirm local control</button>
+            </div>
         </details>
     </section>
 
     {% if restricted_confirmed %}
-    <section class="panel">
-        <h2>Clear Unmatched Entry</h2>
-        <p class="copy">Clear the local entry that is not selected below. This operation is irreversible in normal use.</p>
-        <form id="clearForm">
-            <label class="field">
-                <span>Reference entry label</span>
-                <select name="accessed_entry">
-                    {% for entry in entries %}
-                    <option value="{{ entry.id }}">{{ entry.label }}</option>
-                    {% endfor %}
-                </select>
-            </label>
-            <label class="field">
-                <span>Confirmation phrase</span>
-                <input type="text" name="confirmation" placeholder="{{ destructive_clear_phrase }}" required>
-            </label>
-            <button type="submit" class="danger">Clear unmatched entry</button>
-        </form>
-    </section>
+    <div class="panel-grid">
+        <section class="panel panel--danger">
+            <h2>Clear Unmatched Entry</h2>
+            <p class="copy" style="margin-top: 10px;">Clear the local entry that is not selected below. This operation is irreversible in normal use.</p>
+            <form id="clearForm">
+                <label class="field">
+                    <span>Reference entry label</span>
+                    <select name="accessed_entry">
+                        {% for entry in entries %}
+                        <option value="{{ entry.id }}">{{ entry.label }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Confirmation phrase</span>
+                    <input type="text" name="confirmation" placeholder="{{ destructive_clear_phrase }}" required>
+                </label>
+                <button type="submit" class="danger">Clear unmatched entry</button>
+            </form>
+        </section>
 
-    <section class="panel">
-        <h2>Initialize Local Container</h2>
-        <p class="copy">
-            Reset the local container and clear object bindings. This creates a fresh empty vault for new entries.
-        </p>
-        {{ ui.destructive_warning() }}
-        <form id="initializeForm">
-            <label class="field">
-                <span>Confirmation phrase</span>
-                <input type="text" name="confirmation" placeholder="{{ initialize_container_phrase }}" required>
-            </label>
-            <button type="submit" class="danger">Initialize local container</button>
-        </form>
-    </section>
+        <section class="panel panel--danger">
+            <h2>Initialize Local Container</h2>
+            <p class="copy" style="margin-top: 10px;">
+                Reset the local container and clear object bindings. This creates a fresh empty vault for new entries.
+            </p>
+            {{ ui.destructive_warning() }}
+            <form id="initializeForm">
+                <label class="field">
+                    <span>Confirmation phrase</span>
+                    <input type="text" name="confirmation" placeholder="{{ initialize_container_phrase }}" required>
+                </label>
+                <button type="submit" class="danger">Initialize local container</button>
+            </form>
+        </section>
 
-    <section class="panel">
-        <h2>Clear Local Access Path</h2>
-        {{ ui.destructive_warning() }}
-        <form id="brickForm">
-            <label class="field">
-                <span>Confirmation phrase</span>
-                <input type="text" name="confirmation" placeholder="{{ emergency_brick_phrase }}" required>
-            </label>
-            <button type="submit" class="danger">Clear local access path</button>
-        </form>
-    </section>
+        <section class="panel panel--danger">
+            <h2>Clear Local Access Path</h2>
+            <p class="copy" style="margin-top: 10px;">Permanently clear the cryptographic access path. This action is not reversible.</p>
+            {{ ui.destructive_warning() }}
+            <form id="brickForm">
+                <label class="field">
+                    <span>Confirmation phrase</span>
+                    <input type="text" name="confirmation" placeholder="{{ emergency_brick_phrase }}" required>
+                </label>
+                <button type="submit" class="danger">Clear local access path</button>
+            </form>
+        </section>
+    </div>
     {% else %}
-    <section class="panel">
+    <section class="panel panel--neutral">
         <h2>Confirmation Required</h2>
-        <p class="copy">Restricted local actions are withheld until local control is confirmed.</p>
+        <p class="copy" style="margin-top: 10px;">Restricted local actions are withheld until local control is confirmed.</p>
     </section>
     {% endif %}
 </div>

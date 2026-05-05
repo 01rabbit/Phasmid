@@ -136,7 +136,7 @@ Phasmid does not provide:
 ├── main.py                  # Local CLI launcher
 ├── src/phasmid/            # Application package
 │   ├── cli.py
-│   ├── gv_core.py
+│   ├── vault_core.py
 │   ├── ai_gate.py
 │   ├── web_server.py
 │   └── templates/
