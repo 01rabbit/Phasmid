@@ -1,8 +1,17 @@
+from __future__ import annotations
+
 import argparse
 import getpass
 import os
 import sys
 import time
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.rule import Rule
+from rich.text import Text
+from rich import box
 
 from . import strings as text
 from .ai_gate import gate, get_gesture_sequence
@@ -24,6 +33,8 @@ from .restricted_actions import (
     evaluate_restricted_action,
 )
 from .vault_core import PhasmidVault
+
+console = Console()
 
 CAMERA_WARMUP_TIMEOUT = 10
 REFERENCE_MATCH_TIMEOUT = 10
@@ -51,15 +62,33 @@ def resolve_mode(entry_value):
 
 
 def show_loading(message, duration=2):
-    chars = ["/", "-", "\\", "|"]
-    start_time = time.time()
-    i = 0
-    while time.time() - start_time < duration:
-        sys.stdout.write(f"\r[*] {message}... {chars[i % len(chars)]}")
-        sys.stdout.flush()
-        time.sleep(0.1)
-        i += 1
-    sys.stdout.write(f"\r[+] {message}... DONE\n")
+    with Progress(
+        SpinnerColumn(spinner_name="dots", style="cyan"),
+        TextColumn("[cyan]{task.description}[/cyan]"),
+        transient=True,
+        console=console,
+    ) as progress:
+        progress.add_task(message, total=None)
+        start = time.time()
+        while time.time() - start < duration:
+            time.sleep(0.1)
+    console.print(f"  [bold green]✓[/bold green]  {message}")
+
+
+def info(msg):
+    console.print(f"  [dim cyan]·[/dim cyan]  {msg}")
+
+
+def warn(msg):
+    console.print(f"  [bold yellow]![/bold yellow]  [yellow]{msg}[/yellow]")
+
+
+def success(msg):
+    console.print(f"  [bold green]✓[/bold green]  [green]{msg}[/green]")
+
+
+def error(msg):
+    console.print(f"  [bold red]✗[/bold red]  [red]{msg}[/red]")
 
 
 def _wait_for_camera_frame(timeout=CAMERA_WARMUP_TIMEOUT):
@@ -84,19 +113,17 @@ def _wait_for_reference_match(timeout=REFERENCE_MATCH_TIMEOUT, expected_mode=Non
 
 
 def _register_reference_key(mode):
-    print(
-        f"[INFO] Position the bound object for {display_mode_label(mode)}, "
-        "then press Enter to capture."
+    info(
+        f"Position the bound object for [bold]{display_mode_label(mode)}[/bold], "
+        "then press [bold]Enter[/bold] to capture."
     )
     input()
 
-    success, msg = gate.capture_reference(mode)
-    if not success:
+    success_flag, msg = gate.capture_reference(mode)
+    if not success_flag:
         return False, msg
 
-    print(
-        f"[LOCAL] {display_mode_label(mode)} object cue captured. Validating match quality..."
-    )
+    info(f"{display_mode_label(mode)} object cue captured — validating match quality...")
     if not _wait_for_reference_match(expected_mode=mode):
         return (
             False,
@@ -107,15 +134,15 @@ def _register_reference_key(mode):
 
 
 def _collect_auth_sequence():
-    print("[INFO] Show the bound object to the camera, then press Enter to continue.")
+    info("Show the bound object to the camera, then press [bold]Enter[/bold] to continue.")
     input()
 
     if _wait_for_reference_match():
-        print(text.CLI_OBJECT_MATCHED)
+        console.print(f"  [bold green]✓[/bold green]  [green]{text.CLI_OBJECT_MATCHED.lstrip('[LOCAL] ')}[/green]")
     elif gate.last_match_mode == gate.MATCH_AMBIGUOUS:
-        print(text.CLI_AMBIGUOUS_MATCH)
+        warn(text.CLI_AMBIGUOUS_MATCH.lstrip('[LOCAL] '))
     else:
-        print(text.CLI_NO_MATCH_TIMEOUT)
+        warn(text.CLI_NO_MATCH_TIMEOUT.lstrip('[LOCAL] '))
 
     return get_gesture_sequence(length=1)
 
@@ -124,12 +151,14 @@ def _confirm_purge_other_mode(accessed_mode):
     if not purge_confirmation_required():
         return True
 
-    print("\n[SAFETY] Local state is preserved by default.")
+    console.print()
+    console.print(Rule("Local State", style="dim"))
+    warn("Local state is preserved by default.")
 
     confirmation = DESTRUCTIVE_CLEAR_PHRASE
-    answer = input(
-        f"[LOCAL STATE] Clear unmatched local entry after access? "
-        f'Type "{confirmation}" to confirm: '
+    answer = console.input(
+        f"  Clear unmatched local entry after access? "
+        f'Type [bold red]"{confirmation}"[/bold red] to confirm: '
     ).strip()
     return answer == confirmation
 
@@ -143,9 +172,9 @@ def _auto_purge_reason(accessed_mode):
 
 
 def _prompt_store_passwords():
-    open_password = getpass.getpass("[AUTH] Enter access password: ")
+    open_password = getpass.getpass("  Access password: ")
     restricted_recovery_password = getpass.getpass(
-        "[AUTH] Enter restricted recovery password: "
+        "  Restricted recovery password: "
     )
     if not open_password:
         raise ValueError("access password must not be empty")
@@ -165,7 +194,7 @@ def require_restricted_action(action_id, confirmation=""):
         evaluate_restricted_action(
             policy,
             capability_allowed=capability_enabled(policy.capability),
-            restricted_confirmed=True,  # CLI assumes local control
+            restricted_confirmed=True,
             confirmation=confirmation,
         )
     except RestrictedActionRejected as exc:
@@ -173,12 +202,19 @@ def require_restricted_action(action_id, confirmation=""):
 
 
 def _confirm_face_lock_reset(input_func=input):
-    print("\n[!] CAUTION: FACE UI LOCK RESET")
-    print(
-        "[!] This clears the enrolled face lock and initializes all stored vault data."
+    console.print()
+    console.print(
+        Panel(
+            Text.from_markup(
+                "[bold red]CAUTION: FACE UI LOCK RESET[/bold red]\n\n"
+                "This clears the enrolled face lock and initializes all stored vault data.\n"
+                "Physical object bindings are also cleared."
+            ),
+            border_style="red",
+            box=box.HEAVY,
+        )
     )
-    print("[!] Physical object bindings are also cleared.")
-    answer = input_func(f'Type "{FACE_RESET_CONFIRMATION}" to continue: ').strip()
+    answer = input_func(f'  Type "{FACE_RESET_CONFIRMATION}" to continue: ').strip()
     return answer == FACE_RESET_CONFIRMATION
 
 
@@ -208,9 +244,34 @@ def _reset_face_lock_and_container(vault):
 
 
 def _print_operation_report(report):
-    print(f"{report['name']}: {report['status']}")
+    ok_statuses = ("ok", "pass", "valid", "verified", "ready")
+    status_style = "green" if report["status"] in ok_statuses else "yellow" if report["status"] == "attention" else "red"
+    console.print(
+        Panel(
+            _build_report_text(report),
+            title=f"[bold]{report['name']}[/bold]",
+            subtitle=f"[{status_style}]{report['status']}[/{status_style}]",
+            border_style=status_style,
+        )
+    )
+
+
+def _check_icon(status):
+    if status in ("ok", "pass", "valid", "verified", "ready"):
+        return "[green]✓[/green]"
+    if status in ("not_enabled", "disabled", "skipped"):
+        return "[dim]–[/dim]"
+    return "[yellow]![/yellow]"
+
+
+def _build_report_text(report):
+    lines = []
     for check in report["checks"]:
-        print(f"- {check['name']}: {check['status']} - {check['message']}")
+        icon = _check_icon(check["status"])
+        lines.append(
+            f"  {icon}  [bold]{check['name']}[/bold]  [dim]{check['message']}[/dim]"
+        )
+    return Text.from_markup("\n".join(lines) if lines else "[dim]No checks[/dim]")
 
 
 def _run_startup_checks():
@@ -218,71 +279,166 @@ def _run_startup_checks():
         ensure_crypto_self_tests()
         return True
     except CryptoSelfTestError:
-        print("[!] Startup check failed.")
+        error("Startup check failed.")
         return False
+
+
+def _run_doctor_tui() -> None:
+    """Run doctor in non-interactive mode and print to console."""
+    from .services.doctor_service import DoctorService
+    from .models.doctor import DoctorLevel
+
+    svc = DoctorService()
+    result = svc.run()
+    icons = {DoctorLevel.OK: "✓", DoctorLevel.WARN: "!", DoctorLevel.FAIL: "✗", DoctorLevel.INFO: "·"}
+    colors = {DoctorLevel.OK: "green", DoctorLevel.WARN: "yellow", DoctorLevel.FAIL: "red", DoctorLevel.INFO: "dim"}
+    console.print()
+    console.print(Panel("[bold cyan]PHASMID DOCTOR[/bold cyan]", border_style="cyan"))
+    for check in result.checks:
+        color = colors[check.level]
+        icon = icons[check.level]
+        console.print(f"  [{color}]{icon}[/{color}]  [bold]{check.name}[/bold]  [dim]{check.message}[/dim]")
+        if check.detail:
+            console.print(f"       [dim]{check.detail}[/dim]")
+    console.print()
+    console.print(f"  [dim italic]{result.disclaimer}[/dim italic]")
+    console.print()
+
+
+def _build_tui_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="phasmid",
+        description="Phasmid — coercion-aware deniable storage",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Running 'phasmid' with no arguments opens the Main Operator Console.\n"
+            "\nExamples:\n"
+            "  phasmid                    Open the operator console\n"
+            "  phasmid open <vessel>      Open a Vessel\n"
+            "  phasmid create <vessel>    Create a new Vessel\n"
+            "  phasmid inspect <vessel>   Inspect a Vessel\n"
+            "  phasmid guided             Open Guided Workflows\n"
+            "  phasmid audit              Open Audit View\n"
+            "  phasmid doctor             Run Doctor checks\n"
+        ),
+    )
+    subparsers = parser.add_subparsers(dest="command", metavar="command")
+
+    subparsers.add_parser("guided", help="Open Guided Workflows")
+    subparsers.add_parser("audit", help="Open Audit View")
+
+    doctor_p = subparsers.add_parser("doctor", help="Run Doctor checks")
+    doctor_p.add_argument("--no-tui", action="store_true", help="Print output without opening TUI")
+
+    open_p = subparsers.add_parser("open", help="Open a Vessel")
+    open_p.add_argument("vessel", nargs="?", help="Path to Vessel file")
+
+    create_p = subparsers.add_parser("create", help="Create a new Vessel")
+    create_p.add_argument("vessel", nargs="?", help="Path for new Vessel file")
+
+    inspect_p = subparsers.add_parser("inspect", help="Inspect a Vessel")
+    inspect_p.add_argument("vessel", nargs="?", help="Path to Vessel file")
+
+    about_p = subparsers.add_parser("about", help="Show about screen")
+
+    _add_legacy_subparser(subparsers)
+
+    return parser
+
+
+def _add_legacy_subparser(subparsers) -> None:
+    for action in [
+        "init", "store", "retrieve", "brick", "reset-face-lock",
+        "verify-state", "verify-audit-log", "export-redacted-log",
+    ]:
+        p = subparsers.add_parser(action, help=f"Legacy: {action}")
+        if action in ("store", "retrieve"):
+            p.add_argument("--entry", choices=["a", "b"], default="a")
+            p.add_argument("--" + "prof" + "ile", choices=["a", "b"], dest="legacy_entry")
+            p.add_argument("--mode", dest="legacy_entry_mode")
+            p.add_argument("--file")
+            p.add_argument("--out")
+        elif action == "export-redacted-log":
+            p.add_argument("--out")
 
 
 def main():
     if not _run_startup_checks():
         return
-    parser = argparse.ArgumentParser(description="Phasmid - Local Protected Storage")
-    parser.add_argument(
-        "action",
-        choices=[
-            "init",
-            "store",
-            "retrieve",
-            "brick",
-            "reset-face-lock",
-            "verify-state",
-            "verify-audit-log",
-            "doctor",
-            "export-redacted-log",
-        ],
-        help="operation to run",
-    )
-    parser.add_argument(
-        "--entry",
-        choices=["a", "b"],
-        default="a",
-        help="entry selector to use",
-    )
-    parser.add_argument(
-        "--" + "prof" + "ile",
-        choices=["a", "b"],
-        dest="legacy_entry",
-        help=argparse.SUPPRESS,
-    )
-    parser.add_argument(
-        "--mode",
-        dest="legacy_entry_mode",
-        help=argparse.SUPPRESS,
-    )
-    parser.add_argument("--file", help="path to the input file")
-    parser.add_argument("--out", help="path where decrypted output will be written")
+
+    parser = _build_tui_parser()
     args = parser.parse_args()
 
-    if args.action == "verify-state":
+    if args.command is None:
+        from .tui.app import run_tui
+        run_tui(initial_screen="home")
+        return
+
+    if args.command == "guided":
+        from .tui.app import run_tui
+        run_tui(initial_screen="guided")
+        return
+
+    if args.command == "audit":
+        from .tui.app import run_tui
+        run_tui(initial_screen="audit")
+        return
+
+    if args.command == "doctor":
+        no_tui = getattr(args, "no_tui", False)
+        if no_tui or not sys.stdout.isatty():
+            _run_doctor_tui()
+        else:
+            from .tui.app import run_tui
+            run_tui(initial_screen="doctor")
+        return
+
+    if args.command == "open":
+        vessel = getattr(args, "vessel", None)
+        from .tui.app import run_tui
+        run_tui(initial_screen="open", vessel_path=vessel)
+        return
+
+    if args.command == "create":
+        vessel = getattr(args, "vessel", None)
+        from .tui.app import run_tui
+        run_tui(initial_screen="create", vessel_path=vessel)
+        return
+
+    if args.command == "inspect":
+        vessel = getattr(args, "vessel", None)
+        from .tui.app import run_tui
+        run_tui(initial_screen="inspect", vessel_path=vessel)
+        return
+
+    if args.command == "about":
+        from .tui.app import run_tui
+        run_tui(initial_screen="about")
+        return
+
+    if args.command == "verify-state":
         _print_operation_report(verify_state())
         return
-    if args.action == "verify-audit-log":
+    if args.command == "verify-audit-log":
         _print_operation_report(verify_audit_log())
         return
-    if args.action == "doctor":
-        _print_operation_report(doctor())
-        return
-    if args.action == "export-redacted-log":
-        if not args.out:
-            print(text.CLI_ERROR_OUTPUT_REQUIRED)
+    if args.command == "export-redacted-log":
+        out = getattr(args, "out", None)
+        if not out:
+            error(text.CLI_ERROR_OUTPUT_REQUIRED.lstrip("[!] Error: "))
             return 1
-
-        _print_operation_report(export_redacted_log(args.out))
+        _print_operation_report(export_redacted_log(out))
         return
 
-    selected_value = args.legacy_entry if args.legacy_entry else args.entry
+    _run_legacy_command(args)
+
+
+def _run_legacy_command(args) -> None:
+    selected_value = getattr(args, "legacy_entry", None) or getattr(args, "entry", "a")
     selected_mode = resolve_mode(selected_value)
-    if args.legacy_entry_mode in gate.MODES:
-        selected_mode = args.legacy_entry_mode
+    legacy_entry_mode = getattr(args, "legacy_entry_mode", None)
+    if legacy_entry_mode in gate.MODES:
+        selected_mode = legacy_entry_mode
 
     panic_monitor = EmergencyDaemon("vault.bin")
     gate_started = False
@@ -290,48 +446,67 @@ def main():
     try:
         panic_monitor.start()
 
-        if args.action in {"store", "retrieve"}:
+        if args.command in {"store", "retrieve"}:
             gate.start()
             gate_started = True
             if not _wait_for_camera_frame():
-                print(text.CLI_ERROR_CAMERA_UNAVAILABLE)
+                error("Camera feed did not become available.")
                 return 1
 
         vault = PhasmidVault("vault.bin")
 
-        if args.action == "init":
-            print("\n[!] CAUTION: INITIALIZING LOCAL CONTAINER")
+        if args.command == "init":
+            console.print()
+            console.print(
+                Panel(
+                    "[yellow]This will reinitialize the local container.[/yellow]",
+                    title="[bold yellow]INITIALIZING LOCAL CONTAINER[/bold yellow]",
+                    border_style="yellow",
+                )
+            )
+            console.print()
             show_loading("Initializing local container with random data", 3)
             vault.format_container(rotate_access_key=True)
             audit_event("container_reinitialized")
-            print(text.CLI_INIT_SUCCESS)
+            success("Local container initialized. Ready for protected entries.")
 
-        elif args.action == "store":
+        elif args.command == "store":
             if not args.file:
-                print(text.CLI_ERROR_NO_INPUT)
+                error("No input file specified.")
                 return
 
             entry_label = display_mode_label(selected_mode)
-            print(f"\n--- PHANTASM STORE [{entry_label}] ---")
+            console.print()
+            console.print(
+                Panel(
+                    f"Entry: [bold cyan]{entry_label}[/bold cyan]\nFile:  [bold]{args.file}[/bold]",
+                    title="[bold cyan]PHASMID — STORE[/bold cyan]",
+                    border_style="cyan",
+                )
+            )
+            console.print()
+            console.print(Rule("Authentication", style="dim cyan"))
             try:
                 pw, purge_pw = _prompt_store_passwords()
             except ValueError as exc:
-                print(f"[!] Error: {exc}")
+                error(str(exc))
                 return
 
-            print(f"\n[LOCAL] Calibrating object cue for {entry_label}...")
-            print(
-                "[INFO] The captured object will be stored as the local access cue for this entry."
-            )
-            success, msg = _register_reference_key(selected_mode)
-            if not success:
-                print(f"[!] Error: {msg}")
+            console.print()
+            console.print(Rule("Object Binding", style="dim cyan"))
+            info(f"Calibrating object cue for [bold]{entry_label}[/bold]...")
+            info("The captured object will be stored as the local access cue for this entry.")
+            reg_success, msg = _register_reference_key(selected_mode)
+            if not reg_success:
+                error(msg)
                 return
             gesture_seq = gate.sequence_for_mode(selected_mode)
 
             with open(args.file, "rb") as f:
                 data = f.read()
 
+            console.print()
+            console.print(Rule("Encryption", style="dim cyan"))
             show_loading("Preparing cryptographic recovery", 2)
             show_loading("Encrypting payload with AES-256-GCM", 1.5)
 
@@ -349,38 +524,51 @@ def main():
                 filename=os.path.basename(args.file),
                 bytes=len(data),
             )
-            print("\n[SUCCESS] Protected entry saved.")
-            print("[LOCAL] Bound object cue registered.")
+            console.print()
+            console.print(
+                Panel(
+                    "[green]Protected entry saved.[/green]\n[green]Bound object cue registered.[/green]",
+                    border_style="green",
+                )
+            )
 
-        elif args.action == "retrieve":
+        elif args.command == "retrieve":
             ui.show_diagnostic()
-            print("\n" + "=" * 55)
-            print(" PHANTASM - LOCAL RETRIEVAL")
-            print(" DEVICE STATUS: READY")
-            print("=" * 55)
+            console.print()
+            console.print(
+                Panel(
+                    "[dim]Device Status:[/dim]  [bold green]READY[/bold green]",
+                    title="[bold cyan]PHASMID — RETRIEVE[/bold cyan]",
+                    border_style="cyan",
+                )
+            )
+            console.print()
 
             attempt_limiter = FileAttemptLimiter()
             attempt_scope = "cli-retrieve"
             if not attempt_limiter.check(attempt_scope).allowed:
-                print(f"\n[!] {text.ACCESS_TEMPORARILY_UNAVAILABLE}")
+                warn(text.ACCESS_TEMPORARILY_UNAVAILABLE)
                 return
 
-            pw = getpass.getpass("\n[AUTH] Access password: ")
+            console.print(Rule("Authentication", style="dim cyan"))
+            pw = getpass.getpass("  Access password: ")
 
-            print("\n[LOCAL] Requesting bound object verification...")
+            console.print()
+            console.print(Rule("Object Verification", style="dim cyan"))
             user_gesture_seq = _collect_auth_sequence()
 
             if gate.last_match_mode == gate.MATCH_AMBIGUOUS:
                 ui.show_alert("ACCESS ERROR\nAMBIGUOUS OBJECT")
                 attempt_limiter.record_failure(attempt_scope)
-                print("[!] Access rejected because the object match is ambiguous.")
+                error("Access rejected: ambiguous object match.")
                 return
             if not user_gesture_seq or user_gesture_seq[0] == gate.MATCH_NONE:
                 ui.show_alert("ACCESS ERROR\nOBJECT NOT FOUND")
                 attempt_limiter.record_failure(attempt_scope)
-                print("[!] No bound object matched.")
+                error("No bound object matched.")
                 return
 
+            console.print()
             show_loading("Verifying protected entry", 3)
 
             result, filename, password_role = vault.retrieve_with_policy(
@@ -403,20 +591,29 @@ def main():
                 ui.show_alert("ACCESS GRANTED")
 
                 show_loading("Preparing recovered payload", 2)
-                print(f"\n[ACCESS GRANTED] Decrypted {len(result)} bytes.")
+                console.print()
+                console.print(
+                    Panel(
+                        f"[green]Decrypted [bold]{len(result):,}[/bold] bytes[/green]"
+                        + (f"\n[dim]File: {filename}[/dim]" if filename else ""),
+                        title="[bold green]ACCESS GRANTED[/bold green]",
+                        border_style="green",
+                    )
+                )
 
                 if args.out:
                     with open(args.out, "wb") as f:
                         f.write(result)
-                    print(f"[+] Output written to: {args.out}")
+                    success(f"Output written to: [bold]{args.out}[/bold]")
                 else:
                     try:
                         content = result.decode("utf-8")
-                        print("-" * 40)
-                        print(content[:500] + ("..." if len(content) > 500 else ""))
-                        print("-" * 40)
+                        console.print()
+                        console.print(Rule("Payload", style="dim"))
+                        console.print(content[:500] + ("…" if len(content) > 500 else ""))
+                        console.print(Rule(style="dim"))
                     except UnicodeDecodeError:
-                        print("[INFO] Binary payload detected.")
+                        info("Binary payload — use [bold]--out[/bold] to write to file.")
 
                 audit_event(
                     "payload_retrieved",
@@ -431,7 +628,7 @@ def main():
                         accessed_entry="local_entry",
                         reason="restricted_recovery",
                     )
-                    print("\n(SYSTEM: Operation completed.)")
+                    info("Operation completed.")
                     return
 
                 auto_purge_reason = _auto_purge_reason(accessed_mode)
@@ -442,52 +639,66 @@ def main():
                         accessed_entry="local_entry",
                         reason=auto_purge_reason,
                     )
-                    if auto_purge_reason == "confirmation_disabled":
-                        print("\n(SYSTEM: Operation completed.)")
-                    else:
-                        print("\n(SYSTEM: Operation completed.)")
+                    info("Operation completed.")
                 elif _confirm_purge_other_mode(accessed_mode):
                     vault.purge_other_mode(accessed_mode)
                     audit_event("restricted_local_update", accessed_entry="local_entry")
-                    print("\n(SYSTEM: Operation completed.)")
+                    info("Operation completed.")
                 else:
-                    print("\n(SYSTEM: Operation completed.)")
+                    info("Operation completed.")
             else:
                 ui.show_alert("ACCESS DENIED\nINVALID CREDENTIALS")
                 audit_event("retrieve_failed")
                 attempt_limiter.record_failure(attempt_scope)
-                print("\n[!] Access failed.")
+                console.print()
+                console.print(
+                    Panel(
+                        "[red]Invalid credentials or object not recognised.[/red]",
+                        title="[bold red]ACCESS DENIED[/bold red]",
+                        border_style="red",
+                    )
+                )
 
-        elif args.action == "brick":
-            print("\n[!] CAUTION: CLEARING LOCAL ACCESS PATH")
+        elif args.command == "brick":
+            console.print()
             policy = RESTRICTED_ACTION_POLICIES["rapid_local_clear"]
-            confirmation = input(
-                f'Type "{policy.confirmation_phrase}" to confirm: '
+            console.print(
+                Panel(
+                    "[yellow]This will permanently clear the local access path.[/yellow]",
+                    title="[bold yellow]CLEARING LOCAL ACCESS PATH[/bold yellow]",
+                    border_style="yellow",
+                )
+            )
+            console.print()
+            confirmation = console.input(
+                f'  Type [bold red]"{policy.confirmation_phrase}"[/bold red] to confirm: '
             ).strip()
             try:
                 require_restricted_action("rapid_local_clear", confirmation)
                 vault.silent_brick()
                 audit_event("access_path_cleared", source="cli")
-                print("[!] Local access path cleared.")
+                warn("Local access path cleared.")
             except ValueError as exc:
-                print(f"[ABORTED] {exc}")
+                info(f"Aborted: {exc}")
                 return 1
 
-        elif args.action == "reset-face-lock":
+        elif args.command == "reset-face-lock":
             if not _confirm_face_lock_reset():
-                print("[ABORTED] Face UI lock reset cancelled.")
+                info("Face UI lock reset cancelled.")
                 return
-            success, object_message, face_message, enroll_message = (
+            reset_success, object_message, face_message, enroll_message = (
                 _reset_face_lock_and_container(vault)
             )
-            print("[+] Container initialized: vault.bin is empty.")
-            print(f"[+] Object bindings: {object_message}")
-            print(f"[+] Face UI lock: {face_message}")
-            print(f"[+] Face enrollment: {enroll_message}")
-            if success:
-                print(text.CLI_RESET_COMPLETE)
+            console.print()
+            success("Container initialized: vault.bin is empty.")
+            success(f"Object bindings: {object_message}")
+            success(f"Face UI lock: {face_message}")
+            success(f"Face enrollment: {enroll_message}")
+            if reset_success:
+                info(text.CLI_RESET_COMPLETE)
             else:
-                print("[!] Reset completed with warnings. Review the messages above.")
+                warn("Reset completed with warnings. Review the messages above.")
+
     finally:
         panic_monitor.stop()
         if gate_started:
