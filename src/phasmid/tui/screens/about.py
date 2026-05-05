@@ -3,7 +3,7 @@ from textual.screen import Screen
 from textual.widgets import Button, Static
 from textual.binding import Binding
 
-from ..banner import get_banner, COMPACT_BANNER
+from ..banner import FULL_BANNER
 
 
 class AboutScreen(Screen):
@@ -19,15 +19,16 @@ class AboutScreen(Screen):
     }
     AboutScreen #about-container {
         width: auto;
-        height: auto;
+        min-width: 64;
         max-width: 94;
+        height: auto;
         padding: 2 4;
         background: $surface;
         border: solid $primary;
     }
     AboutScreen #banner-static {
         color: $primary;
-        text-align: center;
+        text-align: left;
         padding: 1 0;
     }
     AboutScreen #about-body {
@@ -43,7 +44,7 @@ class AboutScreen(Screen):
     def compose(self) -> ComposeResult:
         from textual.containers import Container
         with Container(id="about-container"):
-            yield Static(COMPACT_BANNER, id="banner-static", markup=False)
+            yield Static(FULL_BANNER, id="banner-static", markup=False)
             yield Static(
                 "\n[bold]Phasmid[/bold] is a research-grade prototype for studying and "
                 "operating deniable storage under coerced disclosure scenarios.\n\n"
@@ -55,10 +56,6 @@ class AboutScreen(Screen):
                 markup=True,
             )
             yield Button("Back (Esc)", id="back-btn", variant="default")
-
-    def on_mount(self) -> None:
-        banner = get_banner(self.app.size.width)
-        self.query_one("#banner-static", Static).update(banner)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "back-btn":
