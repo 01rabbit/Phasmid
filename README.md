@@ -150,11 +150,19 @@ Runtime files such as `vault.bin`, `.state/`, and audit logs are intentionally i
 
 ## Install
 
+Run the following shell commands line by line. The leading and trailing
+`````bash````` markers shown in Markdown are display formatting only and should
+not be typed into the terminal.
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+pip install -e .
 ```
+
+The final step installs the local `phasmid` command into the active virtual
+environment so `phasmid --help` and the CLI subcommands work as documented.
 
 ## CLI Usage
 
