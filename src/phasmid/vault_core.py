@@ -10,7 +10,7 @@ from .kdf_engine import KDFEngine
 from .record_cypher import RecordCipher
 
 
-class GhostVault:
+class PhasmidVault:
     FORMAT_VERSION = 3
     MIN_CONTAINER_SIZE = 4096
     ARGON2_ITERATIONS = 2

@@ -2,16 +2,16 @@
 
 ## Objective
 
-Split `src/phasmid/gv_core.py` into reviewable, separately testable cryptographic modules while maintaining:
+Split `src/phasmid/vault_core.py` into reviewable, separately testable cryptographic modules while maintaining:
 
-- GhostVault v3 container format compatibility
+- JES v3 container format compatibility
 - No changes to encryption/decryption behavior
 - Identical test coverage and behavior
 - Gradual, traceable refactoring path
 
 ## Current State
 
-`gv_core.py` contains 24 methods in a single `GhostVault` class:
+`vault_core.py` contains 24 methods in a single `PhasmidVault` class:
 
 - 7 key derivation and key management methods
 - 7 record encryption/decryption methods
@@ -99,10 +99,10 @@ class ContainerLayout:
 
 ## Integration Points
 
-The refactored `GhostVault` class will remain the primary orchestrator:
+The refactored `PhasmidVault` class will remain the primary orchestrator:
 
 ```python
-class GhostVault:
+class PhasmidVault:
     def __init__(self, container_path: str, size_mb: int = 10, state_dir: str = None):
         self.cipher = RecordCypher()
         self.kdf = KDFEngine(state_dir)
@@ -120,14 +120,14 @@ class GhostVault:
 1. Create unit tests for each new module **before** extraction
 2. Test module APIs against hardcoded test vectors
 3. Verify module tests pass with extracted code
-4. Run full integration tests with refactored GhostVault
+4. Run full integration tests with refactored PhasmidVault
 5. Confirm no regression in existing container compatibility
 
 ## Compatibility Guarantees
 
-- GhostVault v3 format unchanged
+- JES v3 format remains the canonical write format
 - All existing test vectors pass
-- No public API changes (GhostVault class interface remains)
+- No public API changes inside this repository beyond the renamed `PhasmidVault` interface
 - Deterministic behavior on identical inputs
 
 ## Implementation Schedule
@@ -136,7 +136,7 @@ class GhostVault:
 2. Extract KDF engine
 3. Extract encryption module
 4. Extract container layout
-5. Refactor GhostVault orchestrator
+5. Refactor PhasmidVault orchestrator
 6. Full regression testing
 7. Update AGENTS.md with completion status
 

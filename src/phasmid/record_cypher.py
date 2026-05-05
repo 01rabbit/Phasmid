@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 class RecordCipher:
     FORMAT_VERSION = 3
+    FORMAT_MARKER = "jes-v3"
     AESGCM_TAG_SIZE = 16
     SALT_SIZE = 16
     NONCE_SIZE = 12
@@ -49,7 +50,7 @@ class RecordCipher:
         aesgcm = AESGCM(key)
 
         metadata = {
-            "format": "ghostvault-v3",
+            "format": self.FORMAT_MARKER,
             "version": self.FORMAT_VERSION,
             "password_role": password_role,
             "filename": os.path.basename(filename or "payload.bin"),
@@ -101,7 +102,7 @@ class RecordCipher:
 
         metadata = json.loads(decrypted[4 : 4 + meta_len].decode("utf-8"))
         if (
-            metadata.get("format") != "ghostvault-v3"
+            metadata.get("format") != self.FORMAT_MARKER
             or metadata.get("version") != self.FORMAT_VERSION
         ):
             raise ValueError("invalid record format or version")

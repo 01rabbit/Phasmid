@@ -13,7 +13,7 @@ def _display_enabled() -> bool:
     }
 
 
-class GhostUI:
+class BridgeUI:
     """
     Whisplay HAT (ST7789) UI Simulator.
 
@@ -64,4 +64,4 @@ class GhostUI:
             cv2.destroyWindow(self.window_name)
 
 
-ui = GhostUI()
+ui = BridgeUI()

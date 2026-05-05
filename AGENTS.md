@@ -138,9 +138,9 @@ Load only the relevant files for the requested change. Do not load the whole rep
 
 ### Cryptography, Container Format, and Key Path
 
-Use this context for changes involving `vault.bin`, GhostVault, Argon2id, AES-GCM, salts, nonces, local access key material, span layout, record parsing, restricted recovery slots, destructive behavior, or migration:
+Use this context for changes involving `vault.bin`, the Phasmid vault core, Argon2id, AES-GCM, salts, nonces, local access key material, span layout, record parsing, restricted recovery slots, destructive behavior, or migration:
 
-- `src/phasmid/gv_core.py`
+- `src/phasmid/vault_core.py`
 - `src/phasmid/crypto_boundary.py`
 - `src/phasmid/kdf_engine.py`
 - `src/phasmid/kdf_providers.py`
@@ -148,7 +148,7 @@ Use this context for changes involving `vault.bin`, GhostVault, Argon2id, AES-GC
 - `src/phasmid/record_cypher.py`
 - `docs/SPECIFICATION.md`, especially sections 11 and 15
 - `docs/THREAT_MODEL.md`
-- `tests/test_gv_core.py` and related tests
+- `tests/test_vault_core.py` and related tests
 
 Relevant issues:
 

@@ -23,7 +23,7 @@ The project is intended for USB gadget mode or localhost access. It is not a rep
 | --- | --- |
 | `main.py` | Local CLI launcher |
 | `src/phasmid/cli.py` | CLI implementation |
-| `src/phasmid/gv_core.py` | Encrypted container logic |
+| `src/phasmid/vault_core.py` | Encrypted container logic |
 | `src/phasmid/ai_gate.py` | Camera input, object-cue registration, ORB matching |
 | `src/phasmid/web_server.py` | FastAPI Web UI/API |
 | `src/phasmid/bridge_ui.py` | OpenCV status UI |
@@ -248,7 +248,7 @@ The Store screen includes a short reminder: store only what is needed and separa
 
 ## 11. Cryptography
 
-The current format is GhostVault v3.
+The current format is JES v3.
 
 - No plaintext magic/header.
 - Fixed-width internal storage spans.
@@ -374,7 +374,7 @@ python3 scripts/bench_kdf.py
 
 ## 18. Compatibility
 
-This build reads and writes GhostVault v3 only. Earlier development containers that depend on superseded internal record labels are not supported and should be reinitialized before use.
+This build reads and writes JES v3 records only. Earlier development containers that depend on superseded internal record labels are not supported and should be reinitialized before use.
 
 ## 19. Limits
 

@@ -34,7 +34,7 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 
 ## Current Defenses
 
-- New stores use GhostVault v3 records: random per-record Argon2id salt, random per-record AES-GCM nonce, no plaintext magic/header, and AEAD-authenticated encrypted metadata.
+- New stores use JES v3 records: random per-record Argon2id salt, random per-record AES-GCM nonce, no plaintext magic/header, and AEAD-authenticated encrypted metadata.
 - Startup self-tests check local AES-GCM, HMAC-SHA-256, and random byte generation behavior before normal CLI/WebUI operation.
 - The local access key is mixed into Argon2id by default, so copying `vault.bin` alone is insufficient for recovery.
 - Hardware-specific identifiers (e.g., CPU serial, revision) are incorporated into the KDF derivation pipeline, providing basic device-binding for the vault container.

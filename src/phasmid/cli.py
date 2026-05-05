@@ -14,7 +14,6 @@ from .config import duress_mode_enabled, purge_confirmation_required
 from .crypto_boundary import CryptoSelfTestError, ensure_crypto_self_tests
 from .emergency_daemon import EmergencyDaemon
 from .face_lock import face_lock
-from .gv_core import GhostVault
 from .operations import doctor, export_redacted_log, verify_audit_log, verify_state
 from .passphrase_policy import check_store_passphrases
 from .restricted_actions import (
@@ -24,6 +23,7 @@ from .restricted_actions import (
     RestrictedActionRejected,
     evaluate_restricted_action,
 )
+from .vault_core import PhasmidVault
 
 CAMERA_WARMUP_TIMEOUT = 10
 REFERENCE_MATCH_TIMEOUT = 10
@@ -297,7 +297,7 @@ def main():
                 print(text.CLI_ERROR_CAMERA_UNAVAILABLE)
                 return 1
 
-        vault = GhostVault("vault.bin")
+        vault = PhasmidVault("vault.bin")
 
         if args.action == "init":
             print("\n[!] CAUTION: INITIALIZING LOCAL CONTAINER")
@@ -424,7 +424,7 @@ def main():
                     filename=filename,
                     bytes=len(result),
                 )
-                if password_role == GhostVault.PURGE_ROLE:
+                if password_role == PhasmidVault.PURGE_ROLE:
                     vault.purge_other_mode(accessed_mode)
                     audit_event(
                         "restricted_local_update",

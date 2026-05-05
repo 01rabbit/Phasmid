@@ -6,12 +6,12 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phasmid.gv_core import GhostVault
+from phasmid.vault_core import PhasmidVault
 
 
-class GhostVaultV3Tests(unittest.TestCase):
+class PhasmidVaultV3Tests(unittest.TestCase):
     def make_vault(self, path):
-        vault = GhostVault(
+        vault = PhasmidVault(
             path, size_mb=1, state_dir=os.path.join(os.path.dirname(path), "state")
         )
         vault.ARGON2_MEMORY_COST = 1024
@@ -21,7 +21,7 @@ class GhostVaultV3Tests(unittest.TestCase):
         return vault
 
     def test_default_argon2_parameters_are_pi_zero_profile(self):
-        vault = GhostVault("unused.bin")
+        vault = PhasmidVault("unused.bin")
         self.assertEqual(vault.ARGON2_MEMORY_COST, 32768)
         self.assertEqual(vault.ARGON2_ITERATIONS, 2)
         self.assertEqual(vault.ARGON2_LANES, 1)
@@ -56,11 +56,11 @@ class GhostVaultV3Tests(unittest.TestCase):
 
             self.assertEqual(
                 vault.retrieve_with_policy("open-pw", seq, mode="dummy"),
-                (b"payload", "payload.bin", GhostVault.OPEN_ROLE),
+                (b"payload", "payload.bin", PhasmidVault.OPEN_ROLE),
             )
             self.assertEqual(
                 vault.retrieve_with_policy("recovery-pw", seq, mode="dummy"),
-                (b"payload", "payload.bin", GhostVault.PURGE_ROLE),
+                (b"payload", "payload.bin", PhasmidVault.PURGE_ROLE),
             )
 
     def test_open_and_restricted_recovery_passwords_must_be_different(self):
@@ -122,6 +122,7 @@ class GhostVaultV3Tests(unittest.TestCase):
                 raw = handle.read(vault.size // 2)
             self.assertNotIn(b"GVP2", raw)
             self.assertNotIn(b"ghostvault", raw)
+            self.assertNotIn(b"jes-v3", raw)
             self.assertNotIn(b"sensitive-name.txt", raw)
 
     def test_purge_other_mode_disables_alternate_profile(self):

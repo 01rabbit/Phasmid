@@ -4,41 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Phasmid{% endblock %}</title>
+    <link rel="icon" href="/static/favicon.ico" sizes="any">
     <style>
         /* ── Design Tokens ────────────────────────────────────── */
         :root {
             /* Backgrounds */
-            --bg-void:    #070c09;
-            --bg-base:    #0b1210;
-            --bg-surface: #101a12;
-            --bg-raised:  #162018;
-            --bg-overlay: #1d2c1e;
+            --bg-void:    #090c0a;
+            --bg-base:    #101512;
+            --bg-surface: #151b17;
+            --bg-raised:  #1a221d;
+            --bg-overlay: #202a23;
 
             /* Borders */
-            --border:        #243424;
-            --border-soft:   #1a261a;
-            --border-focus:  #4a7038;
-            --border-accent: #5a8438;
+            --border:        #2c3530;
+            --border-soft:   #222923;
+            --border-focus:  #52664a;
+            --border-accent: #647f58;
 
             /* Text */
-            --text:           #c8d8b0;
-            --text-secondary: #849870;
-            --text-muted:     #4e6244;
+            --text:           #d2d8cf;
+            --text-secondary: #96a28f;
+            --text-muted:     #667062;
             --text-danger:    #e8a0a0;
 
             /* Accent (from logo insect body color) */
-            --accent:        #7aaa48;
-            --accent-dim:    #4a7028;
-            --accent-bright: #b0dc68;
+            --accent:        #73955b;
+            --accent-dim:    #536d43;
+            --accent-bright: #a8c684;
 
             /* Status */
             --status-ready:   #50cc84;
             --status-caution: #c89c36;
             --status-alert:   #cc4040;
-            --status-off:     #3a4e38;
+            --status-off:     #4a5449;
 
             /* Glows */
-            --glow-accent:  rgba(122,170,72,0.18);
+            --glow-accent:  rgba(115,149,91,0.14);
             --glow-ready:   rgba(80,204,132,0.20);
             --glow-alert:   rgba(204,64,64,0.16);
             --glow-caution: rgba(200,156,54,0.18);
@@ -63,9 +64,9 @@
             margin: 0;
             min-height: 100vh;
             background:
-                radial-gradient(circle at top left, rgba(122,170,72,0.08), transparent 30%),
-                radial-gradient(circle at top right, rgba(80,204,132,0.05), transparent 28%),
-                linear-gradient(180deg, #0d1512 0%, var(--bg-base) 28%, var(--bg-void) 100%);
+                radial-gradient(circle at top left, rgba(115,149,91,0.05), transparent 30%),
+                radial-gradient(circle at top right, rgba(80,204,132,0.03), transparent 28%),
+                linear-gradient(180deg, #121814 0%, var(--bg-base) 28%, var(--bg-void) 100%);
             color: var(--text);
             font-family: "Inter", "Barlow", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             font-size: 14px;
@@ -113,7 +114,7 @@
             height: 38px;
             object-fit: contain;
             opacity: 0.92;
-            filter: drop-shadow(0 0 8px rgba(122,170,72,0.35));
+            filter: drop-shadow(0 0 8px rgba(115,149,91,0.28));
             flex-shrink: 0;
         }
         .brand-text h1 {

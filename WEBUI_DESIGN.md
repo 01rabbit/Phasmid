@@ -7,7 +7,7 @@
 
 ---
 
-## 1. デザインコンセプト：「Operational Ghost」
+## 1. デザインコンセプト：「Field Quiet」
 
 ### ロゴから読み取るブランドアイデンティティ
 
@@ -34,37 +34,37 @@
 ### 背景・サーフェス
 
 ```css
---bg-void:    #070c09;   /* ページ最深部 ― ロゴ背景と同系 */
---bg-base:    #0b1210;   /* プライマリ背景 */
---bg-surface: #101a12;   /* パネル・カード */
---bg-raised:  #162018;   /* 浮き上がったコンポーネント（インプット等） */
---bg-overlay: #1d2c1e;   /* ホバー・アクティブ状態 */
+--bg-void:    #090c0a;   /* ページ最深部 ― 黒寄りにして緑味を抑える */
+--bg-base:    #101512;   /* プライマリ背景 */
+--bg-surface: #151b17;   /* パネル・カード */
+--bg-raised:  #1a221d;   /* 浮き上がったコンポーネント（インプット等） */
+--bg-overlay: #202a23;   /* ホバー・アクティブ状態 */
 ```
 
 ### ボーダー・区切り
 
 ```css
---border:       #243424;  /* デフォルトボーダー */
---border-soft:  #1a261a;  /* 微細な区切り */
---border-focus: #4a7038;  /* フォーカス・アクティブ */
---border-accent:#6a9848;  /* アクセントカラーボーダー */
+--border:       #2c3530;  /* デフォルトボーダー */
+--border-soft:  #222923;  /* 微細な区切り */
+--border-focus: #52664a;  /* フォーカス・アクティブ */
+--border-accent:#647f58;  /* アクセントカラーボーダー */
 ```
 
 ### テキスト
 
 ```css
---text-primary:   #c8d8b0;  /* 本文 ― オリーブがかった白 */
---text-secondary: #849870;  /* サブ情報 */
---text-muted:     #4e6244;  /* ラベル・ウォーターマーク */
+--text-primary:   #d2d8cf;  /* 本文 ― ややニュートラル寄りの明色 */
+--text-secondary: #96a28f;  /* サブ情報 */
+--text-muted:     #667062;  /* ラベル・ウォーターマーク */
 --text-danger:    #e8a0a0;  /* 警告テキスト */
 ```
 
 ### アクセント（ロゴのナナフシ体色から抽出）
 
 ```css
---accent:       #7aaa48;  /* 主アクセント ― ロゴとの同一性 */
---accent-dim:   #4a7028;  /* 背景用アクセント */
---accent-bright:#b0dc68;  /* 最高輝度 ― アクティブLED、ライブ表示専用 */
+--accent:       #73955b;  /* 主アクセント ― ロゴとの同一性を保ちつつ抑制 */
+--accent-dim:   #536d43;  /* 背景用アクセント */
+--accent-bright:#a8c684;  /* 最高輝度 ― アクティブLED、ライブ表示専用 */
 ```
 
 ### ステータスカラー
@@ -74,7 +74,7 @@
 --status-active:  #7aaa48;  /* 動作中 */
 --status-caution: #c89c36;  /* 注意・アンバー */
 --status-alert:   #cc4040;  /* 危険・エラー */
---status-off:     #3a4e38;  /* 無効・不明 */
+--status-off:     #4a5449;  /* 無効・不明 */
 ```
 
 ### 特殊用途
@@ -82,7 +82,7 @@
 ```css
 --phosphor:   #aaee40;   /* 生体ライブ表示のみ（カメラLED等）*/
 --camera-bg:  #040808;   /* カメラフィード背景 */
---glow-accent:rgba(122,170,72,0.18);  /* アクセントグロー */
+--glow-accent:rgba(115,149,91,0.14);  /* アクセントグロー */
 --glow-ready: rgba(80,204,132,0.20);  /* Ready状態グロー */
 --glow-alert: rgba(204,64,64,0.16);   /* アラートグロー */
 ```
@@ -92,10 +92,10 @@
 | 現行変数 | 現行値 | 新規変数 | 新規値 | 変更の意図 |
 |---------|--------|---------|--------|-----------|
 | `--bg` | `#0e1116` | `--bg-base` | `#0b1210` | 青みを除きロゴ背景と統一 |
-| `--panel` | `#171b22` | `--bg-surface` | `#101a12` | 緑系に |
-| `--blue` | `#4f8cff` | `--accent` | `#7aaa48` | ブランドカラーへ転換 |
+| `--panel` | `#171b22` | `--bg-surface` | `#151b17` | 緑系だが少しニュートラルに |
+| `--blue` | `#4f8cff` | `--accent` | `#73955b` | ブランドカラーへ転換しつつ抑制 |
 | `--green` | `#3ddc97` | `--status-ready` | `#50cc84` | 整理 |
-| `--muted` | `#9aa7b6` | `--text-secondary` | `#849870` | 温かみのある中間色 |
+| `--muted` | `#9aa7b6` | `--text-secondary` | `#96a28f` | 温かみのある中間色 |
 
 ---
 
@@ -370,7 +370,7 @@ LEDドット + ラベル + 値の3層構造。
 | ボタン（主） | `.btn` | プライマリアクション |
 | ボタン（副） | `.btn--secondary` | セカンダリ |
 | ボタン（危険） | `.btn--danger` | 破壊的アクション |
-| ボタン（ゴースト） | `.btn--ghost` | 最小存在感 |
+| ボタン（最小表示） | `.btn--minimal` | 最小存在感 |
 | コードボックス | `.codebox` | ログ・診断出力 |
 | 警告ストリップ | `.warning-strip` | 破壊的警告 |
 | トースト通知 | `.toast` | 一時通知 |
@@ -425,13 +425,13 @@ LEDドット + ラベル + 値の3層構造。
     box-shadow: 0 0 10px var(--glow-alert);
 }
 
-/* Ghost */
-.btn--ghost {
+/* Minimal */
+.btn--minimal {
     color: var(--text-muted);
     background: transparent;
     border-color: transparent;
 }
-.btn--ghost:hover {
+.btn--minimal:hover {
     color: var(--text-secondary);
     border-color: var(--border);
 }

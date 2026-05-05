@@ -40,7 +40,6 @@ from .config import (
 )
 from .crypto_boundary import ensure_crypto_self_tests
 from .face_lock import face_lock
-from .gv_core import GhostVault
 from .kdf_providers import hardware_binding_status
 from .metadata import metadata_risk_report, scrub_metadata
 from .passphrase_policy import check_store_passphrases
@@ -54,6 +53,7 @@ from .restricted_actions import (
     RestrictedActionRejected,
     evaluate_restricted_action,
 )
+from .vault_core import PhasmidVault
 
 app = FastAPI(title="Phasmid - Local Secure Interface")
 app.mount("/static", StaticFiles(directory=str(Path(__file__).with_name("static"))), name="static")
@@ -65,7 +65,7 @@ async def startup_self_tests():
 
 
 templates = Jinja2Templates(directory=str(Path(__file__).with_name("templates")))
-vault = GhostVault("vault.bin")
+vault = PhasmidVault("vault.bin")
 WEB_TOKEN = os.environ.get("PHASMID_WEB_TOKEN") or secrets.token_urlsafe(32)
 MAX_UPLOAD_BYTES = int(os.environ.get("PHASMID_MAX_UPLOAD_BYTES", 25 * 1024 * 1024))
 RATE_LIMIT_WINDOW = 60
@@ -1016,7 +1016,7 @@ def _maybe_auto_purge(accessed_mode, source):
 
 
 def _purge_for_password_role(accessed_mode, password_role, source):
-    if password_role != GhostVault.PURGE_ROLE:
+    if password_role != PhasmidVault.PURGE_ROLE:
         return False
     vault.purge_other_mode(accessed_mode)
     audit_event(

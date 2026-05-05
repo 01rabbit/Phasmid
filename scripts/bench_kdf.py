@@ -8,24 +8,24 @@ import time
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from phasmid.gv_core import GhostVault
+from phasmid.vault_core import PhasmidVault
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Benchmark GhostVault Argon2id parameters."
+        description="Benchmark Phasmid vault Argon2id parameters."
     )
     parser.add_argument("--rounds", type=int, default=5)
     parser.add_argument(
-        "--memory-cost", type=int, default=GhostVault.ARGON2_MEMORY_COST
+        "--memory-cost", type=int, default=PhasmidVault.ARGON2_MEMORY_COST
     )
-    parser.add_argument("--iterations", type=int, default=GhostVault.ARGON2_ITERATIONS)
-    parser.add_argument("--lanes", type=int, default=GhostVault.ARGON2_LANES)
+    parser.add_argument("--iterations", type=int, default=PhasmidVault.ARGON2_ITERATIONS)
+    parser.add_argument("--lanes", type=int, default=PhasmidVault.ARGON2_LANES)
     args = parser.parse_args()
 
     timings = []
     with tempfile.TemporaryDirectory() as tmp:
-        vault = GhostVault(
+        vault = PhasmidVault(
             os.path.join(tmp, "vault.bin"),
             size_mb=1,
             state_dir=os.path.join(tmp, "state"),

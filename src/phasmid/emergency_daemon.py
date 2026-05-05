@@ -7,12 +7,12 @@ from .audit import audit_event
 from .bridge_ui import ui
 from .config import PANIC_TOKEN_NAME, PANIC_TRIGGER_NAME
 from .config import state_dir as default_state_dir
-from .gv_core import GhostVault
+from .vault_core import PhasmidVault
 
 
 class EmergencyDaemon:
     def __init__(self, vault_path="vault.bin", state_dir=None):
-        self.vault = GhostVault(vault_path)
+        self.vault = PhasmidVault(vault_path)
         self.state_dir = state_dir or default_state_dir()
         os.makedirs(self.state_dir, mode=0o700, exist_ok=True)
         try:

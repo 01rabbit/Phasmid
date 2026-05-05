@@ -824,7 +824,7 @@ class WebServerBoundaryTests(unittest.TestCase):
             self.assertTrue(
                 web_server._purge_for_password_role(
                     "dummy",
-                    web_server.GhostVault.PURGE_ROLE,
+                    web_server.PhasmidVault.PURGE_ROLE,
                     source="test",
                 )
             )
@@ -835,7 +835,7 @@ class WebServerBoundaryTests(unittest.TestCase):
             self.assertFalse(
                 web_server._purge_for_password_role(
                     "dummy",
-                    web_server.GhostVault.OPEN_ROLE,
+                    web_server.PhasmidVault.OPEN_ROLE,
                     source="test",
                 )
             )
