@@ -8,6 +8,7 @@ from textual.widgets import DataTable, Footer, Static
 from ...services.vessel_service import VesselService
 from ...services.profile_service import load_profile
 from ...models.vessel import VesselMeta
+from ..banner import COMPACT_BANNER
 from ..widgets.status_panel import VesselSummaryPanel
 from ..widgets.vessel_table import VesselTable
 from ..widgets.event_log import EventLog
@@ -33,23 +34,13 @@ class HomeScreen(Screen):
     HomeScreen {
         background: $background;
     }
-    HomeScreen #header-bar {
-        height: 3;
-        background: $primary;
-        color: $background;
-        padding: 0 2;
+    HomeScreen #compact-banner {
+        color: $primary;
+        text-align: center;
+        padding: 1 2;
+        height: auto;
         dock: top;
-        layout: horizontal;
-    }
-    HomeScreen #header-title {
-        text-style: bold;
-        width: 1fr;
-        color: $background;
-    }
-    HomeScreen #header-sub {
-        color: $background 70%;
-        width: 1fr;
-        text-align: right;
+        background: $background;
     }
     HomeScreen #main-layout {
         height: 1fr;
@@ -75,12 +66,8 @@ class HomeScreen(Screen):
         self._vessels: list[VesselMeta] = []
 
     def compose(self) -> ComposeResult:
-        from textual.containers import Container, Horizontal
-        yield Static(
-            "[bold]PHASMID  ·  JANUS EIDOLON SYSTEM[/bold]",
-            id="header-title",
-            markup=True,
-        )
+        from textual.containers import Horizontal
+        yield Static(COMPACT_BANNER, id="compact-banner", markup=False)
         with Horizontal(id="main-layout"):
             yield VesselTable(id="vessel-panel")
             yield VesselSummaryPanel(id="summary-panel")

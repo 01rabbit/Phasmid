@@ -1,3 +1,5 @@
+import shutil
+
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Button, Static
@@ -42,9 +44,10 @@ class AboutScreen(Screen):
 
     def compose(self) -> ComposeResult:
         from textual.containers import Container
-        banner = get_banner(self.app.console.width if hasattr(self.app, "console") else 120)
+        width = shutil.get_terminal_size(fallback=(120, 30)).columns
+        banner = get_banner(width)
         with Container(id="about-container"):
-            yield Static(banner, id="banner-static")
+            yield Static(banner, id="banner-static", markup=False)
             yield Static(
                 "\n[bold]Phasmid[/bold] is a research-grade prototype for studying and "
                 "operating deniable storage under coerced disclosure scenarios.\n\n"
