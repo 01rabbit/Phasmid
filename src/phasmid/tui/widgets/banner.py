@@ -1,10 +1,8 @@
-import shutil
-
 from textual.app import ComposeResult
 from textual.widget import Widget
 from textual.widgets import Static
 
-from ..banner import get_banner
+from ..banner import get_banner, COMPACT_BANNER
 
 
 class BannerWidget(Widget):
@@ -18,6 +16,8 @@ class BannerWidget(Widget):
     """
 
     def compose(self) -> ComposeResult:
-        width = shutil.get_terminal_size(fallback=(120, 30)).columns
-        banner_text = get_banner(width)
-        yield Static(banner_text, id="banner-text", markup=False)
+        yield Static(COMPACT_BANNER, id="banner-text", markup=False)
+
+    def on_mount(self) -> None:
+        banner_text = get_banner(self.app.size.width)
+        self.query_one("#banner-text", Static).update(banner_text)
