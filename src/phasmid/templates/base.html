@@ -687,6 +687,116 @@
             background: rgba(0,0,0,0.12);
         }
 
+        /* ── WebUI Exposure Banner ────────────────────────────── */
+        #webui-warning-banner {
+            background: var(--webui-warning);
+            color: #0a0a0a;
+            font-family: "JetBrains Mono", "IBM Plex Mono", Consolas, monospace;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-align: center;
+            text-transform: uppercase;
+            padding: 5px 16px;
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 2000;
+        }
+        body:has(#webui-warning-banner) .shell {
+            padding-top: 44px;
+        }
+
+        /* ── Operator Nav Separator ───────────────────────────── */
+        .nav-sep {
+            width: 1px;
+            height: 18px;
+            background: var(--border);
+            align-self: center;
+            margin: 0 4px;
+        }
+
+        /* ── Operator Pages ───────────────────────────────────── */
+        .check-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 9px 0;
+            border-bottom: 1px solid var(--border-soft);
+            font-size: 13px;
+        }
+        .check-row:last-child { border-bottom: 0; }
+        .check-symbol {
+            font-family: "JetBrains Mono", "IBM Plex Mono", Consolas, monospace;
+            font-size: 13px;
+            width: 14px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .check-row.ok     .check-symbol { color: var(--status-ready); }
+        .check-row.warn   .check-symbol { color: var(--status-caution); }
+        .check-row.fail   .check-symbol { color: var(--status-alert); }
+        .check-row.info   .check-symbol { color: var(--text-muted); }
+        .check-label { color: var(--text); min-width: 220px; flex-shrink: 0; }
+        .check-detail { color: var(--text-secondary); font-size: 12px; }
+        .check-row.ok   .check-detail { color: var(--status-ready); }
+        .check-row.warn .check-detail { color: var(--status-caution); }
+        .check-row.fail .check-detail { color: var(--status-alert); }
+
+        .audit-section { margin-bottom: 28px; }
+        .audit-kv {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            row-gap: 4px;
+            column-gap: 12px;
+            font-family: "JetBrains Mono", "IBM Plex Mono", Consolas, monospace;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .audit-kv dt { color: var(--text-muted); }
+        .audit-kv dd { color: var(--text); margin: 0; }
+
+        .phosphor-text {
+            color: var(--phosphor);
+            font-family: "JetBrains Mono", "IBM Plex Mono", Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.7;
+        }
+
+        .guided-layout {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 18px;
+        }
+        .guided-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+        .guided-list li {
+            padding: 9px 12px;
+            border-radius: var(--r-md);
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-muted);
+            border: 1px solid transparent;
+            transition: color var(--t-fast), background var(--t-fast), border-color var(--t-fast);
+        }
+        .guided-list li:hover { color: var(--text-secondary); background: rgba(0,215,175,0.04); }
+        .guided-list li.active {
+            color: var(--accent-bright);
+            background: rgba(0,215,175,0.07);
+            border-color: var(--border-accent);
+        }
+        .guided-step { margin-bottom: 18px; }
+        .guided-step-num {
+            font-family: "JetBrains Mono", "IBM Plex Mono", Consolas, monospace;
+            color: var(--accent);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            margin-bottom: 4px;
+        }
+
+        .inspect-result { display: none; margin-top: 18px; }
+        .inspect-result.is-visible { display: block; }
+
         /* ── Utilities ────────────────────────────────────────── */
         .hidden { display: none !important; }
         .camera-panel { padding-bottom: 0; }
@@ -705,6 +815,7 @@
     </style>
     {% block head %}{% endblock %}
 </head>
+<div id="webui-warning-banner">⚠&nbsp; WEBUI ACTIVE — INTERFACE IS EXPOSED — ACCESS FROM TRUSTED NETWORK ONLY &nbsp;⚠</div>
 <body>
     <main class="shell">
         <header class="topbar">
@@ -721,6 +832,11 @@
                 <a href="/store" class="{{ 'active' if active == 'store' else '' }}">Store</a>
                 <a href="/retrieve" class="{{ 'active' if active == 'retrieve' else '' }}">Retrieve</a>
                 <a href="/maintenance" class="{{ 'active' if active == 'maintenance' else '' }}">Maintenance</a>
+                <span class="nav-sep" aria-hidden="true"></span>
+                <a href="/operator/doctor"  class="operator {{ 'active' if active == 'operator-doctor'  else '' }}">Diagnostics</a>
+                <a href="/operator/audit"   class="operator {{ 'active' if active == 'operator-audit'   else '' }}">Audit</a>
+                <a href="/operator/guided"  class="operator {{ 'active' if active == 'operator-guided'  else '' }}">Workflows</a>
+                <a href="/operator/inspect" class="operator {{ 'active' if active == 'operator-inspect' else '' }}">Inspect</a>
             </nav>
             {% endif %}
         </header>
