@@ -7,20 +7,20 @@
     {{ ui.camera_preview() }}
     <section class="panel hero-panel">
         <div class="panel-kicker">
-            <span class="eyebrow">Unlock Protected Entry</span>
+            <span class="eyebrow">Open Disclosure Face</span>
         </div>
         <div class="panel-head">
             <h2>Unlock Local Entry</h2>
             <span class="badge neutral">Retrieve</span>
         </div>
-        <p class="copy hero-copy">Present the bound object and enter the access password. Only a successful result is returned.</p>
+        <p class="copy hero-copy">Present the bound object and enter the passphrase. Only a successful result is returned.</p>
         {{ ui.hero_metrics([
             {"label": "Required", "value": "Password plus object cue"},
             {"label": "Result", "value": "Single local download"},
             {"label": "Behavior", "value": "Quiet on failure"}
         ]) }}
         <form id="retrieveForm">
-            {{ ui.password_field("password", "Access password", "Required") }}
+            {{ ui.password_field("password", "Passphrase", "Required") }}
             <div class="actions">
                 <button type="submit">Unlock</button>
                 <button type="reset" class="secondary">Reset</button>
@@ -49,7 +49,7 @@
             <span class="section-label">Retrieve Flow</span>
             <ol class="flow-list">
                 <li><span class="copy">Place the bound object within the live preview until the cue is stable.</span></li>
-                <li><span class="copy">Enter the access password and unlock the local entry.</span></li>
+                <li><span class="copy">Enter the passphrase and unlock the local entry.</span></li>
                 <li><span class="copy">Download the result, then clear the local session if the device is shared.</span></li>
             </ol>
         </div>

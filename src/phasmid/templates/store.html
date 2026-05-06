@@ -7,18 +7,18 @@
     {{ ui.camera_preview() }}
     <section class="panel hero-panel">
         <div class="panel-kicker">
-            <span class="eyebrow">Create Protected Entry</span>
+            <span class="eyebrow">Create Disclosure Face</span>
         </div>
         <div class="panel-head">
-            <h2>Create Protected Entry</h2>
+            <h2>Create Disclosure Face</h2>
             <span class="badge neutral">Store</span>
         </div>
         <p class="copy hero-copy">
-            Select a file, enter an access password, and present a physical object to bind as an access cue.
+            Select a file, enter a passphrase, and present a physical object cue to bind as an access cue.
             If the object already matches a local entry, that entry is updated.
         </p>
         {{ ui.hero_metrics([
-            {"label": "Primary factor", "value": "Access password"},
+            {"label": "Primary factor", "value": "Passphrase"},
             {"label": "Local cue", "value": "Object binding"},
             {"label": "Processing", "value": "Local-only"}
         ]) }}
@@ -33,7 +33,7 @@
             </div>
             <div class="action-group">
                 <span class="section-label">Access Control</span>
-            {{ ui.password_field("password", "Access password", "Required") }}
+            {{ ui.password_field("password", "Passphrase", "Required") }}
             <div class="surface-note">
                 <p class="copy">Capture the object cue before saving so the entry can be bound to the current local frame.</p>
                 <div class="actions tight">
@@ -44,7 +44,7 @@
             <details>
                 <summary>Advanced</summary>
                 <div class="detail-body">
-                    {{ ui.password_field("restricted_recovery_password", "Optional restricted recovery password", "May update local state after successful recovery", False) }}
+                    {{ ui.password_field("restricted_recovery_password", "Optional restricted recovery passphrase", "May update local state after successful recovery", False) }}
                     <label class="field">
                         <span>Local note label</span>
                         <input type="text" name="local_note_label" placeholder="Optional local label">
@@ -56,7 +56,7 @@
             </details>
             <div class="action-group">
                 <span class="section-label">Metadata Review</span>
-                <p class="copy">Check for local metadata risk before the payload is sealed into the protected entry.</p>
+                <p class="copy">Check for local metadata risk before the payload is sealed into the Disclosure Face.</p>
                 <div class="actions tight">
                 <button type="button" class="secondary small" id="metadataCheckButton">Check metadata risk</button>
                 <button type="button" class="secondary small" id="metadataScrubButton">Download metadata-reduced copy</button>
@@ -105,7 +105,7 @@
         <div class="action-group">
             <span class="section-label">Store Flow</span>
             <ol class="flow-list">
-                <li><span class="copy">Select the file and set the access password.</span></li>
+                <li><span class="copy">Select the file and set the passphrase.</span></li>
                 <li><span class="copy">Capture a stable object cue from the local camera preview.</span></li>
                 <li><span class="copy">Review metadata risk only when needed, then save the local entry.</span></li>
             </ol>
