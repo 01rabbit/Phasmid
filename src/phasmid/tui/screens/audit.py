@@ -44,4 +44,3 @@ class AuditScreen(Screen):
             log.write(f"\n[bold $primary]{section.title}[/]")
             for entry in section.entries:
                 log.write(f"  [dim]{entry.key:<28}[/dim]{entry.value}")
-

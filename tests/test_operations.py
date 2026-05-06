@@ -198,6 +198,7 @@ class LocalOperationTests(unittest.TestCase):
         import io as _io
 
         from rich.console import Console
+
         buf = _io.StringIO()
         original_console = cli.console
         cli.console = Console(file=buf, highlight=False)

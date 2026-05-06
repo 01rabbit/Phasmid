@@ -39,6 +39,7 @@ class AboutScreen(Screen):
 
     def compose(self) -> ComposeResult:
         from textual.containers import Container
+
         with Container(id="about-container"):
             yield Static(FULL_BANNER, id="banner-static", markup=False)
             yield Static(

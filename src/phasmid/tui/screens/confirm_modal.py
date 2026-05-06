@@ -49,6 +49,7 @@ class ConfirmModal(ModalScreen[bool]):
 
     def compose(self) -> ComposeResult:
         from textual.containers import Container
+
         with Container(id="confirm-container"):
             yield Static(self._title, id="confirm-title")
             yield Static(self._message, id="confirm-message")

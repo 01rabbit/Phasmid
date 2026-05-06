@@ -59,7 +59,11 @@ class CreateVesselScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Static("NEW VESSEL", id="create-title")
         yield Label("Vessel path", classes="field-label")
-        yield Input(value=self._initial_path, placeholder="e.g. ~/Documents/travel.vessel", id="vessel-path")
+        yield Input(
+            value=self._initial_path,
+            placeholder="e.g. ~/Documents/travel.vessel",
+            id="vessel-path",
+        )
         yield Label("Container size", classes="field-label")
         yield Select(
             [(label, value) for label, value in _SIZE_OPTIONS],
@@ -84,7 +88,9 @@ class CreateVesselScreen(Screen):
         warnings = self._svc.check_filename_warnings(path)
         p = Path(path).expanduser()
         if p.exists():
-            warnings.insert(0, f"File already exists: {path}. Creating will overwrite it.")
+            warnings.insert(
+                0, f"File already exists: {path}. Creating will overwrite it."
+            )
         warn_area.update("\n".join(f"!  {w}" for w in warnings))
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -95,7 +101,9 @@ class CreateVesselScreen(Screen):
         path = self.query_one("#vessel-path", Input).value.strip()
         size = self.query_one("#vessel-size", Select).value
         if not path:
-            self.query_one("#warning-area", Static).update("!  Vessel path is required.")
+            self.query_one("#warning-area", Static).update(
+                "!  Vessel path is required."
+            )
             return
 
         p = Path(path).expanduser()

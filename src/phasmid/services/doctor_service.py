@@ -71,6 +71,7 @@ def _check_file_permissions(path: Path, label: str) -> DoctorCheck:
 def _check_secure_random() -> DoctorCheck:
     try:
         import secrets
+
         _ = secrets.token_bytes(32)
         return DoctorCheck(
             name="Secure Randomness",
@@ -101,14 +102,14 @@ def _check_shell_history() -> DoctorCheck:
             name="Shell History",
             level=DoctorLevel.WARN,
             message=f"Shell history is active ({hist_file}). "
-                    "CLI passphrase arguments may be recorded.",
+            "CLI passphrase arguments may be recorded.",
             detail="Use the TUI to avoid passing passphrases as arguments.",
         )
     return DoctorCheck(
         name="Shell History",
         level=DoctorLevel.INFO,
         message="Shell history variable not detected. "
-                "CLI passphrase arguments may still be recorded by some shells.",
+        "CLI passphrase arguments may still be recorded by some shells.",
     )
 
 
@@ -169,7 +170,7 @@ def _check_scrollback() -> DoctorCheck:
         name="Terminal Scrollback",
         level=DoctorLevel.INFO,
         message="Terminal scrollback may retain sensitive output. "
-                "Clear scrollback after sensitive operations.",
+        "Clear scrollback after sensitive operations.",
     )
 
 
@@ -197,7 +198,9 @@ def run_doctor_checks(output_dir: str | None = None) -> DoctorResult:
     ]
 
     if output_dir:
-        checks.append(_check_dir_permissions(Path(output_dir).expanduser(), "Output directory"))
+        checks.append(
+            _check_dir_permissions(Path(output_dir).expanduser(), "Output directory")
+        )
 
     checks += [
         _check_secure_random(),

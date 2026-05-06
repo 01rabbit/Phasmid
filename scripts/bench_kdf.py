@@ -19,7 +19,9 @@ def main():
     parser.add_argument(
         "--memory-cost", type=int, default=PhasmidVault.ARGON2_MEMORY_COST
     )
-    parser.add_argument("--iterations", type=int, default=PhasmidVault.ARGON2_ITERATIONS)
+    parser.add_argument(
+        "--iterations", type=int, default=PhasmidVault.ARGON2_ITERATIONS
+    )
     parser.add_argument("--lanes", type=int, default=PhasmidVault.ARGON2_LANES)
     args = parser.parse_args()
 

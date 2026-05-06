@@ -123,7 +123,9 @@ def _register_reference_key(mode):
     if not success_flag:
         return False, msg
 
-    info(f"{display_mode_label(mode)} object cue captured — validating match quality...")
+    info(
+        f"{display_mode_label(mode)} object cue captured — validating match quality..."
+    )
     if not _wait_for_reference_match(expected_mode=mode):
         return (
             False,
@@ -134,12 +136,16 @@ def _register_reference_key(mode):
 
 
 def _collect_auth_sequence():
-    info("Show the bound object to the camera, then press [bold]Enter[/bold] to continue.")
+    info(
+        "Show the bound object to the camera, then press [bold]Enter[/bold] to continue."
+    )
     input()
 
     if _wait_for_reference_match():
         _prefix = "[LOCAL] "
-        console.print(f"  [bold green]✓[/bold green]  [green]{text.CLI_OBJECT_MATCHED.removeprefix(_prefix)}[/green]")
+        console.print(
+            f"  [bold green]✓[/bold green]  [green]{text.CLI_OBJECT_MATCHED.removeprefix(_prefix)}[/green]"
+        )
     elif gate.last_match_mode == gate.MATCH_AMBIGUOUS:
         warn(text.CLI_AMBIGUOUS_MATCH.removeprefix("[LOCAL] "))
     else:
@@ -174,9 +180,7 @@ def _auto_purge_reason(accessed_mode):
 
 def _prompt_store_passwords():
     open_password = getpass.getpass("  Access password: ")
-    restricted_recovery_password = getpass.getpass(
-        "  Restricted recovery password: "
-    )
+    restricted_recovery_password = getpass.getpass("  Restricted recovery password: ")
     if not open_password:
         raise ValueError("access password must not be empty")
     if not restricted_recovery_password:
@@ -246,7 +250,11 @@ def _reset_face_lock_and_container(vault):
 
 def _print_operation_report(report):
     ok_statuses = ("ok", "pass", "valid", "verified", "ready")
-    status_style = "green" if report["status"] in ok_statuses else "yellow" if report["status"] == "attention" else "red"
+    status_style = (
+        "green"
+        if report["status"] in ok_statuses
+        else "yellow" if report["status"] == "attention" else "red"
+    )
     console.print(
         Panel(
             _build_report_text(report),
@@ -291,14 +299,26 @@ def _run_doctor_tui() -> None:
 
     svc = DoctorService()
     result = svc.run()
-    icons = {DoctorLevel.OK: "✓", DoctorLevel.WARN: "!", DoctorLevel.FAIL: "✗", DoctorLevel.INFO: "·"}
-    colors = {DoctorLevel.OK: "green", DoctorLevel.WARN: "yellow", DoctorLevel.FAIL: "red", DoctorLevel.INFO: "dim"}
+    icons = {
+        DoctorLevel.OK: "✓",
+        DoctorLevel.WARN: "!",
+        DoctorLevel.FAIL: "✗",
+        DoctorLevel.INFO: "·",
+    }
+    colors = {
+        DoctorLevel.OK: "green",
+        DoctorLevel.WARN: "yellow",
+        DoctorLevel.FAIL: "red",
+        DoctorLevel.INFO: "dim",
+    }
     console.print()
     console.print(Panel("[bold cyan]PHASMID DOCTOR[/bold cyan]", border_style="cyan"))
     for check in result.checks:
         color = colors[check.level]
         icon = icons[check.level]
-        console.print(f"  [{color}]{icon}[/{color}]  [bold]{check.name}[/bold]  [dim]{check.message}[/dim]")
+        console.print(
+            f"  [{color}]{icon}[/{color}]  [bold]{check.name}[/bold]  [dim]{check.message}[/dim]"
+        )
         if check.detail:
             console.print(f"       [dim]{check.detail}[/dim]")
     console.print()
@@ -329,7 +349,9 @@ def _build_tui_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("audit", help="Open Audit View")
 
     doctor_p = subparsers.add_parser("doctor", help="Run Doctor checks")
-    doctor_p.add_argument("--no-tui", action="store_true", help="Print output without opening TUI")
+    doctor_p.add_argument(
+        "--no-tui", action="store_true", help="Print output without opening TUI"
+    )
 
     open_p = subparsers.add_parser("open", help="Open a Vessel")
     open_p.add_argument("vessel", nargs="?", help="Path to Vessel file")
@@ -349,13 +371,21 @@ def _build_tui_parser() -> argparse.ArgumentParser:
 
 def _add_legacy_subparser(subparsers) -> None:
     for action in [
-        "init", "store", "retrieve", "brick", "reset-face-lock",
-        "verify-state", "verify-audit-log", "export-redacted-log",
+        "init",
+        "store",
+        "retrieve",
+        "brick",
+        "reset-face-lock",
+        "verify-state",
+        "verify-audit-log",
+        "export-redacted-log",
     ]:
         p = subparsers.add_parser(action, help=f"Legacy: {action}")
         if action in ("store", "retrieve"):
             p.add_argument("--entry", choices=["a", "b"], default="a")
-            p.add_argument("--" + "prof" + "ile", choices=["a", "b"], dest="legacy_entry")
+            p.add_argument(
+                "--" + "prof" + "ile", choices=["a", "b"], dest="legacy_entry"
+            )
             p.add_argument("--mode", dest="legacy_entry_mode")
             p.add_argument("--file")
             p.add_argument("--out")
@@ -372,16 +402,19 @@ def main():
 
     if args.command is None:
         from .tui.app import run_tui
+
         run_tui(initial_screen="home")
         return
 
     if args.command == "guided":
         from .tui.app import run_tui
+
         run_tui(initial_screen="guided")
         return
 
     if args.command == "audit":
         from .tui.app import run_tui
+
         run_tui(initial_screen="audit")
         return
 
@@ -391,29 +424,34 @@ def main():
             _run_doctor_tui()
         else:
             from .tui.app import run_tui
+
             run_tui(initial_screen="doctor")
         return
 
     if args.command == "open":
         vessel = getattr(args, "vessel", None)
         from .tui.app import run_tui
+
         run_tui(initial_screen="open", vessel_path=vessel)
         return
 
     if args.command == "create":
         vessel = getattr(args, "vessel", None)
         from .tui.app import run_tui
+
         run_tui(initial_screen="create", vessel_path=vessel)
         return
 
     if args.command == "inspect":
         vessel = getattr(args, "vessel", None)
         from .tui.app import run_tui
+
         run_tui(initial_screen="inspect", vessel_path=vessel)
         return
 
     if args.command == "about":
         from .tui.app import run_tui
+
         run_tui(initial_screen="about")
         return
 
@@ -496,7 +534,9 @@ def _run_legacy_command(args) -> None:
             console.print()
             console.print(Rule("Object Binding", style="dim cyan"))
             info(f"Calibrating object cue for [bold]{entry_label}[/bold]...")
-            info("The captured object will be stored as the local access cue for this entry.")
+            info(
+                "The captured object will be stored as the local access cue for this entry."
+            )
             reg_success, msg = _register_reference_key(selected_mode)
             if not reg_success:
                 error(msg)
@@ -611,10 +651,14 @@ def _run_legacy_command(args) -> None:
                         content = result.decode("utf-8")
                         console.print()
                         console.print(Rule("Payload", style="dim"))
-                        console.print(content[:500] + ("…" if len(content) > 500 else ""))
+                        console.print(
+                            content[:500] + ("…" if len(content) > 500 else "")
+                        )
                         console.print(Rule(style="dim"))
                     except UnicodeDecodeError:
-                        info("Binary payload — use [bold]--out[/bold] to write to file.")
+                        info(
+                            "Binary payload — use [bold]--out[/bold] to write to file."
+                        )
 
                 audit_event(
                     "payload_retrieved",

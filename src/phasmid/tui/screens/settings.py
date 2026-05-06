@@ -56,16 +56,25 @@ class SettingsScreen(Screen):
 
     def compose(self) -> ComposeResult:
         from textual.containers import Horizontal
+
         p = self._profile
         yield Static("OPERATOR SETTINGS", id="settings-title")
         yield Label("Default Vessel directory", classes="field-label")
-        yield Input(value=p.default_vessel_dir, placeholder="~/Phasmid/vessels", id="vessel-dir")
+        yield Input(
+            value=p.default_vessel_dir, placeholder="~/Phasmid/vessels", id="vessel-dir"
+        )
         yield Label("Default output directory", classes="field-label")
-        yield Input(value=p.default_output, placeholder="~/Phasmid/output", id="output-dir")
+        yield Input(
+            value=p.default_output, placeholder="~/Phasmid/output", id="output-dir"
+        )
         yield Label("Default container size", classes="field-label")
         yield Input(value=p.container_size, placeholder="512M", id="container-size")
         yield Label("Theme", classes="field-label")
-        yield Select([(label, val) for label, val in self._THEME_OPTIONS], value=p.theme, id="theme")
+        yield Select(
+            [(label, val) for label, val in self._THEME_OPTIONS],
+            value=p.theme,
+            id="theme",
+        )
         with Horizontal(classes="switch-row"):
             yield Label("Track recent Vessels", classes="switch-label")
             yield Switch(value=p.recent_tracking, id="recent-tracking")
@@ -84,7 +93,9 @@ class SettingsScreen(Screen):
         p = self._profile
         p.default_vessel_dir = self.query_one("#vessel-dir", Input).value.strip()
         p.default_output = self.query_one("#output-dir", Input).value.strip()
-        p.container_size = self.query_one("#container-size", Input).value.strip() or "512M"
+        p.container_size = (
+            self.query_one("#container-size", Input).value.strip() or "512M"
+        )
         theme_val = self.query_one("#theme", Select).value
         p.theme = theme_val if isinstance(theme_val, str) else "dark"
         p.recent_tracking = self.query_one("#recent-tracking", Switch).value

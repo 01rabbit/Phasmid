@@ -49,7 +49,9 @@ class OpenVesselScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Static("OPEN VESSEL", id="open-title")
         yield Label("Vessel path", classes="field-label")
-        yield Input(value=self._vessel_path, placeholder="Path to Vessel file", id="vessel-path")
+        yield Input(
+            value=self._vessel_path, placeholder="Path to Vessel file", id="vessel-path"
+        )
         yield Label("Disclosure Face", classes="field-label")
         yield Select(
             [(label, val) for label, val in self._FACE_OPTIONS],

@@ -51,6 +51,7 @@ class GuidedScreen(Screen):
 
     def compose(self) -> ComposeResult:
         from textual.containers import Container, Horizontal
+
         yield Static("OPERATOR WORKFLOWS", id="guided-title")
         with Horizontal(id="layout"):
             with Container(id="workflow-list-container"):
@@ -96,4 +97,3 @@ class GuidedScreen(Screen):
 
     def action_back_or_dismiss(self) -> None:
         self.dismiss()
-

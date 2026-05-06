@@ -51,7 +51,9 @@ class VesselSummaryPanel(Widget):
                 ("Faces", str(v.face_count) if v.face_count else "unknown"),
                 ("Posture", v.posture.value),
             ]:
-                yield Static(f"[dim]{label:<14}[/dim]{value}", classes="field-row", markup=True)
+                yield Static(
+                    f"[dim]{label:<14}[/dim]{value}", classes="field-row", markup=True
+                )
 
     def update_vessel(self, vessel: VesselMeta | None) -> None:
         self._vessel = vessel
@@ -61,6 +63,7 @@ class VesselSummaryPanel(Widget):
 
     def _build_children(self):
         from textual.widgets import Static as S
+
         yield S("VESSEL STATUS", classes="panel-title")
         if self._vessel is None:
             yield S("No vessel selected.", classes="empty-msg")
@@ -81,7 +84,9 @@ class VesselSummaryPanel(Widget):
                 if webui_svc.is_running():
                     uptime = int(webui_svc.uptime_seconds)
                     m, s = divmod(uptime, 60)
-                    status_text = f"[bold red]ACTIVE[/bold red] [dim]({m:02d}:{s:02d})[/dim]"
+                    status_text = (
+                        f"[bold red]ACTIVE[/bold red] [dim]({m:02d}:{s:02d})[/dim]"
+                    )
                 else:
                     status_text = "[green]OFFLINE[/green]"
                 rows.append(("WebUI Exposure", status_text))
@@ -90,7 +95,9 @@ class VesselSummaryPanel(Widget):
             if entropy_val:
                 rows.append(("Entropy", entropy_val))
             for label, value in rows:
-                yield S(f"[dim]{label:<14}[/dim]{value}", classes="field-row", markup=True)
+                yield S(
+                    f"[dim]{label:<14}[/dim]{value}", classes="field-row", markup=True
+                )
 
     def _get_entropy(self, vessel: VesselMeta) -> str:
         try:

@@ -78,4 +78,6 @@ class FaceManagerScreen(Screen):
                 table = self.query_one(DataTable)
                 table.add_row(label, "local label")
                 self.query_one("#new-label", Input).value = ""
-                self.app.notify(f'Face label "{label}" added locally.', severity="information")
+                self.app.notify(
+                    f'Face label "{label}" added locally.', severity="information"
+                )

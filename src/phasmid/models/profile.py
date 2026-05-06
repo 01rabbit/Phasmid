@@ -31,10 +31,19 @@ class Profile:
         allowed = {f for f in cls.__dataclass_fields__}
         return cls(**{k: v for k, v in data.items() if k in allowed})
 
-    FORBIDDEN_KEYS = frozenset({
-        "passphrase", "password", "key", "secret", "token",
-        "derived_key", "raw_key", "object_key", "recovery",
-    })
+    FORBIDDEN_KEYS = frozenset(
+        {
+            "passphrase",
+            "password",
+            "key",
+            "secret",
+            "token",
+            "derived_key",
+            "raw_key",
+            "object_key",
+            "recovery",
+        }
+    )
 
     def has_secrets(self) -> bool:
         d = self.to_dict()

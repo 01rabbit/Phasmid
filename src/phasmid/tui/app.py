@@ -74,7 +74,9 @@ class PhasmidApp(App):
             def _on_confirm(result: bool | None) -> None:
                 if result:
                     self.webui_svc.stop()
-                    self.notify("WebUI server stopped.", title="WEBUI", severity="warning")
+                    self.notify(
+                        "WebUI server stopped.", title="WEBUI", severity="warning"
+                    )
                     self._refresh_webui_status()
 
             self.push_screen(
@@ -93,7 +95,9 @@ class PhasmidApp(App):
                     timeout=10,
                 )
             else:
-                self.notify("Failed to start WebUI server.", title="ERROR", severity="error")
+                self.notify(
+                    "Failed to start WebUI server.", title="ERROR", severity="error"
+                )
             self._refresh_webui_status()
 
     def _on_webui_timeout(self) -> None:
@@ -117,36 +121,43 @@ class PhasmidApp(App):
 
     def _push_guided(self) -> None:
         from .screens.guided import GuidedScreen
+
         self.push_screen(HomeScreen())
         self.push_screen(GuidedScreen())
 
     def _push_audit(self) -> None:
         from .screens.audit import AuditScreen
+
         self.push_screen(HomeScreen())
         self.push_screen(AuditScreen())
 
     def _push_doctor(self) -> None:
         from .screens.doctor import DoctorScreen
+
         self.push_screen(HomeScreen())
         self.push_screen(DoctorScreen())
 
     def _push_inspect(self) -> None:
         from .screens.inspect_vessel import InspectVesselScreen
+
         self.push_screen(HomeScreen())
         self.push_screen(InspectVesselScreen(vessel_path=self._vessel_path))
 
     def _push_create(self) -> None:
         from .screens.create_vessel import CreateVesselScreen
+
         self.push_screen(HomeScreen())
         self.push_screen(CreateVesselScreen(initial_path=self._vessel_path or ""))
 
     def _push_open(self) -> None:
         from .screens.open_vessel import OpenVesselScreen
+
         self.push_screen(HomeScreen())
         self.push_screen(OpenVesselScreen(vessel_path=self._vessel_path or ""))
 
     def _push_about(self) -> None:
         from .screens.about import AboutScreen
+
         self.push_screen(HomeScreen())
         self.push_screen(AboutScreen())
 

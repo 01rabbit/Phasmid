@@ -90,7 +90,10 @@ class HomeScreen(Screen):
 
     def compose(self) -> ComposeResult:
         from textual.containers import Horizontal
-        yield Static("⚠️  WEBUI ACTIVE (EXPOSED) - PRESS [w] TO CLOSE", id="webui-warning-banner")
+
+        yield Static(
+            "⚠️  WEBUI ACTIVE (EXPOSED) - PRESS [w] TO CLOSE", id="webui-warning-banner"
+        )
         yield Static(COMPACT_BANNER, id="compact-banner", markup=False)
         yield Static("", id="profile-status", markup=True)
         yield Static("", id="doctor-badge", markup=True)
@@ -134,7 +137,9 @@ class HomeScreen(Screen):
         self.query_one("#compact-banner", Static).update(banner)
 
     def _refresh_vessels(self) -> None:
-        self._vessels = self._vessel_svc.list_all(self._profile.default_vessel_dir or None)
+        self._vessels = self._vessel_svc.list_all(
+            self._profile.default_vessel_dir or None
+        )
         table = self.query_one(VesselTable)
         table.update_vessels(self._vessels)
         self._update_summary()
@@ -246,6 +251,7 @@ class HomeScreen(Screen):
 
     def action_inspect_vessel(self) -> None:
         from .inspect_vessel import InspectVesselScreen
+
         table = self.query_one(VesselTable)
         vessel = table.selected_vessel
         path = str(vessel.path) if vessel else ""
@@ -253,20 +259,24 @@ class HomeScreen(Screen):
 
     def action_face_manager(self) -> None:
         from .face_manager import FaceManagerScreen
+
         table = self.query_one(VesselTable)
         vessel = table.selected_vessel
         self.app.push_screen(FaceManagerScreen(vessel=vessel))
 
     def action_guided(self) -> None:
         from .guided import GuidedScreen
+
         self.app.push_screen(GuidedScreen())
 
     def action_audit(self) -> None:
         from .audit import AuditScreen
+
         self.app.push_screen(AuditScreen())
 
     def action_doctor(self) -> None:
         from .doctor import DoctorScreen
+
         self.app.push_screen(DoctorScreen())
 
     def action_settings(self) -> None:
@@ -280,10 +290,12 @@ class HomeScreen(Screen):
 
     def action_about(self) -> None:
         from .about import AboutScreen
+
         self.app.push_screen(AboutScreen())
 
     def action_help(self) -> None:
         from .about import AboutScreen
+
         self.app.push_screen(AboutScreen())
 
     def action_quit(self) -> None:

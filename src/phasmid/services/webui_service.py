@@ -50,7 +50,7 @@ class WebUIService:
 
         # Run as a module to ensure imports work correctly
         cmd = [sys.executable, "-m", "phasmid.web_server"]
-        
+
         try:
             self._process = subprocess.Popen(
                 cmd,

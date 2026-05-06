@@ -8,9 +8,18 @@ from .profile_service import _ensure_dir, config_dir
 
 _REGISTRY_PATH_KEY = "vessel_registry"
 
-REVEALING_TERMS = frozenset({
-    "secret", "hidden", "janus", "real", "fake", "decoy", "true", "covert",
-})
+REVEALING_TERMS = frozenset(
+    {
+        "secret",
+        "hidden",
+        "janus",
+        "real",
+        "fake",
+        "decoy",
+        "true",
+        "covert",
+    }
+)
 
 
 def _registry_path() -> Path:

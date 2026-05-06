@@ -79,7 +79,8 @@ def inspect_vessel(path: str | Path) -> InspectionResult:
     entropy = _estimate_entropy(sample) if sample else 0.0
     detected_type = _detect_magic(sample) if sample else "unknown"
     magic_status = (
-        "no obvious magic bytes detected" if detected_type == "unknown"
+        "no obvious magic bytes detected"
+        if detected_type == "unknown"
         else f"detected: {detected_type}"
     )
 

@@ -80,4 +80,3 @@ class DoctorScreen(Screen):
             if check.detail:
                 log.write(f"   [dim]{check.detail}[/dim]")
         self.query_one("#disclaimer", Static).update(result.disclaimer)
-
