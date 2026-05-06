@@ -1,4 +1,3 @@
-import io
 import os
 import threading
 import time
@@ -11,6 +10,7 @@ from .camera_frame_source import CameraFrameSource
 from .config import STATE_BLOB_NAME, STATE_KEY_NAME, state_dir
 from .local_state_crypto import LocalStateCipher
 from .object_cue_matcher import ObjectCueMatcher
+from .object_cue_store import ObjectCueStore
 
 
 class AIGate:
@@ -50,6 +50,14 @@ class AIGate:
         self.state_cipher = LocalStateCipher(
             state_key_path=self.state_key_path,
             aad=self._template_aad(self.state_blob_path),
+        )
+        self.store = ObjectCueStore(
+            modes=self.MODES,
+            state_blob_path=self.state_blob_path,
+            state_cipher=self.state_cipher,
+            empty_reference=self._empty_reference,
+            state_to_arrays=self._state_to_arrays,
+            reference_from_arrays=self._reference_state_from_arrays,
         )
 
         self.object_detected = False
@@ -91,7 +99,7 @@ class AIGate:
 
     def _load_references(self):
         with self.lock:
-            self.reference_data = self._read_reference_blob()
+            self.reference_data = self.store.load()
 
     def _match_reference_state(self, ref_state, frame_gray):
         return self.matcher.match_reference_state(ref_state, frame_gray)
@@ -134,56 +142,11 @@ class AIGate:
             "shape": np.array(state["shape"], dtype=np.int32),
         }
 
-    def _write_reference_blob(self, references):
-        template = io.BytesIO()
-        payload = {}
-        for mode in self.MODES:
-            state = references.get(mode) or self._empty_reference()
-            if state["des"] is None:
-                payload[f"{mode}_present"] = np.array([0], dtype=np.uint8)
-                payload[f"{mode}_des"] = np.empty((0, 32), dtype=np.uint8)
-                payload[f"{mode}_kp"] = np.empty((0, 7), dtype=np.float32)
-                payload[f"{mode}_shape"] = np.array([0, 0], dtype=np.int32)
-                continue
-            arrays = self._state_to_arrays(state)
-            payload[f"{mode}_present"] = np.array([1], dtype=np.uint8)
-            payload[f"{mode}_des"] = arrays["des"]
-            payload[f"{mode}_kp"] = arrays["kp"]
-            payload[f"{mode}_shape"] = arrays["shape"]
-
-        np.savez_compressed(
-            template,
-            **payload,
-        )
-        encrypted = self._encrypt_template(template.getvalue(), self.state_blob_path)
-        with open(self.state_blob_path, "wb") as handle:
-            handle.write(encrypted)
-        try:
-            os.chmod(self.state_blob_path, 0o600)
-        except OSError:
-            pass
-
     def _read_reference_blob(self):
-        references = {mode: self._empty_reference() for mode in self.MODES}
-        if not os.path.exists(self.state_blob_path):
-            return references
+        return self.store.load()
 
-        try:
-            with np.load(
-                io.BytesIO(self._read_encrypted_template(self.state_blob_path)),
-                allow_pickle=False,
-            ) as template:
-                for mode in self.MODES:
-                    if int(template[f"{mode}_present"][0]) != 1:
-                        continue
-                    references[mode] = self._reference_state_from_arrays(
-                        template[f"{mode}_des"],
-                        template[f"{mode}_kp"],
-                        template[f"{mode}_shape"],
-                    )
-        except Exception:
-            return {mode: self._empty_reference() for mode in self.MODES}
-        return references
+    def _write_reference_blob(self, references):
+        self.store.save(references)
 
     def _encrypt_template(self, plaintext, path):
         return self.state_cipher.encrypt(plaintext)
@@ -265,7 +228,7 @@ class AIGate:
         try:
             updated_references = dict(self.reference_data)
             updated_references[mode] = candidate_state
-            self._write_reference_blob(updated_references)
+            self.store.save(updated_references)
         except OSError:
             return False, text.AI_GATE_SAVE_FAILED
 
@@ -307,7 +270,7 @@ class AIGate:
     def clear_references(self):
         empty = {mode: self._empty_reference() for mode in self.MODES}
         try:
-            self._write_reference_blob(empty)
+            self.store.save(empty)
         except OSError:
             return False, text.AI_GATE_CLEAR_FAILED
 

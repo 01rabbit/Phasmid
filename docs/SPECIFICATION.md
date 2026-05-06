@@ -27,6 +27,7 @@ The project is intended for USB gadget mode or localhost access. It is not a rep
 | `src/phasmid/ai_gate.py` | Camera input and object-cue orchestration |
 | `src/phasmid/camera_frame_source.py` | OpenCV camera capture lifecycle |
 | `src/phasmid/object_cue_matcher.py` | ORB-based object-cue matching logic |
+| `src/phasmid/object_cue_store.py` | Encrypted object-cue reference persistence |
 | `src/phasmid/face_lock.py` | Face UI lock orchestration and encrypted template lifecycle |
 | `src/phasmid/face_sample_matcher.py` | Face sample extraction and template comparison |
 | `src/phasmid/face_session_store.py` | In-memory UI face session and failure tracking |
