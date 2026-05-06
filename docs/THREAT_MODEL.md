@@ -81,6 +81,7 @@ These surfaces should not reveal the internal disclosure model, internal trial o
 - The v3 format avoids a plaintext format marker, but surrounding tool files can still reveal that a Phasmid-style container may be in use.
 - Dual password slots duplicate encrypted payload material within the selected internal storage span. This improves operational control but reduces maximum payload size.
 - UI face lock can be affected by lighting, camera angle, false rejects, false accepts, and presentation attacks using photos or screens.
+- Multi-object cues and visual sequence cues can increase ambiguity risk and operator retry burden if relation checks are unstable under lighting, angle, or motion changes.
 - The in-memory Web rate limiter and restricted confirmation state reset on process restart and are not substitutes for a full access-control layer.
 - Access-attempt limiting slows repeated local failures but does not stop offline guessing against copied data, compromised hosts, or deliberate state rollback.
 - UI tokens can be read from a compromised browser or host session.
@@ -112,3 +113,4 @@ These surfaces should not reveal the internal disclosure model, internal trial o
 - Review metadata before storing source, evidence, notes, or travel material.
 - Keep only necessary data on the device and remove stale entries after the task or trip.
 - Run tests before changing cryptographic or Web boundary behavior.
+- If evaluating multi-object or sequence cues, require bounded runtime windows and neutral reject behavior before enabling any experimental gate by default.
