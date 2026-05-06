@@ -59,13 +59,6 @@ from .services.inspection_service import inspect_vessel
 from .services.ui_face_lock_service import ui_face_lock_service
 from .vault_core import PhasmidVault
 
-gate = access_cue_service.gate
-face_lock = ui_face_lock_service.face_lock
-
-
-def get_gesture_sequence(length=1):
-    return access_cue_service.auth_sequence(length=length)
-
 app = FastAPI(title="Phasmid - Local Secure Interface")
 app.mount(
     "/static",

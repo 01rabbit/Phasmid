@@ -110,12 +110,18 @@ class RestrictedFlowScenarioTests(unittest.TestCase):
                 client=SimpleNamespace(host="127.0.0.1"),
                 url=SimpleNamespace(path="/retrieve"),
             )
-            with mock.patch.object(
-                web_server,
-                "get_gesture_sequence",
-                return_value=[web_server.gate.MATCH_NONE],
+            with (
+                mock.patch.object(
+                    web_server.access_cue_service,
+                    "auth_sequence",
+                    return_value=[web_server.access_cue_service.match_none()],
+                ),
+                mock.patch.object(
+                    web_server.access_cue_service,
+                    "current_match_mode",
+                    return_value=web_server.access_cue_service.match_none(),
+                ),
             ):
-                web_server.gate.last_match_mode = web_server.gate.MATCH_NONE
                 response = await web_server.retrieve(request, password="pw")
             self.assertEqual(response["error"], scenario["expected_error"])
 
@@ -153,7 +159,9 @@ class RestrictedFlowScenarioTests(unittest.TestCase):
                     web_server.vault, "format_container"
                 ) as format_container,
                 mock.patch.object(
-                    web_server.gate, "clear_references", return_value=(True, "ok")
+                    web_server.access_cue_service,
+                    "clear_references",
+                    return_value=(True, "ok"),
                 ),
                 mock.patch.object(web_server.vault, "silent_brick") as silent_brick,
             ):
