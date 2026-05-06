@@ -53,11 +53,11 @@ from .restricted_actions import (
     RestrictedActionRejected,
     evaluate_restricted_action,
 )
-from .vault_core import PhasmidVault
-from .services.doctor_service import run_doctor_checks
 from .services.audit_service import build_audit_report
+from .services.doctor_service import run_doctor_checks
 from .services.guided_service import get_workflows
 from .services.inspection_service import inspect_vessel
+from .vault_core import PhasmidVault
 
 app = FastAPI(title="Phasmid - Local Secure Interface")
 app.mount(
@@ -219,6 +219,19 @@ def _restricted_session_valid(request):
     return True
 
 
+def _restricted_session_seconds_remaining(request):
+    token = _restricted_session_token(request)
+    if not token:
+        return 0
+    session = _restricted_sessions.get(token)
+    if not session:
+        return 0
+    if session["client_id"] != _client_id(request):
+        return 0
+    remaining = int(session["expires_at"] - time.time())
+    return remaining if remaining > 0 else 0
+
+
 def require_restricted_confirmation(request: Request):
     if not _restricted_session_valid(request):
         raise HTTPException(
@@ -310,6 +323,9 @@ def _template_context(request: Request, active="home", **extra):
         "field_mode": field_mode_enabled(),
         "deployment_mode": active_policy().name,
         "restricted_confirmed": restricted_confirmed,
+        "restricted_session_seconds_remaining": (
+            _restricted_session_seconds_remaining(request) if restricted_confirmed else 0
+        ),
         "face_enrollment_enabled": _face_enrollment_allowed(),
         "face_lock": _face_lock_status(request),
         "destructive_clear_phrase": DESTRUCTIVE_CLEAR_PHRASE,
@@ -1149,7 +1165,7 @@ async def operator_inspect_post(
     finally:
         import os as _os
         _os.unlink(tmp_path)
-    result = None
+    result: dict[str, object] | None = None
     if inspection.error:
         result = {"error": inspection.error, "fields": [], "notes": []}
     else:

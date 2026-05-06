@@ -2,6 +2,64 @@
 {% import "_components.html" as ui %}
 {% block title %}Phasmid | Entry Management{% endblock %}
 
+{% block head %}
+<style>
+    .action-sequence {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+    }
+    .action-sequence .sequence-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-secondary);
+    }
+    .action-sequence .sequence-label {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        height: 28px;
+        border-radius: var(--r-pill);
+        border: 1px solid var(--status-caution);
+        color: var(--status-caution);
+        font-family: "JetBrains Mono", "IBM Plex Mono", Consolas, monospace;
+        font-weight: 700;
+    }
+    .session-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 14px;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-left: 2px solid var(--status-ready);
+        border-radius: var(--r-md);
+        background: rgba(135,215,0,0.06);
+    }
+    .session-strip strong {
+        color: var(--status-ready);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-size: 12px;
+    }
+    .field code {
+        display: inline-block;
+        margin-top: 6px;
+        color: var(--accent-bright);
+    }
+    .action-result {
+        min-height: 24px;
+        margin-top: 12px;
+        color: var(--text-secondary);
+    }
+    .action-result[data-state="success"] { color: var(--status-ready); }
+    .action-result[data-state="error"] { color: var(--status-alert); }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="grid">
     {{ ui.camera_preview() }}
@@ -14,16 +72,32 @@
             <span class="badge warn">Maintenance</span>
         </div>
         <p class="copy hero-copy">Rebind a physical object, test matching, or rename a local label outside the normal flow.</p>
+        <div class="action-sequence">
+            <div class="sequence-row"><span class="sequence-label">1</span><span>Confirm local control.</span></div>
+            <div class="sequence-row"><span class="sequence-label">2</span><span>Select the intended entry.</span></div>
+            <div class="sequence-row"><span class="sequence-label">3</span><span>Run one binding action at a time and verify the result below.</span></div>
+        </div>
+        {% if restricted_confirmed %}
+        <div class="session-strip">
+            <div>
+                <strong>Restricted confirmation active</strong>
+                <div class="copy">Entry maintenance is available until this confirmation expires.</div>
+            </div>
+            <span class="badge good"><span class="led led--ready"></span>{{ restricted_session_seconds_remaining }}s remaining</span>
+        </div>
+        {% else %}
         <details>
             <summary>Restricted confirmation</summary>
             <div class="detail-body">
                 <label class="field">
                     <span>Confirmation phrase</span>
-                    <input type="text" id="restrictedConfirmation" placeholder="{{ restricted_confirmation_phrase }}">
+                    <input type="text" id="restrictedConfirmation" placeholder="{{ restricted_confirmation_phrase }}" autocomplete="off">
+                    <code>{{ restricted_confirmation_phrase }}</code>
                 </label>
                 <button type="button" class="secondary small" id="confirmRestricted">Confirm local control</button>
             </div>
         </details>
+        {% endif %}
         {% if restricted_confirmed %}
         {{ ui.hero_metrics([
             {"label": "Object cue", "value": "Rebind or test"},
@@ -48,6 +122,7 @@
             <span class="section-label">Binding Status</span>
             <p id="entryOutput" class="copy">Select an entry and test matching to view local status.</p>
         </div>
+        <div id="entryActionResult" class="action-result" aria-live="polite"></div>
         {% else %}
         <p class="copy" style="margin-top: 12px;">Local entry maintenance requires confirmation.</p>
         {% endif %}
@@ -57,6 +132,19 @@
 
 {% block scripts %}
 <script>
+    function setEntryActionResult(message, state) {
+        const el = document.getElementById('entryActionResult');
+        if (!el) return;
+        el.textContent = message;
+        el.dataset.state = state || '';
+    }
+
+    async function ensureRestrictedConfirmation() {
+        const input = document.getElementById('restrictedConfirmation');
+        if (!input) return true;
+        return confirmRestrictedAction(input.value);
+    }
+
     async function refreshEntryStatus() {
         const entry = document.getElementById('entrySelect').value;
         const res = await apiFetch(`/maintenance/entry_status?entry_id=${encodeURIComponent(entry)}`);
@@ -72,31 +160,38 @@
 
     const rebindButton = document.getElementById('rebindButton');
     if (rebindButton) rebindButton.addEventListener('click', async () => {
-        const confirmed = await confirmRestrictedAction(document.getElementById('restrictedConfirmation').value);
+        const confirmed = await ensureRestrictedConfirmation();
         if (!confirmed) return;
         const entry = document.getElementById('entrySelect').value;
         const body = new URLSearchParams({ entry_hint: entry, replace: 'true' });
         const res = await apiFetch('/register_key', { method: 'POST', body });
         const data = await res.json();
         toast(data.status || data.error || 'Rebind operation finished.');
+        setEntryActionResult(data.status || data.error || 'Rebind operation finished.', data.status ? 'success' : 'error');
         refreshEntryStatus();
     });
 
-    document.getElementById('confirmRestricted').addEventListener('click', async () => {
-        if (await confirmRestrictedAction(document.getElementById('restrictedConfirmation').value)) {
+    const confirmRestricted = document.getElementById('confirmRestricted');
+    if (confirmRestricted) confirmRestricted.addEventListener('click', async () => {
+        if (await ensureRestrictedConfirmation()) {
             window.location.reload();
         }
     });
 
     const testButton = document.getElementById('testButton');
-    if (testButton) testButton.addEventListener('click', refreshEntryStatus);
+    if (testButton) testButton.addEventListener('click', async () => {
+        await refreshEntryStatus();
+        setEntryActionResult('Local entry status refreshed.', 'success');
+    });
     const renameButton = document.getElementById('renameButton');
     if (renameButton) renameButton.addEventListener('click', () => {
         toast('Local label rename is reserved for a future persistent label store.');
+        setEntryActionResult('Local label rename is reserved for a future persistent label store.', 'error');
     });
     const clearTemplateButton = document.getElementById('clearTemplateButton');
     if (clearTemplateButton) clearTemplateButton.addEventListener('click', () => {
         toast('Use restricted actions for local data-loss operations.');
+        setEntryActionResult('Use restricted actions for local data-loss operations.', 'error');
     });
 </script>
 {% endblock %}

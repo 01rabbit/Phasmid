@@ -8,14 +8,71 @@
     .panel--restricted-gate {
         border-left-color: var(--status-caution);
     }
+    .emergency-flow {
+        display: grid;
+        gap: 18px;
+    }
+    .session-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-left: 2px solid var(--status-ready);
+        border-radius: var(--r-md);
+        background: rgba(135,215,0,0.06);
+    }
+    .session-strip strong {
+        color: var(--status-ready);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-size: 12px;
+    }
+    .action-sequence {
+        display: grid;
+        gap: 10px;
+    }
+    .action-sequence .sequence-label {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        height: 28px;
+        border-radius: var(--r-pill);
+        border: 1px solid var(--border-focus);
+        color: var(--accent-bright);
+        font-family: "JetBrains Mono", "IBM Plex Mono", Consolas, monospace;
+        font-weight: 700;
+    }
+    .action-sequence .sequence-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-secondary);
+    }
+    .field code {
+        display: inline-block;
+        margin-top: 6px;
+        color: var(--accent-bright);
+    }
+    .action-result {
+        min-height: 24px;
+        color: var(--text-secondary);
+    }
+    .action-result[data-state="success"] { color: var(--status-ready); }
+    .action-result[data-state="error"] { color: var(--status-alert); }
+    .field-mode-note {
+        border-left-color: var(--accent-blue);
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="grid-single">
+<div class="grid-single emergency-flow">
     <section class="panel panel--restricted-gate hero-panel">
         <div class="panel-kicker">
-            <span class="eyebrow">Hidden Restricted Route</span>
+            <span class="eyebrow">{% if field_mode %}Field Mode Emergency Flow{% else %}Hidden Restricted Route{% endif %}</span>
         </div>
         <div class="panel-head">
             <h2>Restricted Actions</h2>
@@ -25,21 +82,64 @@
             </span>
         </div>
         {{ ui.destructive_warning() }}
-        <p class="copy">This hidden route is separated from normal navigation. It still requires server-side confirmation.</p>
+        <p class="copy">
+            This route stays outside normal navigation. Use it only for intentional local data-loss actions that need a quieter, stepwise flow.
+        </p>
+        <div class="action-sequence">
+            <div class="sequence-row"><span class="sequence-label">1</span><span>Confirm local control.</span></div>
+            <div class="sequence-row"><span class="sequence-label">2</span><span>Choose the intended local action.</span></div>
+            <div class="sequence-row"><span class="sequence-label">3</span><span>Type the exact phrase shown for that action.</span></div>
+        </div>
+        {% if field_mode %}
+        <section class="panel field-mode-note">
+            <h2>Field Mode</h2>
+            <p class="copy" style="margin-top: 10px;">Field Mode keeps this route quiet by default and favors explicit steps over dense maintenance detail.</p>
+        </section>
+        {% endif %}
+        {% if restricted_confirmed %}
+        <div class="session-strip">
+            <div>
+                <strong>Restricted confirmation active</strong>
+                <div class="copy">This session can perform restricted local actions until it expires.</div>
+            </div>
+            <span class="badge good"><span class="led led--ready"></span>{{ restricted_session_seconds_remaining }}s remaining</span>
+        </div>
+        {% else %}
         <details open>
             <summary>Restricted confirmation</summary>
             <div class="detail-body">
                 <label class="field">
                     <span>Confirmation phrase</span>
-                    <input type="text" id="restrictedConfirmation" placeholder="{{ restricted_confirmation_phrase }}">
+                    <input type="text" id="restrictedConfirmation" placeholder="{{ restricted_confirmation_phrase }}" autocomplete="off">
+                    <code>{{ restricted_confirmation_phrase }}</code>
                 </label>
                 <button type="button" class="secondary small" id="confirmRestricted">Confirm local control</button>
             </div>
         </details>
+        {% endif %}
     </section>
 
     {% if restricted_confirmed %}
+    <section class="panel panel--neutral">
+        <h2>Action Discipline</h2>
+        <p class="copy" style="margin-top: 10px;">Choose one action, verify the phrase shown on that panel, and wait for the result before leaving this screen.</p>
+        <div id="actionResult" class="action-result" aria-live="polite"></div>
+    </section>
     <div class="panel-grid">
+        <section class="panel panel--danger">
+            <h2>Clear Local Access Path</h2>
+            <p class="copy" style="margin-top: 10px;">Permanently clear the cryptographic access path. This action is not reversible.</p>
+            {{ ui.destructive_warning() }}
+            <form id="brickForm">
+                <label class="field">
+                    <span>Confirmation phrase</span>
+                    <input type="text" name="confirmation" placeholder="{{ emergency_brick_phrase }}" required autocomplete="off">
+                    <code>{{ emergency_brick_phrase }}</code>
+                </label>
+                <button type="submit" class="danger">Clear local access path</button>
+            </form>
+        </section>
+
         <section class="panel panel--danger">
             <h2>Clear Unmatched Entry</h2>
             <p class="copy" style="margin-top: 10px;">Clear the local entry that is not selected below. This operation is irreversible in normal use.</p>
@@ -54,7 +154,8 @@
                 </label>
                 <label class="field">
                     <span>Confirmation phrase</span>
-                    <input type="text" name="confirmation" placeholder="{{ destructive_clear_phrase }}" required>
+                    <input type="text" name="confirmation" placeholder="{{ destructive_clear_phrase }}" required autocomplete="off">
+                    <code>{{ destructive_clear_phrase }}</code>
                 </label>
                 <button type="submit" class="danger">Clear unmatched entry</button>
             </form>
@@ -69,22 +170,10 @@
             <form id="initializeForm">
                 <label class="field">
                     <span>Confirmation phrase</span>
-                    <input type="text" name="confirmation" placeholder="{{ initialize_container_phrase }}" required>
+                    <input type="text" name="confirmation" placeholder="{{ initialize_container_phrase }}" required autocomplete="off">
+                    <code>{{ initialize_container_phrase }}</code>
                 </label>
                 <button type="submit" class="danger">Initialize local container</button>
-            </form>
-        </section>
-
-        <section class="panel panel--danger">
-            <h2>Clear Local Access Path</h2>
-            <p class="copy" style="margin-top: 10px;">Permanently clear the cryptographic access path. This action is not reversible.</p>
-            {{ ui.destructive_warning() }}
-            <form id="brickForm">
-                <label class="field">
-                    <span>Confirmation phrase</span>
-                    <input type="text" name="confirmation" placeholder="{{ emergency_brick_phrase }}" required>
-                </label>
-                <button type="submit" class="danger">Clear local access path</button>
             </form>
         </section>
     </div>
@@ -99,11 +188,21 @@
 
 {% block scripts %}
 <script>
-    async function ensureRestrictedConfirmation() {
-        return confirmRestrictedAction(document.getElementById('restrictedConfirmation').value);
+    function setActionResult(message, state) {
+        const el = document.getElementById('actionResult');
+        if (!el) return;
+        el.textContent = message;
+        el.dataset.state = state || '';
     }
 
-    document.getElementById('confirmRestricted').addEventListener('click', async () => {
+    async function ensureRestrictedConfirmation() {
+        const input = document.getElementById('restrictedConfirmation');
+        if (!input) return true;
+        return confirmRestrictedAction(input.value);
+    }
+
+    const confirmRestricted = document.getElementById('confirmRestricted');
+    if (confirmRestricted) confirmRestricted.addEventListener('click', async () => {
         if (await ensureRestrictedConfirmation()) {
             window.location.reload();
         }
@@ -116,6 +215,7 @@
         const res = await apiFetch('/purge_other', { method: 'POST', body: new FormData(event.currentTarget) });
         const data = await res.json();
         toast(data.status || data.error || 'Clear action finished.');
+        setActionResult(data.status || data.error || 'Clear action finished.', data.status ? 'success' : 'error');
     });
 
     const initializeForm = document.getElementById('initializeForm');
@@ -125,6 +225,7 @@
         const res = await apiFetch('/emergency/initialize', { method: 'POST', body: new FormData(event.currentTarget) });
         const data = await res.json();
         toast(data.status || data.error || 'Initialize action finished.');
+        setActionResult(data.status || data.error || 'Initialize action finished.', data.status ? 'success' : 'error');
     });
 
     const brickForm = document.getElementById('brickForm');
@@ -134,6 +235,7 @@
         const res = await apiFetch('/emergency/brick', { method: 'POST', body: new FormData(event.currentTarget) });
         const data = await res.json();
         toast(data.status || data.error || 'Restricted action finished.');
+        setActionResult(data.status || data.error || 'Restricted action finished.', data.status ? 'success' : 'error');
         if (data.status) document.body.classList.add('locked');
     });
 </script>
