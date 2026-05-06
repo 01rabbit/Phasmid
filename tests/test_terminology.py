@@ -109,6 +109,7 @@ class TerminologyAuditTests(unittest.TestCase):
             "src/phasmid/record_cypher.py",
             "src/phasmid/container_layout.py",
             "src/phasmid/kdf_providers.py",
+            "src/phasmid/kdf_subkeys.py",
         }
         self.assertEqual(all_modules, scanned | internal_allowlist)
 

@@ -182,5 +182,99 @@ class PhasmidVaultV3Tests(unittest.TestCase):
             self.assertEqual(vault.retrieve("pw", seq, mode="dummy"), (None, None))
 
 
+    # ------------------------------------------------------------------
+    # Key-material invalidation sequence (Issue #4)
+    # ------------------------------------------------------------------
+
+    def test_silent_brick_disables_retrieval_for_all_modes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = self.make_vault(os.path.join(tmp, "vault.bin"))
+            seq = ["reference_dummy_matched"]
+
+            vault.store("pw", b"payload", seq, filename="f.bin", mode="dummy")
+            self.assertIsNotNone(vault.retrieve("pw", seq, mode="dummy")[0])
+
+            vault.silent_brick()
+
+            self.assertEqual(vault.retrieve("pw", seq, mode="dummy"), (None, None))
+
+    def test_silent_brick_removes_access_key_before_container_overwrite(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = self.make_vault(os.path.join(tmp, "vault.bin"))
+            seq = ["reference_dummy_matched"]
+            vault.store("pw", b"payload", seq, filename="f.bin", mode="dummy")
+
+            key_path = vault.access_key_path
+            container_path = vault.path
+            destroyed_order = []
+
+            original_destroy = vault.destroy_access_keys
+            original_brick = vault.container_layout.silent_brick
+
+            def tracking_destroy():
+                destroyed_order.append("key")
+                original_destroy()
+
+            def tracking_brick():
+                destroyed_order.append("container")
+                original_brick()
+
+            vault.destroy_access_keys = tracking_destroy
+            vault.container_layout.silent_brick = tracking_brick
+            vault.silent_brick()
+
+            self.assertEqual(destroyed_order, ["key", "container"])
+            self.assertFalse(os.path.exists(key_path))
+
+    def test_purge_mode_disables_retrieval_for_purged_slot(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = self.make_vault(os.path.join(tmp, "vault.bin"))
+            d_seq = ["reference_dummy_matched"]
+            s_seq = ["reference_secret_matched"]
+
+            vault.store("pw", b"dummy_data", d_seq, filename="d.bin", mode="dummy")
+            vault.store("pw", b"secret_data", s_seq, filename="s.bin", mode="secret")
+
+            vault.purge_mode("dummy")
+
+            self.assertEqual(vault.retrieve("pw", d_seq, mode="dummy"), (None, None))
+            self.assertEqual(
+                vault.retrieve("pw", s_seq, mode="secret"), (b"secret_data", "s.bin")
+            )
+
+    def test_container_overwrite_alone_does_not_restore_access(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = self.make_vault(os.path.join(tmp, "vault.bin"))
+            seq = ["reference_dummy_matched"]
+            vault.store("pw", b"payload", seq, filename="f.bin", mode="dummy")
+
+            with open(vault.path, "rb") as handle:
+                original_container = handle.read()
+
+            vault.destroy_access_keys()
+            with open(vault.path, "wb") as handle:
+                handle.write(original_container)
+
+            self.assertEqual(vault.retrieve("pw", seq, mode="dummy"), (None, None))
+
+    def test_restricted_recovery_password_triggers_purge_on_retrieve(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = self.make_vault(os.path.join(tmp, "vault.bin"))
+            d_seq = ["reference_dummy_matched"]
+            s_seq = ["reference_secret_matched"]
+            vault.store(
+                "normal-pw",
+                b"dummy_data",
+                d_seq,
+                filename="d.bin",
+                mode="dummy",
+                restricted_recovery_password="purge-pw",
+            )
+            vault.store("pw", b"secret_data", s_seq, filename="s.bin", mode="secret")
+
+            _data, _fn, role = vault.retrieve_with_policy("purge-pw", d_seq, mode="dummy")
+            self.assertEqual(role, vault.PURGE_ROLE)
+
+
 if __name__ == "__main__":
     unittest.main()

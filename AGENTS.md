@@ -55,7 +55,6 @@ The following issues were resolved in order and merged to `main` via pull reques
 
 - **#38 Lightweight Recognition Evaluation**: Evaluate lightweight local face/object model candidates after camera refactor, with Raspberry Pi Zero 2 W benchmark evidence.
 - **#28 Dual-Passphrase Approval Analysis**: Design local dual-passphrase approval flow and threat tradeoffs.
-- **#18 Restricted-Recovery Observability Analysis**: Measure observability characteristics on target hardware.
 
 ### Completed Milestones
 
@@ -80,6 +79,9 @@ The following issues were resolved in order and merged to `main` via pull reques
 - `#43`: Brand polish and animation update (cyan glow, phosphor green). ✅
 - TUI Operator Console: full Textual-based operator console. ✅
 - WebUI redesign gap fixes, including frame-lock animation, toast variants, and Store capture flow. ✅
+- `#3`: Observable difference reduction — response/header neutrality tests, timing normalization documentation. ✅
+- `#4`: Cryptographic erase formalization — key-material invalidation sequence spec, ordering tests, best-effort overwrite language. ✅
+- `#5`: Argon2id + HKDF-SHA-256 key schedule design — domain-separated subkey module (`kdf_subkeys.py`), deterministic test vectors, v4 design documented in SPECIFICATION.md. ✅
 
 ---
 
