@@ -27,15 +27,36 @@ Use this file to keep AI-assisted changes small, scoped, and consistent with the
 
 ## Project Status & Roadmap
 
-### Current Focus: Hardening & Modularity
+### Current Focus: JES Operator Interface — WebUI/TUI Unification
 
-The goal is to transition from a "field-evaluation prototype" to a "local appliance solution" by strengthening boundaries and improving testability.
+The active development track is the **`webui-operational-ghost`** branch, which merges TUI Operator Console work (`feature/tui-operator-console`) and WebUI redesign into a unified "JES Operator Interface." Design concept: *政府機関・軍 × DEFCONハッカー* — institutional structure with terminal-hacker aesthetic.
 
-### Next Priority Issues
+### Active Branch
 
-1. **#33 UX Hardening**: Optimize Field Mode emergency flows for high-stress operational use.
-2. **#16 Integrity Manifest**: Implement a workflow for generating signed release manifests and SBOMs.
-3. **#27 AI Gate Decoupling**: Separate camera handling, object matching, and face lock logic.
+**`webui-operational-ghost`** contains:
+- TUI Operator Console (Textual-based): full operator screen set (Home, Doctor, Audit, Guided, Inspect, Create, Open, Face Manager, Settings, About)
+- WebUI gap fixes from `WEBUI_DESIGN.md`
+- Merge of `feature/tui-operator-console` (no conflicts)
+
+Target: merge to `main` after Phase 5 of the WebUI redesign series is complete.
+
+### WebUI Redesign — Implementation Order
+
+The following issues must be resolved **in order** before merging to `main`:
+
+| Order | Issue | Phase | Description |
+|-------|-------|-------|-------------|
+| 1 | **#39** | Phase 1–2 | JES Neon-Ops design system: CSS token overhaul, component updates |
+| 2 | **#40** | Phase 3 | Operator Console navigation group + WebUI exposure warning banner |
+| 3 | **#41** | Phase 0+4 | Backend API endpoints + Operator pages (Doctor, Audit, Guided, Inspect) |
+| 4 | **#42** | Phase 5 | WebUI/TUI terminology alignment (Disclosure Face, Passphrase, JES) |
+| 5 | **#43** | Phase 6–7 | Brand polish and animation update (cyan glow, phosphor green) |
+
+### Other Open Priority Issues
+
+- **#33 UX Hardening**: Optimize Field Mode emergency flows for high-stress operational use.
+- **#16 Integrity Manifest**: Implement a workflow for generating signed release manifests and SBOMs.
+- **#27 AI Gate Decoupling**: Separate camera handling, object matching, and face lock logic.
 
 ### Completed Milestones
 
@@ -50,6 +71,8 @@ The goal is to transition from a "field-evaluation prototype" to a "local applia
 - `#25`: Centralized user-visible strings in `strings.py`. ✅
 - `#26`: Vault cryptographic core split (KDFEngine / RecordCipher / ContainerLayout). ✅
 - `#29`: Local operations commands (`doctor`, `verify-state`) and documentation alignment. ✅
+- TUI Operator Console (`feature/tui-operator-console`): full Textual-based operator console. ✅
+- WebUI `WEBUI_DESIGN.md` gap fixes (frame-lock animation, toast variants, Store capture flow). ✅
 
 ---
 
@@ -158,6 +181,34 @@ Relevant issues:
 - `#19` local multi-source key derivation pipeline ✅
 - `#26` vault cryptographic core split ✅
 
+### TUI Operator Console
+
+Use this context for changes involving the Textual-based operator interface, TUI screens, widgets, theme, banner, service layer, or WebUI lifecycle management from the TUI:
+
+- `src/phasmid/tui/app.py`
+- `src/phasmid/tui/theme.py`
+- `src/phasmid/tui/banner.py`
+- `src/phasmid/tui/screens/` (all screen files)
+- `src/phasmid/tui/widgets/` (all widget files)
+- `src/phasmid/services/` (shared service layer: doctor, audit, guided, inspection, vessel, profile, webui)
+- `src/phasmid/models/` (data models: vessel, profile, doctor, audit, inspection)
+- `docs/TUI_OPERATOR_CONSOLE.md`
+- `tests/test_tui.py`
+
+Design concept: *政府機関・軍 × DEFCON hacker* — institutional structure with terminal-hacker aesthetic.  
+Theme: `phasmid-dark` (`primary=#00d7af`, `background=#0d0d0d`, `success=#87d700`).
+
+Key TUI-only responsibilities (do not replicate these in WebUI):
+- Vessel creation, listing, and file-system operations via `VesselService`
+- Profile and settings persistence via `ProfileService`
+- WebUI lifecycle control (start/stop/auto-kill) via `WebUIService`
+- Secure passphrase input (terminal prompt, not browser field)
+
+Relevant issues:
+- `#39` JES Neon-Ops design system for WebUI (TUI color parity)
+- `#41` Operator Console pages (shared service layer usage)
+- `#42` Terminology alignment (TUI vocabulary → WebUI)
+
 ### WebUI, API Routes, and Restricted Actions
 
 Use this context for changes involving FastAPI routes, Web mutation token, restricted confirmation, hidden routes, Field Mode, face lock sessions, store/retrieve routes, maintenance routes, emergency routes, response headers, or neutral download filenames:
@@ -181,6 +232,11 @@ Relevant issues:
 - `#22` restricted action policy enforcement ✅
 - `#24` local coercion and restricted-flow scenario matrix ✅
 - `#25` user-visible UI and CLI strings ✅
+- `#39` JES Neon-Ops design system overhaul (Phase 1–2)
+- `#40` Operator Console navigation + WebUI exposure banner (Phase 3)
+- `#41` Operator Console pages: Doctor, Audit, Guided, Inspect (Phase 0+4)
+- `#42` WebUI/TUI terminology alignment (Phase 5)
+- `#43` Brand polish and animation update (Phase 6–7)
 
 ### CLI Behavior
 
@@ -319,10 +375,11 @@ Use neutral terms in WebUI, CLI output, logs, response bodies, headers, filename
 
 Prefer:
 
-- protected entry
+- protected entry / Disclosure Face (TUI-aligned term for WebUI operator pages)
 - local entry
 - object cue
 - access cue
+- passphrase (preferred over "access password" in operator-facing contexts)
 - local access path
 - restricted confirmation
 - restricted local update
@@ -336,6 +393,10 @@ Prefer:
 - object cue accepted
 - no valid entry found
 - local container initialized
+- Janus Eidolon System / JES (brand subtitle, operator-facing)
+- Vessel (TUI term for the deniable container; use in operator pages)
+- Disclosure Face 1 / Disclosure Face 2 (TUI-aligned labels for entry select options)
+- Live Sensor Feed (camera panel title in operator context)
 
 Avoid in normal user-facing surfaces:
 
