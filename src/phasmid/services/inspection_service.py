@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-import os
 from pathlib import Path
 
 from ..models.inspection import InspectionField, InspectionResult

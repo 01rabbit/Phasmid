@@ -5,7 +5,6 @@ from textual.binding import Binding
 from textual.screen import Screen
 from textual.widgets import Button, DataTable, Footer, Input, Label, Static
 
-from ...services.vessel_service import VesselService
 from ...models.vessel import VesselMeta
 
 

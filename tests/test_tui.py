@@ -1,32 +1,30 @@
 """Tests for the TUI layer, services, models, and CLI routing."""
 from __future__ import annotations
 
-import json
-import os
-import tempfile
 from pathlib import Path
-
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # Banner
 # ---------------------------------------------------------------------------
 
 def test_banner_full_on_wide_terminal():
-    from phasmid.tui.banner import get_banner, FULL_BANNER, COMPACT_BANNER, BANNER_FULL_MIN_WIDTH
+    from phasmid.tui.banner import (
+        BANNER_FULL_MIN_WIDTH,
+        FULL_BANNER,
+        get_banner,
+    )
     result = get_banner(BANNER_FULL_MIN_WIDTH)
     assert result == FULL_BANNER
 
 
 def test_banner_compact_on_narrow_terminal():
-    from phasmid.tui.banner import get_banner, COMPACT_BANNER, BANNER_FULL_MIN_WIDTH
+    from phasmid.tui.banner import BANNER_FULL_MIN_WIDTH, COMPACT_BANNER, get_banner
     result = get_banner(BANNER_FULL_MIN_WIDTH - 1)
     assert result == COMPACT_BANNER
 
 
 def test_banner_compact_flag_overrides_width():
-    from phasmid.tui.banner import get_banner, COMPACT_BANNER
+    from phasmid.tui.banner import COMPACT_BANNER, get_banner
     result = get_banner(200, compact=True)
     assert result == COMPACT_BANNER
 
@@ -60,8 +58,8 @@ def test_profile_save_and_load(tmp_path, monkeypatch):
     from phasmid.services import profile_service
     monkeypatch.setattr(profile_service, "config_dir", lambda: tmp_path)
 
-    from phasmid.services.profile_service import save_profile, load_profile
     from phasmid.models.profile import Profile
+    from phasmid.services.profile_service import load_profile, save_profile
 
     p = Profile(name="test", container_size="256M", default_vessel_dir="/tmp/vessels")
     save_profile(p)
@@ -94,8 +92,8 @@ def test_profile_list(tmp_path, monkeypatch):
     from phasmid.services import profile_service
     monkeypatch.setattr(profile_service, "config_dir", lambda: tmp_path)
 
-    from phasmid.services.profile_service import save_profile, list_profiles
     from phasmid.models.profile import Profile
+    from phasmid.services.profile_service import list_profiles, save_profile
 
     save_profile(Profile(name="alpha"))
     save_profile(Profile(name="beta"))
@@ -109,12 +107,12 @@ def test_profile_list(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 def test_vessel_register_and_list(tmp_path, monkeypatch):
-    from phasmid.services import vessel_service as vs_mod
     from phasmid.services import profile_service
+    from phasmid.services import vessel_service as vs_mod
     monkeypatch.setattr(profile_service, "config_dir", lambda: tmp_path)
     monkeypatch.setattr(vs_mod, "config_dir", lambda: tmp_path)
 
-    from phasmid.services.vessel_service import register_vessel, list_vessels
+    from phasmid.services.vessel_service import list_vessels, register_vessel
 
     vessel_file = tmp_path / "test.vessel"
     vessel_file.write_bytes(b"\x00" * 1024)
@@ -151,8 +149,9 @@ def test_vessel_redact_path():
 # ---------------------------------------------------------------------------
 
 def test_inspection_service_returns_structured_result(tmp_path):
+    import secrets
+
     from phasmid.services.inspection_service import InspectionService
-    import os, secrets
     vessel = tmp_path / "test.vessel"
     vessel.write_bytes(secrets.token_bytes(65536))
 
@@ -177,8 +176,9 @@ def test_inspection_service_on_missing_file(tmp_path):
 
 
 def test_inspection_no_recognized_header_for_random_data(tmp_path):
-    from phasmid.services.inspection_service import InspectionService
     import secrets
+
+    from phasmid.services.inspection_service import InspectionService
     vessel = tmp_path / "rand.vessel"
     vessel.write_bytes(secrets.token_bytes(65536))
     svc = InspectionService()
@@ -193,8 +193,8 @@ def test_inspection_no_recognized_header_for_random_data(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_doctor_returns_structured_result():
-    from phasmid.services.doctor_service import DoctorService
     from phasmid.models.doctor import DoctorLevel
+    from phasmid.services.doctor_service import DoctorService
 
     svc = DoctorService()
     result = svc.run()
@@ -207,7 +207,7 @@ def test_doctor_returns_structured_result():
 
 
 def test_doctor_result_overall_level():
-    from phasmid.models.doctor import DoctorResult, DoctorCheck, DoctorLevel
+    from phasmid.models.doctor import DoctorCheck, DoctorLevel, DoctorResult
 
     r = DoctorResult(checks=[
         DoctorCheck("a", DoctorLevel.OK, "ok"),
@@ -297,9 +297,16 @@ def test_tui_app_imports_successfully():
 
 def test_all_screens_importable():
     from phasmid.tui.screens import (
-        HomeScreen, AboutScreen, AuditScreen, DoctorScreen,
-        GuidedScreen, InspectVesselScreen, CreateVesselScreen,
-        OpenVesselScreen, FaceManagerScreen, SettingsScreen,
+        AboutScreen,
+        AuditScreen,
+        CreateVesselScreen,
+        DoctorScreen,
+        FaceManagerScreen,
+        GuidedScreen,
+        HomeScreen,
+        InspectVesselScreen,
+        OpenVesselScreen,
+        SettingsScreen,
     )
     for cls in [
         HomeScreen, AboutScreen, AuditScreen, DoctorScreen,
@@ -311,8 +318,13 @@ def test_all_screens_importable():
 
 def test_all_widgets_importable():
     from phasmid.tui.widgets import (
-        BannerWidget, PhasmidHeader, VesselSummaryPanel,
-        VesselTable, ActionBar, EventLog, WarningBox,
+        ActionBar,
+        BannerWidget,
+        EventLog,
+        PhasmidHeader,
+        VesselSummaryPanel,
+        VesselTable,
+        WarningBox,
     )
     for cls in [BannerWidget, PhasmidHeader, VesselSummaryPanel,
                 VesselTable, ActionBar, EventLog, WarningBox]:
@@ -396,8 +408,9 @@ def test_cli_parser_inspect_with_vessel():
 # ---------------------------------------------------------------------------
 
 def test_vessel_size_human():
-    from phasmid.models.vessel import VesselMeta
     from pathlib import Path
+
+    from phasmid.models.vessel import VesselMeta
     v = VesselMeta(path=Path("/tmp/t.vessel"), size_bytes=512 * 1024 * 1024)
     assert "512" in v.size_human
     assert "MiB" in v.size_human

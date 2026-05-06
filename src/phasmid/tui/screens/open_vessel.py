@@ -5,8 +5,6 @@ from textual.binding import Binding
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Input, Label, Select, Static
 
-from ...services.vessel_service import VesselService
-
 
 class OpenVesselScreen(Screen):
     BINDINGS = [
@@ -74,7 +72,7 @@ class OpenVesselScreen(Screen):
     def _attempt_open(self) -> None:
         path = self.query_one("#vessel-path", Input).value.strip()
         face = self.query_one("#face-select", Select).value
-        out = self.query_one("#output-dir", Input).value.strip()
+        _ = self.query_one("#output-dir", Input).value.strip()
 
         if not path:
             self.app.notify("Vessel path is required.", severity="error")

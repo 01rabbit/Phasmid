@@ -5,8 +5,7 @@ from textual.binding import Binding
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Input, Label, Select, Static, Switch
 
-from ...services.profile_service import ProfileService, load_profile, save_profile
-from ...models.profile import Profile
+from ...services.profile_service import load_profile, save_profile
 
 
 class SettingsScreen(Screen):
@@ -66,7 +65,7 @@ class SettingsScreen(Screen):
         yield Label("Default container size", classes="field-label")
         yield Input(value=p.container_size, placeholder="512M", id="container-size")
         yield Label("Theme", classes="field-label")
-        yield Select([(l, v) for l, v in self._THEME_OPTIONS], value=p.theme, id="theme")
+        yield Select([(label, val) for label, val in self._THEME_OPTIONS], value=p.theme, id="theme")
         with Horizontal(classes="switch-row"):
             yield Label("Track recent Vessels", classes="switch-label")
             yield Switch(value=p.recent_tracking, id="recent-tracking")

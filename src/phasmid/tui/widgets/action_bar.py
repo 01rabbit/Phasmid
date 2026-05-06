@@ -4,7 +4,6 @@ from textual.app import ComposeResult
 from textual.widget import Widget
 from textual.widgets import Button
 
-
 _ACTIONS = [
     ("o", "Open"),
     ("c", "Create"),

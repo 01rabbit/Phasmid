@@ -2,7 +2,7 @@ from textual.app import ComposeResult
 from textual.widget import Widget
 from textual.widgets import Static
 
-from ..banner import get_banner, COMPACT_BANNER
+from ..banner import COMPACT_BANNER, get_banner
 
 
 class BannerWidget(Widget):

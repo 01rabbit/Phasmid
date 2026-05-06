@@ -1,8 +1,8 @@
-from .vessel import VesselMeta, VesselPosture
+from .audit import AuditEntry, AuditReport, AuditSection
+from .doctor import DoctorCheck, DoctorLevel, DoctorResult
+from .inspection import InspectionField, InspectionResult
 from .profile import Profile
-from .inspection import InspectionResult, InspectionField
-from .doctor import DoctorResult, DoctorCheck, DoctorLevel
-from .audit import AuditReport, AuditSection, AuditEntry
+from .vessel import VesselMeta, VesselPosture
 
 __all__ = [
     "VesselMeta",

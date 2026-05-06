@@ -9,7 +9,6 @@ from textual.widgets import Button, Footer, Input, Label, Select, Static
 
 from ...services.vessel_service import VesselService
 
-
 _SIZE_OPTIONS = [
     ("64 MiB", "64M"),
     ("128 MiB", "128M"),
@@ -95,8 +94,6 @@ class CreateVesselScreen(Screen):
     def _attempt_create(self) -> None:
         path = self.query_one("#vessel-path", Input).value.strip()
         size = self.query_one("#vessel-size", Select).value
-        label = self.query_one("#vessel-label", Input).value.strip()
-
         if not path:
             self.query_one("#warning-area", Static).update("!  Vessel path is required.")
             return

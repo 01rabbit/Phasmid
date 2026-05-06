@@ -6,12 +6,12 @@ import os
 import sys
 import time
 
+from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.rule import Rule
 from rich.text import Text
-from rich import box
 
 from . import strings as text
 from .ai_gate import gate, get_gesture_sequence
@@ -23,7 +23,7 @@ from .config import duress_mode_enabled, purge_confirmation_required
 from .crypto_boundary import CryptoSelfTestError, ensure_crypto_self_tests
 from .emergency_daemon import EmergencyDaemon
 from .face_lock import face_lock
-from .operations import doctor, export_redacted_log, verify_audit_log, verify_state
+from .operations import export_redacted_log, verify_audit_log, verify_state
 from .passphrase_policy import check_store_passphrases
 from .restricted_actions import (
     DESTRUCTIVE_CLEAR_PHRASE,
@@ -138,11 +138,12 @@ def _collect_auth_sequence():
     input()
 
     if _wait_for_reference_match():
-        console.print(f"  [bold green]✓[/bold green]  [green]{text.CLI_OBJECT_MATCHED.lstrip('[LOCAL] ')}[/green]")
+        _prefix = "[LOCAL] "
+        console.print(f"  [bold green]✓[/bold green]  [green]{text.CLI_OBJECT_MATCHED.removeprefix(_prefix)}[/green]")
     elif gate.last_match_mode == gate.MATCH_AMBIGUOUS:
-        warn(text.CLI_AMBIGUOUS_MATCH.lstrip('[LOCAL] '))
+        warn(text.CLI_AMBIGUOUS_MATCH.removeprefix("[LOCAL] "))
     else:
-        warn(text.CLI_NO_MATCH_TIMEOUT.lstrip('[LOCAL] '))
+        warn(text.CLI_NO_MATCH_TIMEOUT.removeprefix("[LOCAL] "))
 
     return get_gesture_sequence(length=1)
 
@@ -285,8 +286,8 @@ def _run_startup_checks():
 
 def _run_doctor_tui() -> None:
     """Run doctor in non-interactive mode and print to console."""
-    from .services.doctor_service import DoctorService
     from .models.doctor import DoctorLevel
+    from .services.doctor_service import DoctorService
 
     svc = DoctorService()
     result = svc.run()
@@ -339,7 +340,7 @@ def _build_tui_parser() -> argparse.ArgumentParser:
     inspect_p = subparsers.add_parser("inspect", help="Inspect a Vessel")
     inspect_p.add_argument("vessel", nargs="?", help="Path to Vessel file")
 
-    about_p = subparsers.add_parser("about", help="Show about screen")
+    subparsers.add_parser("about", help="Show about screen")
 
     _add_legacy_subparser(subparsers)
 
@@ -425,7 +426,7 @@ def main():
     if args.command == "export-redacted-log":
         out = getattr(args, "out", None)
         if not out:
-            error(text.CLI_ERROR_OUTPUT_REQUIRED.lstrip("[!] Error: "))
+            error(text.CLI_ERROR_OUTPUT_REQUIRED.removeprefix("[!] Error: "))
             return 1
         _print_operation_report(export_redacted_log(out))
         return

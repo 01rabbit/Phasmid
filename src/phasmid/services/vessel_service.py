@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
-import platformdirs
-
 from ..models.vessel import VesselMeta, VesselPosture
-from .profile_service import APP_NAME, APP_AUTHOR, config_dir, _ensure_dir
+from .profile_service import _ensure_dir, config_dir
 
 _REGISTRY_PATH_KEY = "vessel_registry"
 

@@ -1,5 +1,3 @@
-import contextlib
-import io
 import json
 import os
 import sys
@@ -198,6 +196,7 @@ class LocalOperationTests(unittest.TestCase):
         # _print_operation_report uses Rich console; verify it does not raise
         # and does not include forbidden terminology
         import io as _io
+
         from rich.console import Console
         buf = _io.StringIO()
         original_console = cli.console
@@ -233,10 +232,6 @@ class LocalOperationTests(unittest.TestCase):
 
     def test_cli_doctor_command_reports_structured_output(self):
         """phasmid doctor (non-interactive) produces structured doctor output."""
-        import io as _io
-        from rich.console import Console
-        buf = _io.Console = Console
-
         with (
             mock.patch.object(cli, "ensure_crypto_self_tests", return_value=True),
             mock.patch.object(sys, "argv", ["phasmid", "doctor", "--no-tui"]),

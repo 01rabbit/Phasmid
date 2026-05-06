@@ -1,7 +1,7 @@
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.screen import Screen
 from textual.widgets import Footer, Static
-from textual.binding import Binding
 
 from ..banner import FULL_BANNER
 

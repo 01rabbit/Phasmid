@@ -142,7 +142,7 @@ def _check_swap() -> DoctorCheck:
         try:
             with open("/proc/swaps", "r") as f:
                 lines = f.read().strip().splitlines()
-            active = [l for l in lines[1:] if l.strip()]
+            active = [ln for ln in lines[1:] if ln.strip()]
             if active:
                 return DoctorCheck(
                     name="Swap",

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
@@ -77,7 +75,7 @@ class InspectVesselScreen(Screen):
         log.clear()
 
         if not result.ok:
-            log.write(f"[red]Could not inspect Vessel.[/red]")
+            log.write("[red]Could not inspect Vessel.[/red]")
             log.write(f"[red]Reason: {result.error}[/red]")
             log.write("[dim]Next step: verify the path and try again.[/dim]")
             return

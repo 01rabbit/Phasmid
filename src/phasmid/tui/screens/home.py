@@ -5,13 +5,13 @@ from textual.binding import Binding
 from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Static
 
-from ...services.vessel_service import VesselService
-from ...services.profile_service import load_profile
 from ...models.vessel import VesselMeta
+from ...services.profile_service import load_profile
+from ...services.vessel_service import VesselService
 from ..banner import COMPACT_BANNER, get_banner
+from ..widgets.event_log import EventLog
 from ..widgets.status_panel import VesselSummaryPanel
 from ..widgets.vessel_table import VesselTable
-from ..widgets.event_log import EventLog
 
 
 class HomeScreen(Screen):
@@ -36,8 +36,8 @@ class HomeScreen(Screen):
     }
     HomeScreen #compact-banner {
         color: $primary;
-        text-align: center;
-        padding: 1 2;
+        text-align: left;
+        padding: 1 4;
         height: auto;
         dock: top;
         background: $background;
