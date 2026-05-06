@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
 from textual.widgets import Button, Footer, Input, RichLog, Static
 
 from ...services.inspection_service import InspectionService
+from .base import OperatorScreen
 
 
-class InspectVesselScreen(Screen):
+class InspectVesselScreen(OperatorScreen):
     BINDINGS = [
         Binding("escape", "dismiss", "Back"),
         Binding("q", "dismiss", "Back"),
@@ -45,6 +45,7 @@ class InspectVesselScreen(Screen):
         self._initial_path = vessel_path
 
     def compose(self) -> ComposeResult:
+        yield self.webui_warning_banner()
         yield Static("VESSEL ANALYSIS", id="inspect-title")
         yield Static("[dim]Vessel path:[/dim]", markup=True)
         yield Input(

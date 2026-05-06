@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
 from textual.widgets import Footer, ListItem, ListView, RichLog, Static
 
 from ...services.guided_service import GuidedService, GuidedWorkflow
+from .base import OperatorScreen
 
 
-class GuidedScreen(Screen):
+class GuidedScreen(OperatorScreen):
     BINDINGS = [
         Binding("escape", "back_or_dismiss", "Back"),
         Binding("q", "dismiss", "Quit"),
@@ -52,6 +52,7 @@ class GuidedScreen(Screen):
     def compose(self) -> ComposeResult:
         from textual.containers import Container, Horizontal
 
+        yield self.webui_warning_banner()
         yield Static("OPERATOR WORKFLOWS", id="guided-title")
         with Horizontal(id="layout"):
             with Container(id="workflow-list-container"):

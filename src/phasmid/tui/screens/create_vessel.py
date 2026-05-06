@@ -4,10 +4,10 @@ from pathlib import Path
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
 from textual.widgets import Button, Footer, Input, Label, Select, Static
 
 from ...services.vessel_service import VesselService
+from .base import OperatorScreen
 
 _SIZE_OPTIONS = [
     ("64 MiB", "64M"),
@@ -20,7 +20,7 @@ _SIZE_OPTIONS = [
 ]
 
 
-class CreateVesselScreen(Screen):
+class CreateVesselScreen(OperatorScreen):
     BINDINGS = [
         Binding("escape", "dismiss", "Back"),
     ]
@@ -57,6 +57,7 @@ class CreateVesselScreen(Screen):
         self._svc = VesselService()
 
     def compose(self) -> ComposeResult:
+        yield self.webui_warning_banner()
         yield Static("NEW VESSEL", id="create-title")
         yield Label("Vessel path", classes="field-label")
         yield Input(

@@ -58,6 +58,8 @@ class PhasmidApp(App):
         }
         action = screen_map.get(self._initial_screen, self._push_home)
         action()
+        self.set_interval(1, self._refresh_webui_status)
+        self._refresh_webui_status()
 
     def compose(self) -> ComposeResult:
         return iter([])

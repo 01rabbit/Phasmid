@@ -1,10 +1,10 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
 from textual.widgets import Footer, RichLog, Static
 
 from ...models.doctor import DoctorLevel
 from ...services.doctor_service import DoctorService
+from .base import OperatorScreen
 
 _LEVEL_COLORS = {
     DoctorLevel.OK: "green",
@@ -21,7 +21,7 @@ _LEVEL_ICONS = {
 }
 
 
-class DoctorScreen(Screen):
+class DoctorScreen(OperatorScreen):
     BINDINGS = [
         Binding("escape", "dismiss", "Back"),
         Binding("q", "dismiss", "Back"),
@@ -53,6 +53,7 @@ class DoctorScreen(Screen):
     """
 
     def compose(self) -> ComposeResult:
+        yield self.webui_warning_banner()
         yield Static("OPERATOR DIAGNOSTICS", id="doctor-title")
         yield RichLog(id="doctor-log", highlight=False, markup=True)
         yield Static("", id="disclaimer")
