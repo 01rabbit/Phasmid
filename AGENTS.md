@@ -27,22 +27,21 @@ Use this file to keep AI-assisted changes small, scoped, and consistent with the
 
 ## Project Status & Roadmap
 
-### Current Focus: JES Operator Interface — WebUI/TUI Unification
+### Current Focus: JES Operator Interface — Post-Unification Stabilization
 
-The active development track is the **`webui-operational-ghost`** branch, which merges TUI Operator Console work (`feature/tui-operator-console`) and WebUI redesign into a unified "JES Operator Interface." Design concept: *政府機関・軍 × DEFCONハッカー* — institutional structure with terminal-hacker aesthetic.
+The JES Operator Interface unification work is now merged into **`main`**. The current focus is stabilizing the unified operator experience, preserving WebUI/TUI terminology parity, and continuing follow-on work without reintroducing branch-specific assumptions. Design concept: *政府機関・軍 × DEFCONハッカー* — institutional structure with terminal-hacker aesthetic.
 
 ### Active Branch
 
-**`webui-operational-ghost`** contains:
+**`main`** contains:
 - TUI Operator Console (Textual-based): full operator screen set (Home, Doctor, Audit, Guided, Inspect, Create, Open, Face Manager, Settings, About)
-- WebUI gap fixes from `WEBUI_DESIGN.md`
-- Merge of `feature/tui-operator-console` (no conflicts)
+- Merged WebUI redesign phases `#39` through `#43`
 
-Target: merge to `main` after Phase 5 of the WebUI redesign series is complete.
+Target: maintain and harden the unified JES operator surface on `main`.
 
-### WebUI Redesign — Implementation Order
+### WebUI Redesign — Completed Sequence
 
-The following issues must be resolved **in order** before merging to `main`:
+The following issues were resolved in order and merged to `main` via pull request `#44`:
 
 | Order | Issue | Phase | Description |
 |-------|-------|-------|-------------|
@@ -71,8 +70,13 @@ The following issues must be resolved **in order** before merging to `main`:
 - `#25`: Centralized user-visible strings in `strings.py`. ✅
 - `#26`: Vault cryptographic core split (KDFEngine / RecordCipher / ContainerLayout). ✅
 - `#29`: Local operations commands (`doctor`, `verify-state`) and documentation alignment. ✅
-- TUI Operator Console (`feature/tui-operator-console`): full Textual-based operator console. ✅
-- WebUI `WEBUI_DESIGN.md` gap fixes (frame-lock animation, toast variants, Store capture flow). ✅
+- `#39`: JES Neon-Ops design system: CSS token overhaul and component updates. ✅
+- `#40`: Operator Console navigation group and WebUI exposure warning banner. ✅
+- `#41`: Backend API endpoints and Operator pages (Doctor, Audit, Guided, Inspect). ✅
+- `#42`: WebUI/TUI terminology alignment (Disclosure Face, Passphrase, JES). ✅
+- `#43`: Brand polish and animation update (cyan glow, phosphor green). ✅
+- TUI Operator Console: full Textual-based operator console. ✅
+- WebUI redesign gap fixes, including frame-lock animation, toast variants, and Store capture flow. ✅
 
 ---
 
@@ -205,9 +209,9 @@ Key TUI-only responsibilities (do not replicate these in WebUI):
 - Secure passphrase input (terminal prompt, not browser field)
 
 Relevant issues:
-- `#39` JES Neon-Ops design system for WebUI (TUI color parity)
-- `#41` Operator Console pages (shared service layer usage)
-- `#42` Terminology alignment (TUI vocabulary → WebUI)
+- `#39` JES Neon-Ops design system for WebUI (TUI color parity) ✅
+- `#41` Operator Console pages (shared service layer usage) ✅
+- `#42` Terminology alignment (TUI vocabulary → WebUI) ✅
 
 ### WebUI, API Routes, and Restricted Actions
 
@@ -232,11 +236,11 @@ Relevant issues:
 - `#22` restricted action policy enforcement ✅
 - `#24` local coercion and restricted-flow scenario matrix ✅
 - `#25` user-visible UI and CLI strings ✅
-- `#39` JES Neon-Ops design system overhaul (Phase 1–2)
-- `#40` Operator Console navigation + WebUI exposure banner (Phase 3)
-- `#41` Operator Console pages: Doctor, Audit, Guided, Inspect (Phase 0+4)
-- `#42` WebUI/TUI terminology alignment (Phase 5)
-- `#43` Brand polish and animation update (Phase 6–7)
+- `#39` JES Neon-Ops design system overhaul (Phase 1–2) ✅
+- `#40` Operator Console navigation + WebUI exposure banner (Phase 3) ✅
+- `#41` Operator Console pages: Doctor, Audit, Guided, Inspect (Phase 0+4) ✅
+- `#42` WebUI/TUI terminology alignment (Phase 5) ✅
+- `#43` Brand polish and animation update (Phase 6–7) ✅
 
 ### CLI Behavior
 

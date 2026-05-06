@@ -144,7 +144,7 @@ Phasmid does not provide:
 │   │   ├── banner.py
 │   │   ├── theme.py
 │   │   ├── screens/        # Home, Audit, Doctor, Guided, Inspect, ...
-│   │   └── widgets/        # VesselTable, EventLog, ActionBar, ...
+│   │   └── widgets/        # VesselTable, VesselSummaryPanel, EventLog, WarningBox
 │   ├── services/           # Service layer (vessel, doctor, audit, guided, ...)
 │   ├── models/             # Data models (VesselMeta, DoctorResult, AuditReport, ...)
 │   └── templates/

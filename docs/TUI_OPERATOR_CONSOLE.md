@@ -99,11 +99,8 @@ src/phasmid/
       settings.py           Non-secret settings
 
     widgets/
-      banner.py             BannerWidget
-      header.py             PhasmidHeader
       status_panel.py       VesselSummaryPanel
       vessel_table.py       VesselTable (DataTable wrapper)
-      action_bar.py         ActionBar
       event_log.py          EventLog (RichLog wrapper)
       warning_box.py        WarningBox
 
