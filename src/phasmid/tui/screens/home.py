@@ -44,10 +44,17 @@ class HomeScreen(Screen):
     }
     HomeScreen #profile-status {
         color: $text-muted;
-        padding: 0 4 1 4;
+        padding: 0 4 0 4;
         height: 1;
         dock: top;
         background: $background;
+    }
+    HomeScreen #doctor-badge {
+        height: 1;
+        dock: top;
+        padding: 0 4;
+        background: $background;
+        display: none;
     }
     HomeScreen #main-layout {
         height: 1fr;
@@ -76,6 +83,7 @@ class HomeScreen(Screen):
         from textual.containers import Horizontal
         yield Static(COMPACT_BANNER, id="compact-banner", markup=False)
         yield Static("", id="profile-status", markup=True)
+        yield Static("", id="doctor-badge", markup=True)
         with Horizontal(id="main-layout"):
             yield VesselTable(id="vessel-panel")
             yield VesselSummaryPanel(id="summary-panel")
@@ -145,6 +153,25 @@ class HomeScreen(Screen):
         else:
             self._log(f"Doctor: {ok_count} OK — environment checks passed.", "ok")
 
+        self._update_doctor_badge(len(fail), len(warn))
+
+    def _update_doctor_badge(self, fail_count: int, warn_count: int) -> None:
+        badge = self.query_one("#doctor-badge", Static)
+        if fail_count:
+            badge.update(
+                f"[bold red]✗ SYSTEM: {fail_count} FAIL"
+                + (f", {warn_count} WARN" if warn_count else "")
+                + " — press [d] to review[/bold red]"
+            )
+            badge.display = True
+        elif warn_count:
+            badge.update(
+                f"[yellow]! SYSTEM: {warn_count} WARN — press [d] to review[/yellow]"
+            )
+            badge.display = True
+        else:
+            badge.display = False
+
     def _log(self, msg: str, level: str = "info") -> None:
         try:
             self.query_one(EventLog).log_event(msg, level)
@@ -156,6 +183,7 @@ class HomeScreen(Screen):
 
     def action_refresh_vessels(self) -> None:
         self._refresh_vessels()
+        self._run_startup_checks()
         self._log("Vessel list refreshed.")
 
     def action_open_vessel(self) -> None:
