@@ -317,6 +317,10 @@ Retrieval:
 
 The physical object is an operational cue, not a high-entropy cryptographic factor.
 
+Multi-object and visual-sequence cue extensions are analysis-only at this stage. Any future implementation must preserve neutral capture-visible behavior, explicit ambiguity rejection, and no direct cryptographic dependence on unstable image coordinates.
+
+An experimental policy-layer prototype can evaluate neutral frame signals (for example `none|detected|matched|ambiguous`) and optional short token sequences, but this remains a local operational gate decision and not a cryptographic input path.
+
 ## 13. Runtime Policy
 
 | Variable | Purpose | Default |
