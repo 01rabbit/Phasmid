@@ -74,6 +74,18 @@ class VesselSummaryPanel(Widget):
                 ("Faces", str(v.face_count) if v.face_count else "unknown"),
                 ("Posture", v.posture.value),
             ]
+
+            # WebUI Status
+            webui_svc = getattr(self.app, "webui_svc", None)
+            if webui_svc:
+                if webui_svc.is_running():
+                    uptime = int(webui_svc.uptime_seconds)
+                    m, s = divmod(uptime, 60)
+                    status_text = f"[bold red]ACTIVE[/bold red] [dim]({m:02d}:{s:02d})[/dim]"
+                else:
+                    status_text = "[green]OFFLINE[/green]"
+                rows.append(("WebUI Exposure", status_text))
+
             entropy_val = self._get_entropy(v)
             if entropy_val:
                 rows.append(("Entropy", entropy_val))

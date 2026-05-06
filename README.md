@@ -336,6 +336,13 @@ When audit logging is enabled, new audit records include sequence and integrity 
 
 ## WebUI v2
 
+The local WebUI is managed directly through the TUI Operator Console (press `w`
+to start/stop). This is the recommended method as it includes an **Auto-Kill
+Timer** that automatically terminates the WebUI after 10 minutes of TUI
+inactivity.
+
+To start the WebUI manually:
+
 ```bash
 PYTHONPATH=src python3 -m phasmid.web_server
 ```

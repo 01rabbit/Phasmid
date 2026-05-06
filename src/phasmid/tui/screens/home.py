@@ -34,6 +34,15 @@ class HomeScreen(Screen):
     HomeScreen {
         background: $background;
     }
+    HomeScreen #webui-warning-banner {
+        background: $error;
+        color: $text;
+        text-align: center;
+        text-style: bold;
+        height: 1;
+        dock: top;
+        display: none;
+    }
     HomeScreen #compact-banner {
         color: $primary;
         text-align: left;
@@ -81,6 +90,7 @@ class HomeScreen(Screen):
 
     def compose(self) -> ComposeResult:
         from textual.containers import Horizontal
+        yield Static("⚠️  WEBUI ACTIVE (EXPOSED) - PRESS [w] TO CLOSE", id="webui-warning-banner")
         yield Static(COMPACT_BANNER, id="compact-banner", markup=False)
         yield Static("", id="profile-status", markup=True)
         yield Static("", id="doctor-badge", markup=True)
@@ -94,8 +104,20 @@ class HomeScreen(Screen):
         self._update_banner()
         self._refresh_vessels()
         self._update_profile_status()
+        self.refresh_webui_status()
         self._log("Phasmid operator console ready.")
         self._run_startup_checks()
+        self.set_interval(1, self._update_summary)
+
+    def refresh_webui_status(self) -> None:
+        """Update the visibility of the WebUI warning banner."""
+        banner = self.query_one("#webui-warning-banner", Static)
+        is_running = self.app.webui_svc.is_running()
+        banner.display = is_running
+        if is_running:
+            self._log("WebUI is currently exposed.", "warn")
+        else:
+            self._log("WebUI is secured (offline).", "info")
 
     def on_resize(self) -> None:
         self._update_banner()

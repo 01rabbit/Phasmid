@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
+from textual.events import Key
 
+from ..services.webui_service import WebUIService
 from .screens.home import HomeScreen
 from .theme import PHASMID_DARK, PHASMID_LIGHT
 
@@ -15,6 +17,7 @@ class PhasmidApp(App):
 
     BINDINGS = [
         Binding("ctrl+c", "quit", "Quit", show=False),
+        Binding("w", "toggle_webui", "WebUI"),
     ]
 
     CSS = """
@@ -32,6 +35,8 @@ class PhasmidApp(App):
         super().__init__(**kwargs)
         self._initial_screen = initial_screen
         self._vessel_path = vessel_path
+        self.webui_svc = WebUIService()
+        self.webui_svc.set_timeout_callback(self._on_webui_timeout)
 
     def on_mount(self) -> None:
         try:
@@ -56,6 +61,56 @@ class PhasmidApp(App):
 
     def compose(self) -> ComposeResult:
         return iter([])
+
+    def on_key(self, event: Key) -> None:
+        """Reset WebUI inactivity timer on any key press."""
+        self.webui_svc.reset_timer()
+
+    def action_toggle_webui(self) -> None:
+        """Toggle WebUI start/stop."""
+        if self.webui_svc.is_running():
+            from .screens.confirm_modal import ConfirmModal
+
+            def _on_confirm(result: bool | None) -> None:
+                if result:
+                    self.webui_svc.stop()
+                    self.notify("WebUI server stopped.", title="WEBUI", severity="warning")
+                    self._refresh_webui_status()
+
+            self.push_screen(
+                ConfirmModal(
+                    "RETRACT WEB INTERFACE",
+                    "You are about to shut down the WebUI server.\nAll active browser sessions will be disconnected.",
+                ),
+                _on_confirm,
+            )
+        else:
+            if self.webui_svc.start():
+                self.notify(
+                    "WebUI active at http://127.0.0.1:8000",
+                    title="WEBUI EXPOSED",
+                    severity="information",
+                    timeout=10,
+                )
+            else:
+                self.notify("Failed to start WebUI server.", title="ERROR", severity="error")
+            self._refresh_webui_status()
+
+    def _on_webui_timeout(self) -> None:
+        """Called when WebUI is auto-killed."""
+        self.notify(
+            "WebUI auto-killed due to inactivity (Stealth Mode).",
+            title="SECURITY",
+            severity="warning",
+            timeout=10,
+        )
+        self._refresh_webui_status()
+
+    def _refresh_webui_status(self) -> None:
+        """Inform screens that WebUI status changed."""
+        for screen in self.screen_stack:
+            if hasattr(screen, "refresh_webui_status"):
+                screen.refresh_webui_status()
 
     def _push_home(self) -> None:
         self.push_screen(HomeScreen(initial_vessel_path=self._vessel_path))

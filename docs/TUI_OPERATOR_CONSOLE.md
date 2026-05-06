@@ -185,10 +185,39 @@ The Main Operator Console is the default TUI entry point.
 | `g` | Guided Workflows |
 | `a` | Audit View |
 | `d` | Doctor |
+| `w` | Toggle WebUI Start/Stop |
 | `s` | Settings |
 | `?` | Help / About |
 | `q` | Quit |
 | `r` | Refresh Vessel list (not shown in footer) |
+
+## WebUI Integration (Exposed Mode)
+
+Phasmid provides a local WebUI for operators who require a graphical interface
+for certain tasks. This interface is considered "exposed" as it opens a network
+port (default `127.0.0.1:8000`).
+
+### WebUI Control
+
+The WebUI can be started and stopped directly from the TUI using the `w` key.
+Starting the WebUI launches a background process managed by the TUI.
+
+### Safety Features
+
+- **Auto-Kill Timer**: If the TUI detects no operator input for 10 minutes while
+  the WebUI is active, it will automatically terminate the WebUI server to
+  return the system to a stealth state.
+- **Exposure Warning**: When the WebUI is active, a high-visibility warning
+  banner (`⚠️ WEBUI ACTIVE (EXPOSED)`) is displayed at the top of the Home
+  screen.
+- **Uptime Tracking**: The Vessel Summary panel displays the current WebUI
+  status and uptime when active.
+
+### Operational Guidance
+
+The WebUI should only be active during active use. Operators are encouraged to
+use the TUI (`w`) to manually retract the WebUI as soon as the graphical task
+is complete.
 
 ## ASCII Banner
 
