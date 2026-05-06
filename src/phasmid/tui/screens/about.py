@@ -1,12 +1,12 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
 from textual.widgets import Footer, Static
 
 from ..banner import FULL_BANNER
+from .base import OperatorScreen
 
 
-class AboutScreen(Screen):
+class AboutScreen(OperatorScreen):
     BINDINGS = [
         Binding("escape", "dismiss", "Back"),
         Binding("q", "dismiss", "Back"),
@@ -40,6 +40,7 @@ class AboutScreen(Screen):
     def compose(self) -> ComposeResult:
         from textual.containers import Container
 
+        yield self.webui_warning_banner()
         with Container(id="about-container"):
             yield Static(FULL_BANNER, id="banner-static", markup=False)
             yield Static(

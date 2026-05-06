@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import os
+import pathlib
 import signal
+import socket
 import subprocess
 import sys
 import threading
 import time
 from typing import Callable
+
+from ..config import state_dir
 
 
 class WebUIService:
@@ -28,6 +32,8 @@ class WebUIService:
         self._timeout_seconds = 600  # 10 minutes
         self._on_timeout_cb: Callable[[], None] | None = None
         self._start_time: float | None = None
+        self._host = "127.0.0.1"
+        self._port = 8000
 
     def set_timeout_callback(self, callback: Callable[[], None]) -> None:
         """Set a callback to be executed when the WebUI is auto-killed."""
@@ -35,12 +41,31 @@ class WebUIService:
 
     def is_running(self) -> bool:
         """Check if the WebUI process is currently running."""
-        if self._process is None:
+        if self._process is not None and self._process.poll() is None:
+            return True
+
+        pid = self._read_pid()
+        if pid is None and self._port_is_open(self._host, self._port):
+            pid = self._find_listener_pid(self._port)
+            if pid is not None:
+                self._write_pid(pid)
+        if pid is None:
             return False
-        return self._process.poll() is None
+
+        if not self._pid_is_alive(pid):
+            self._clear_pid_file()
+            return False
+
+        if not self._port_is_open(self._host, self._port):
+            self._clear_pid_file()
+            return False
+
+        return True
 
     def start(self, host: str = "127.0.0.1", port: int = 8000) -> bool:
         """Start the WebUI subprocess."""
+        self._host = host
+        self._port = port
         if self.is_running():
             return True
 
@@ -60,25 +85,34 @@ class WebUIService:
                 start_new_session=True,
             )
             self._start_time = time.time()
+            self._write_pid(self._process.pid)
+            if not self._wait_for_startup():
+                self._cleanup_failed_process()
+                return False
             self.reset_timer()
             return True
         except Exception:
+            self._clear_pid_file()
             return False
 
     def stop(self) -> None:
         """Stop the WebUI subprocess and cancel the timer."""
         self._cancel_timer()
-        if self._process:
-            try:
-                # Use process group to ensure all child processes are killed
-                os.killpg(os.getpgid(self._process.pid), signal.SIGTERM)
-            except Exception:
-                try:
-                    self._process.terminate()
-                except Exception:
-                    pass
-            self._process = None
+        pid = None
+        if self._process and self._process.poll() is None:
+            pid = self._process.pid
+        else:
+            pid = self._read_pid()
+            if pid is None and self._port_is_open(self._host, self._port):
+                pid = self._find_listener_pid(self._port)
+
+        if pid is not None:
+            self._terminate_pid(pid)
+            self._wait_for_shutdown(pid)
+
+        self._process = None
         self._start_time = None
+        self._clear_pid_file()
 
     def reset_timer(self) -> None:
         """Reset the inactivity timer if the WebUI is running."""
@@ -106,3 +140,103 @@ class WebUIService:
         if self._start_time is None:
             return 0.0
         return time.time() - self._start_time
+
+    @property
+    def pid_file(self) -> pathlib.Path:
+        return pathlib.Path(state_dir()) / "webui.pid"
+
+    def _wait_for_startup(self, timeout: float = 2.0) -> bool:
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if self._process is None:
+                return False
+            if self._process.poll() is not None:
+                return False
+            if self._port_is_open(self._host, self._port):
+                return True
+            time.sleep(0.1)
+        return False
+
+    def _cleanup_failed_process(self) -> None:
+        if self._process and self._process.poll() is None:
+            self._terminate_pid(self._process.pid)
+        self._process = None
+        self._start_time = None
+        self._clear_pid_file()
+
+    def _wait_for_shutdown(self, pid: int, timeout: float = 2.0) -> None:
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if not self._pid_is_alive(pid) and not self._port_is_open(
+                self._host, self._port
+            ):
+                return
+            time.sleep(0.1)
+
+    def _terminate_pid(self, pid: int) -> None:
+        try:
+            os.killpg(os.getpgid(pid), signal.SIGTERM)
+        except Exception:
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except Exception:
+                pass
+
+    def _write_pid(self, pid: int) -> None:
+        self.pid_file.parent.mkdir(parents=True, exist_ok=True)
+        self.pid_file.write_text(f"{pid}\n", encoding="utf-8")
+
+    def _read_pid(self) -> int | None:
+        try:
+            raw = self.pid_file.read_text(encoding="utf-8").strip()
+        except FileNotFoundError:
+            return None
+        except OSError:
+            return None
+
+        if not raw:
+            return None
+
+        try:
+            return int(raw)
+        except ValueError:
+            return None
+
+    def _clear_pid_file(self) -> None:
+        try:
+            self.pid_file.unlink()
+        except FileNotFoundError:
+            pass
+        except OSError:
+            pass
+
+    def _pid_is_alive(self, pid: int) -> bool:
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        return True
+
+    def _port_is_open(self, host: str, port: int) -> bool:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(0.1)
+            return sock.connect_ex((host, port)) == 0
+
+    def _find_listener_pid(self, port: int) -> int | None:
+        try:
+            output = subprocess.check_output(
+                ["lsof", "-tiTCP:%d" % port, "-sTCP:LISTEN"],
+                stderr=subprocess.DEVNULL,
+                text=True,
+            ).strip()
+        except (FileNotFoundError, subprocess.CalledProcessError, OSError):
+            return None
+
+        if not output:
+            return None
+
+        first_line = output.splitlines()[0].strip()
+        try:
+            return int(first_line)
+        except ValueError:
+            return None

@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
 from textual.widgets import Button, Footer, Input, Label, Select, Static, Switch
 
 from ...services.profile_service import load_profile, save_profile
+from .base import OperatorScreen
 
 
-class SettingsScreen(Screen):
+class SettingsScreen(OperatorScreen):
     BINDINGS = [
         Binding("escape", "dismiss", "Back"),
     ]
@@ -58,6 +58,7 @@ class SettingsScreen(Screen):
         from textual.containers import Horizontal
 
         p = self._profile
+        yield self.webui_warning_banner()
         yield Static("OPERATOR SETTINGS", id="settings-title")
         yield Label("Default Vessel directory", classes="field-label")
         yield Input(

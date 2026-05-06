@@ -1,12 +1,12 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
 from textual.widgets import Footer, RichLog, Static
 
 from ...services.audit_service import AuditService
+from .base import OperatorScreen
 
 
-class AuditScreen(Screen):
+class AuditScreen(OperatorScreen):
     BINDINGS = [
         Binding("escape", "dismiss", "Back"),
         Binding("q", "dismiss", "Back"),
@@ -32,6 +32,7 @@ class AuditScreen(Screen):
     """
 
     def compose(self) -> ComposeResult:
+        yield self.webui_warning_banner()
         yield Static("SECURITY AUDIT MANIFEST", id="audit-title")
         yield RichLog(id="audit-log", highlight=False, markup=True)
         yield Footer()

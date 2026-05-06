@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
 from textual.widgets import Button, DataTable, Footer, Input, Label, Static
 
 from ...models.vessel import VesselMeta
+from .base import OperatorScreen
 
 
-class FaceManagerScreen(Screen):
+class FaceManagerScreen(OperatorScreen):
     BINDINGS = [
         Binding("escape", "dismiss", "Back"),
     ]
@@ -46,6 +46,7 @@ class FaceManagerScreen(Screen):
 
     def compose(self) -> ComposeResult:
         vessel_name = self._vessel.name if self._vessel else "No vessel selected"
+        yield self.webui_warning_banner()
         yield Static("DISCLOSURE FACES", id="face-title")
         yield Static(
             f"Vessel: [bold]{vessel_name}[/bold]\n\n"

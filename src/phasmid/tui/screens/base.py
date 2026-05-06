@@ -1,0 +1,43 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, cast
+
+from textual.css.query import NoMatches
+from textual.screen import Screen
+from textual.widgets import Static
+
+if TYPE_CHECKING:
+    from ..app import PhasmidApp
+
+
+class OperatorScreen(Screen):
+    """Shared operator screen chrome."""
+
+    DEFAULT_CSS = """
+    .webui-warning-banner {
+        background: $error;
+        color: $text;
+        text-align: center;
+        text-style: bold;
+        height: 1;
+        dock: top;
+        display: none;
+    }
+    """
+
+    _WEBUI_WARNING = "WEBUI ACTIVE ON 127.0.0.1:8000 - PRESS [w] TO RETRACT"
+
+    def webui_warning_banner(self) -> Static:
+        return Static(
+            self._WEBUI_WARNING,
+            id="webui-warning-banner",
+            classes="webui-warning-banner",
+        )
+
+    def refresh_webui_status(self) -> None:
+        try:
+            banner = self.query_one("#webui-warning-banner", Static)
+        except NoMatches:
+            return
+        app = cast("PhasmidApp", self.app)
+        banner.display = app.webui_svc.is_running()

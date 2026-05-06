@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
 from textual.widgets import Button, Footer, Input, Label, Select, Static
 
+from .base import OperatorScreen
 
-class OpenVesselScreen(Screen):
+
+class OpenVesselScreen(OperatorScreen):
     BINDINGS = [
         Binding("escape", "dismiss", "Back"),
     ]
@@ -47,6 +48,7 @@ class OpenVesselScreen(Screen):
         self._vessel_path = vessel_path
 
     def compose(self) -> ComposeResult:
+        yield self.webui_warning_banner()
         yield Static("OPEN VESSEL", id="open-title")
         yield Label("Vessel path", classes="field-label")
         yield Input(

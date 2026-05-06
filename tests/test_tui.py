@@ -50,6 +50,58 @@ def test_compact_banner_contains_required_text():
     assert "coercion-aware deniable storage" in COMPACT_BANNER
 
 
+def test_webui_service_stop_uses_pid_file(tmp_path, monkeypatch):
+    from phasmid import config
+    from phasmid.services.webui_service import WebUIService
+
+    monkeypatch.setattr(config, "DEFAULT_STATE_DIR", str(tmp_path))
+    WebUIService._instance = None
+    svc = WebUIService()
+    svc.pid_file.parent.mkdir(parents=True, exist_ok=True)
+    svc.pid_file.write_text("12345\n", encoding="utf-8")
+
+    killed: list[int] = []
+
+    monkeypatch.setattr(svc, "_cancel_timer", lambda: None)
+    monkeypatch.setattr(svc, "_terminate_pid", lambda pid: killed.append(pid))
+
+    svc.stop()
+
+    assert killed == [12345]
+    assert not svc.pid_file.exists()
+
+
+def test_webui_service_start_fails_if_process_dies_before_port_opens(
+    tmp_path, monkeypatch
+):
+    from phasmid import config
+    from phasmid.services.webui_service import WebUIService
+
+    monkeypatch.setattr(config, "DEFAULT_STATE_DIR", str(tmp_path))
+    WebUIService._instance = None
+    svc = WebUIService()
+
+    class FakeProcess:
+        pid = 4242
+
+        def __init__(self):
+            self.calls = 0
+
+        def poll(self):
+            self.calls += 1
+            return 1 if self.calls > 1 else None
+
+    fake_process = FakeProcess()
+
+    monkeypatch.setattr("subprocess.Popen", lambda *args, **kwargs: fake_process)
+    monkeypatch.setattr(svc, "_port_is_open", lambda host, port: False)
+    monkeypatch.setattr(svc, "_terminate_pid", lambda pid: None)
+
+    assert svc.start() is False
+    assert svc._process is None
+    assert not svc.pid_file.exists()
+
+
 # ---------------------------------------------------------------------------
 # Profile service
 # ---------------------------------------------------------------------------

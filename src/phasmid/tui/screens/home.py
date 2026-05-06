@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, cast
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.screen import Screen
+from textual.css.query import NoMatches
 from textual.widgets import DataTable, Footer, Static
 
 from ...models.vessel import VesselMeta
@@ -14,12 +14,14 @@ from ..banner import COMPACT_BANNER, get_banner
 from ..widgets.event_log import EventLog
 from ..widgets.status_panel import VesselSummaryPanel
 from ..widgets.vessel_table import VesselTable
+from ..widgets.warning_box import WarningBox
+from .base import OperatorScreen
 
 if TYPE_CHECKING:
     from ..app import PhasmidApp
 
 
-class HomeScreen(Screen):
+class HomeScreen(OperatorScreen):
     BINDINGS = [
         Binding("o", "open_vessel", "Open"),
         Binding("c", "create_vessel", "Create"),
@@ -38,15 +40,6 @@ class HomeScreen(Screen):
     DEFAULT_CSS = """
     HomeScreen {
         background: $background;
-    }
-    HomeScreen #webui-warning-banner {
-        background: $error;
-        color: $text;
-        text-align: center;
-        text-style: bold;
-        height: 1;
-        dock: top;
-        display: none;
     }
     HomeScreen #compact-banner {
         color: $primary;
@@ -70,12 +63,19 @@ class HomeScreen(Screen):
         background: $background;
         display: none;
     }
+    HomeScreen #webui-warning-panel {
+        margin: 0 4 1 4;
+        display: none;
+    }
     HomeScreen #main-layout {
         height: 1fr;
         layout: horizontal;
     }
-    HomeScreen #vessel-panel {
+    HomeScreen #vessel-column {
         width: 46;
+    }
+    HomeScreen #vessel-panel {
+        height: 1fr;
     }
     HomeScreen #summary-panel {
         width: 1fr;
@@ -94,16 +94,20 @@ class HomeScreen(Screen):
         self._vessels: list[VesselMeta] = []
 
     def compose(self) -> ComposeResult:
-        from textual.containers import Horizontal
+        from textual.containers import Container, Horizontal
 
-        yield Static(
-            "⚠️  WEBUI ACTIVE (EXPOSED) - PRESS [w] TO CLOSE", id="webui-warning-banner"
-        )
+        yield self.webui_warning_banner()
         yield Static(COMPACT_BANNER, id="compact-banner", markup=False)
         yield Static("", id="profile-status", markup=True)
         yield Static("", id="doctor-badge", markup=True)
+        yield WarningBox(
+            "WebUI active on 127.0.0.1:8000. Press [w] in TUI to retract.",
+            level="error",
+            id="webui-warning-panel",
+        )
         with Horizontal(id="main-layout"):
-            yield VesselTable(id="vessel-panel")
+            with Container(id="vessel-column"):
+                yield VesselTable(id="vessel-panel")
             yield VesselSummaryPanel(id="summary-panel")
         yield EventLog(id="event-log")
         yield Footer()
@@ -117,19 +121,18 @@ class HomeScreen(Screen):
         self._run_startup_checks()
         self.set_interval(1, self._update_summary)
 
-    def refresh_webui_status(self) -> None:
-        """Update the visibility of the WebUI warning banner."""
-        banner = self.query_one("#webui-warning-banner", Static)
-        app = cast("PhasmidApp", self.app)
-        is_running = app.webui_svc.is_running()
-        banner.display = is_running
-        if is_running:
-            self._log("WebUI is currently exposed.", "warn")
-        else:
-            self._log("WebUI is secured (offline).", "info")
-
     def on_resize(self) -> None:
         self._update_banner()
+
+    def refresh_webui_status(self) -> None:
+        super().refresh_webui_status()
+        try:
+            warning = self.query_one("#webui-warning-panel", WarningBox)
+        except NoMatches:
+            return
+        app = cast("PhasmidApp", self.app)
+        is_running = app.webui_svc.is_running()
+        warning.display = is_running
 
     def _update_profile_status(self) -> None:
         name = self._profile.name if self._profile else "default"
