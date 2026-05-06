@@ -5,7 +5,7 @@ from pathlib import Path
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import Button, Input, Label, Select, Static
+from textual.widgets import Button, Footer, Input, Label, Select, Static
 
 from ...services.vessel_service import VesselService
 
@@ -50,10 +50,6 @@ class CreateVesselScreen(Screen):
         margin-top: 2;
         width: 100%;
     }
-    CreateVesselScreen #back-btn {
-        margin-top: 1;
-        width: 100%;
-    }
     """
 
     def __init__(self, initial_path: str = "", **kwargs):
@@ -62,7 +58,7 @@ class CreateVesselScreen(Screen):
         self._svc = VesselService()
 
     def compose(self) -> ComposeResult:
-        yield Static("CREATE VESSEL", id="create-title")
+        yield Static("NEW VESSEL", id="create-title")
         yield Label("Vessel path", classes="field-label")
         yield Input(value=self._initial_path, placeholder="e.g. ~/Documents/travel.vessel", id="vessel-path")
         yield Label("Container size", classes="field-label")
@@ -75,7 +71,7 @@ class CreateVesselScreen(Screen):
         yield Input(placeholder="e.g. travel", id="vessel-label")
         yield Static("", id="warning-area")
         yield Button("Create Vessel", id="create-btn", variant="primary")
-        yield Button("Back (Esc)", id="back-btn", variant="default")
+        yield Footer()
 
     def on_input_changed(self, event: Input.Changed) -> None:
         if event.input.id == "vessel-path":
@@ -95,8 +91,6 @@ class CreateVesselScreen(Screen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "create-btn":
             self._attempt_create()
-        elif event.button.id == "back-btn":
-            self.dismiss()
 
     def _attempt_create(self) -> None:
         path = self.query_one("#vessel-path", Input).value.strip()

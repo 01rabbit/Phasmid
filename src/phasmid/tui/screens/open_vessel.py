@@ -3,7 +3,7 @@ from __future__ import annotations
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import Button, Input, Label, Select, Static
+from textual.widgets import Button, Footer, Input, Label, Select, Static
 
 from ...services.vessel_service import VesselService
 
@@ -37,10 +37,6 @@ class OpenVesselScreen(Screen):
         margin-top: 2;
         width: 100%;
     }
-    OpenVesselScreen #back-btn {
-        margin-top: 1;
-        width: 100%;
-    }
     """
 
     _FACE_OPTIONS = [
@@ -69,13 +65,11 @@ class OpenVesselScreen(Screen):
             id="security-note",
         )
         yield Button("Open Vessel", id="open-btn", variant="primary")
-        yield Button("Back (Esc)", id="back-btn", variant="default")
+        yield Footer()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "open-btn":
             self._attempt_open()
-        elif event.button.id == "back-btn":
-            self.dismiss()
 
     def _attempt_open(self) -> None:
         path = self.query_one("#vessel-path", Input).value.strip()

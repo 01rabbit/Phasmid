@@ -5,7 +5,7 @@ from pathlib import Path
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import Button, Input, RichLog, Static
+from textual.widgets import Button, Footer, Input, RichLog, Static
 
 from ...services.inspection_service import InspectionService
 
@@ -40,10 +40,6 @@ class InspectVesselScreen(Screen):
         background: $surface;
         padding: 1 2;
     }
-    InspectVesselScreen #back-btn {
-        margin-top: 1;
-        width: 100%;
-    }
     """
 
     def __init__(self, vessel_path: str | None = None, **kwargs):
@@ -51,7 +47,7 @@ class InspectVesselScreen(Screen):
         self._initial_path = vessel_path
 
     def compose(self) -> ComposeResult:
-        yield Static("INSPECT VESSEL", id="inspect-title")
+        yield Static("VESSEL ANALYSIS", id="inspect-title")
         yield Static("[dim]Vessel path:[/dim]", markup=True)
         yield Input(
             value=self._initial_path or "",
@@ -60,7 +56,7 @@ class InspectVesselScreen(Screen):
         )
         yield Button("Inspect", id="inspect-btn", variant="primary")
         yield RichLog(id="result-log", highlight=False, markup=True)
-        yield Button("Back (Esc)", id="back-btn", variant="default")
+        yield Footer()
 
     def on_mount(self) -> None:
         if self._initial_path:
@@ -73,8 +69,6 @@ class InspectVesselScreen(Screen):
                 self._run_inspection(path)
             else:
                 self._show_error("Please enter a Vessel path.")
-        elif event.button.id == "back-btn":
-            self.dismiss()
 
     def _run_inspection(self, path: str) -> None:
         svc = InspectionService()

@@ -1,7 +1,7 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import Button, RichLog, Static
+from textual.widgets import Footer, RichLog, Static
 
 from ...models.doctor import DoctorLevel
 from ...services.doctor_service import DoctorService
@@ -50,17 +50,13 @@ class DoctorScreen(Screen):
         padding: 1 0;
         text-style: italic;
     }
-    DoctorScreen #back-btn {
-        margin-top: 1;
-        width: 100%;
-    }
     """
 
     def compose(self) -> ComposeResult:
-        yield Static("PHASMID DOCTOR", id="doctor-title")
+        yield Static("OPERATOR DIAGNOSTICS", id="doctor-title")
         yield RichLog(id="doctor-log", highlight=False, markup=True)
         yield Static("", id="disclaimer")
-        yield Button("Back (Esc)", id="back-btn", variant="default")
+        yield Footer()
 
     def on_mount(self) -> None:
         self._run_checks()
@@ -85,6 +81,3 @@ class DoctorScreen(Screen):
                 log.write(f"   [dim]{check.detail}[/dim]")
         self.query_one("#disclaimer", Static).update(result.disclaimer)
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "back-btn":
-            self.dismiss()

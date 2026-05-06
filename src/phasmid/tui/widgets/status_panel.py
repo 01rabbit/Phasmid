@@ -5,6 +5,7 @@ from textual.widget import Widget
 from textual.widgets import Static
 
 from ...models.vessel import VesselMeta
+from ...services.inspection_service import InspectionService
 
 
 class VesselSummaryPanel(Widget):
@@ -65,12 +66,28 @@ class VesselSummaryPanel(Widget):
             yield S("No vessel selected.", classes="empty-msg")
         else:
             v = self._vessel
-            for label, value in [
+            rows = [
                 ("Name", v.name),
                 ("Size", v.size_human),
                 ("Header", v.header_status),
                 ("Magic Bytes", v.magic_bytes_status),
                 ("Faces", str(v.face_count) if v.face_count else "unknown"),
                 ("Posture", v.posture.value),
-            ]:
+            ]
+            entropy_val = self._get_entropy(v)
+            if entropy_val:
+                rows.append(("Entropy", entropy_val))
+            for label, value in rows:
                 yield S(f"[dim]{label:<14}[/dim]{value}", classes="field-row", markup=True)
+
+    def _get_entropy(self, vessel: VesselMeta) -> str:
+        try:
+            result = InspectionService().inspect(vessel.path)
+            if result.ok:
+                for field in result.fields:
+                    if field.label == "Entropy":
+                        note = f"  [dim]({field.note})[/dim]" if field.note else ""
+                        return f"{field.value}{note}"
+        except Exception:
+            pass
+        return ""

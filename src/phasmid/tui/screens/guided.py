@@ -3,7 +3,7 @@ from __future__ import annotations
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import Button, ListItem, ListView, RichLog, Static
+from textual.widgets import Footer, ListItem, ListView, RichLog, Static
 
 from ...services.guided_service import GuidedService, GuidedWorkflow
 
@@ -40,10 +40,6 @@ class GuidedScreen(Screen):
         background: $surface;
         padding: 1 2;
     }
-    GuidedScreen #back-btn {
-        margin-top: 1;
-        width: 100%;
-    }
     """
 
     def __init__(self, start_workflow: str | None = None, **kwargs):
@@ -55,7 +51,7 @@ class GuidedScreen(Screen):
 
     def compose(self) -> ComposeResult:
         from textual.containers import Container, Horizontal
-        yield Static("GUIDED WORKFLOWS", id="guided-title")
+        yield Static("OPERATOR WORKFLOWS", id="guided-title")
         with Horizontal(id="layout"):
             with Container(id="workflow-list-container"):
                 lv = ListView(id="workflow-list")
@@ -63,7 +59,7 @@ class GuidedScreen(Screen):
                     lv.append(ListItem(Static(wf.title)))
                 yield lv
             yield RichLog(id="workflow-detail", highlight=False, markup=True)
-        yield Button("Back (Esc)", id="back-btn", variant="default")
+        yield Footer()
 
     def on_mount(self) -> None:
         if self._start_workflow:
@@ -101,6 +97,3 @@ class GuidedScreen(Screen):
     def action_back_or_dismiss(self) -> None:
         self.dismiss()
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "back-btn":
-            self.dismiss()

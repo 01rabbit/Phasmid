@@ -1,6 +1,6 @@
 from textual.app import ComposeResult
 from textual.screen import Screen
-from textual.widgets import Button, Static
+from textual.widgets import Footer, Static
 from textual.binding import Binding
 
 from ..banner import FULL_BANNER
@@ -35,10 +35,6 @@ class AboutScreen(Screen):
         color: $text;
         padding: 1 0;
     }
-    AboutScreen #back-btn {
-        margin-top: 1;
-        width: 100%;
-    }
     """
 
     def compose(self) -> ComposeResult:
@@ -55,8 +51,4 @@ class AboutScreen(Screen):
                 id="about-body",
                 markup=True,
             )
-            yield Button("Back (Esc)", id="back-btn", variant="default")
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "back-btn":
-            self.dismiss()
+            yield Footer()

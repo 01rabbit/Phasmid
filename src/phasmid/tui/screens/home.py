@@ -8,7 +8,7 @@ from textual.widgets import DataTable, Footer, Static
 from ...services.vessel_service import VesselService
 from ...services.profile_service import load_profile
 from ...models.vessel import VesselMeta
-from ..banner import COMPACT_BANNER
+from ..banner import COMPACT_BANNER, get_banner
 from ..widgets.status_panel import VesselSummaryPanel
 from ..widgets.vessel_table import VesselTable
 from ..widgets.event_log import EventLog
@@ -75,8 +75,17 @@ class HomeScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
+        self._update_banner()
         self._refresh_vessels()
         self._log("Phasmid operator console ready.")
+
+    def on_resize(self) -> None:
+        self._update_banner()
+
+    def _update_banner(self) -> None:
+        force_compact = self._profile.compact_banner if self._profile else False
+        banner = get_banner(self.app.size.width, compact=force_compact)
+        self.query_one("#compact-banner", Static).update(banner)
 
     def _refresh_vessels(self) -> None:
         self._vessels = self._vessel_svc.list(self._profile.default_vessel_dir or None)

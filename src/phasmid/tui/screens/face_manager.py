@@ -3,7 +3,7 @@ from __future__ import annotations
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import Button, DataTable, Input, Label, Static
+from textual.widgets import Button, DataTable, Footer, Input, Label, Static
 
 from ...services.vessel_service import VesselService
 from ...models.vessel import VesselMeta
@@ -39,10 +39,6 @@ class FaceManagerScreen(Screen):
         color: $text-muted;
         margin-top: 1;
     }
-    FaceManagerScreen #back-btn {
-        margin-top: 1;
-        width: 100%;
-    }
     """
 
     def __init__(self, vessel: VesselMeta | None = None, **kwargs):
@@ -51,7 +47,7 @@ class FaceManagerScreen(Screen):
 
     def compose(self) -> ComposeResult:
         vessel_name = self._vessel.name if self._vessel else "No vessel selected"
-        yield Static("FACE MANAGER", id="face-title")
+        yield Static("DISCLOSURE FACES", id="face-title")
         yield Static(
             f"Vessel: [bold]{vessel_name}[/bold]\n\n"
             "Face labels are local metadata only. "
@@ -64,7 +60,7 @@ class FaceManagerScreen(Screen):
         yield Label("Add face label", classes="field-label")
         yield Input(placeholder="Disclosure Face label (e.g. travel)", id="new-label")
         yield Button("Add Label", id="add-label-btn", variant="primary")
-        yield Button("Back (Esc)", id="back-btn", variant="default")
+        yield Footer()
 
     def on_mount(self) -> None:
         table = self.query_one(DataTable)
@@ -84,5 +80,3 @@ class FaceManagerScreen(Screen):
                 table.add_row(label, "local label")
                 self.query_one("#new-label", Input).value = ""
                 self.app.notify(f'Face label "{label}" added locally.', severity="information")
-        elif event.button.id == "back-btn":
-            self.dismiss()

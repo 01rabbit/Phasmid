@@ -3,7 +3,7 @@ from __future__ import annotations
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
-from textual.widgets import Button, Input, Label, Select, Static, Switch
+from textual.widgets import Button, Footer, Input, Label, Select, Static, Switch
 
 from ...services.profile_service import ProfileService, load_profile, save_profile
 from ...models.profile import Profile
@@ -42,10 +42,6 @@ class SettingsScreen(Screen):
         margin-top: 2;
         width: 100%;
     }
-    SettingsScreen #back-btn {
-        margin-top: 1;
-        width: 100%;
-    }
     SettingsScreen #save-status {
         color: $success;
         min-height: 1;
@@ -62,7 +58,7 @@ class SettingsScreen(Screen):
     def compose(self) -> ComposeResult:
         from textual.containers import Horizontal
         p = self._profile
-        yield Static("SETTINGS", id="settings-title")
+        yield Static("OPERATOR SETTINGS", id="settings-title")
         yield Label("Default Vessel directory", classes="field-label")
         yield Input(value=p.default_vessel_dir, placeholder="~/Phasmid/vessels", id="vessel-dir")
         yield Label("Default output directory", classes="field-label")
@@ -79,13 +75,11 @@ class SettingsScreen(Screen):
             yield Switch(value=p.compact_banner, id="compact-banner")
         yield Static("", id="save-status")
         yield Button("Save Settings", id="save-btn", variant="primary")
-        yield Button("Back (Esc)", id="back-btn", variant="default")
+        yield Footer()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "save-btn":
             self._save()
-        elif event.button.id == "back-btn":
-            self.dismiss()
 
     def _save(self) -> None:
         p = self._profile
