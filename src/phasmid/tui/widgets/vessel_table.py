@@ -5,6 +5,7 @@ from textual.widget import Widget
 from textual.widgets import DataTable, Label
 
 from ...models.vessel import VesselMeta
+from ...services.vessel_service import redact_path
 
 
 class VesselTable(Widget):
@@ -47,7 +48,7 @@ class VesselTable(Widget):
 
     def on_mount(self) -> None:
         table = self.query_one(DataTable)
-        table.add_columns("Name", "Size", "Posture")
+        table.add_columns("Name", "Path", "Posture")
         self._populate_table(table)
 
     def _populate_table(self, table: DataTable) -> None:
@@ -56,7 +57,12 @@ class VesselTable(Widget):
             table.add_row("[dim]No vessels registered[/dim]", "", "", key="__empty__")
         else:
             for i, v in enumerate(self._vessels):
-                table.add_row(v.name, v.size_human, v.posture.value, key=str(i))
+                table.add_row(
+                    v.name,
+                    redact_path(v.path),
+                    v.posture.value,
+                    key=str(i),
+                )
 
     def update_vessels(self, vessels: list[VesselMeta]) -> None:
         self._vessels = vessels

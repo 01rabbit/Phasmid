@@ -47,7 +47,7 @@ class HomeScreen(Screen):
         layout: horizontal;
     }
     HomeScreen #vessel-panel {
-        width: 34;
+        width: 46;
     }
     HomeScreen #summary-panel {
         width: 1fr;
@@ -78,6 +78,7 @@ class HomeScreen(Screen):
         self._update_banner()
         self._refresh_vessels()
         self._log("Phasmid operator console ready.")
+        self._run_startup_checks()
 
     def on_resize(self) -> None:
         self._update_banner()
@@ -98,6 +99,32 @@ class HomeScreen(Screen):
         vessel = table.selected_vessel
         panel = self.query_one(VesselSummaryPanel)
         panel.update_vessel(vessel)
+
+    def _run_startup_checks(self) -> None:
+        from ...models.doctor import DoctorLevel
+        from ...services.doctor_service import DoctorService
+
+        result = DoctorService().run()
+        fail = [c for c in result.checks if c.level == DoctorLevel.FAIL]
+        warn = [c for c in result.checks if c.level == DoctorLevel.WARN]
+        ok_count = sum(1 for c in result.checks if c.level == DoctorLevel.OK)
+
+        if fail:
+            self._log(
+                f"Doctor: {len(fail)} FAIL, {len(warn)} WARN — press d to review.",
+                "error",
+            )
+            for c in fail:
+                self._log(f"  ✗ {c.name}: {c.message}", "error")
+        elif warn:
+            self._log(
+                f"Doctor: {ok_count} OK, {len(warn)} WARN — press d to review.",
+                "warn",
+            )
+            for c in warn:
+                self._log(f"  ! {c.name}: {c.message}", "warn")
+        else:
+            self._log(f"Doctor: {ok_count} OK — environment checks passed.", "ok")
 
     def _log(self, msg: str, level: str = "info") -> None:
         try:
