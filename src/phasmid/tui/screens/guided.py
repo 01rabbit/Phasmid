@@ -29,8 +29,11 @@ class GuidedScreen(Screen):
         height: 1fr;
         layout: horizontal;
     }
-    GuidedScreen #workflow-list {
+    GuidedScreen #workflow-list-container {
         width: 34;
+    }
+    GuidedScreen #workflow-list {
+        width: 100%;
         border: solid $primary 50%;
         background: $surface;
     }
