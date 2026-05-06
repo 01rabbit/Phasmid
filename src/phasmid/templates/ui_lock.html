@@ -23,12 +23,12 @@
         width: 56px;
         height: 56px;
         object-fit: contain;
-        filter: drop-shadow(0 0 12px rgba(122,170,72,0.45));
+        filter: drop-shadow(0 0 12px rgba(0,215,175,0.50));
         animation: lock-logo-pulse 3s ease-in-out infinite;
     }
     @keyframes lock-logo-pulse {
-        0%,100% { filter: drop-shadow(0 0 8px rgba(122,170,72,0.35)); }
-        50%      { filter: drop-shadow(0 0 18px rgba(122,170,72,0.60)); }
+        0%,100% { filter: drop-shadow(0 0 8px rgba(0,215,175,0.35)); }
+        50%      { filter: drop-shadow(0 0 20px rgba(0,215,175,0.65)); }
     }
     .lock-brand-label {
         font-size: 11px;
@@ -83,7 +83,7 @@
         </div>
         <p class="copy">
             Face UI lock controls access to this local interface only. Vault retrieval still requires
-            the access password and bound object.
+            the passphrase and bound object cue.
         </p>
         {{ ui.hero_metrics([
             {"label": "Scope", "value": "Interface gate only"},

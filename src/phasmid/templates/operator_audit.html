@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Phasmid | Security Audit Manifest{% endblock %}
+
+{% block content %}
+<div class="grid-single">
+    <section class="panel hero-panel">
+        <div class="panel-kicker">
+            <span class="eyebrow">Institutional Review</span>
+        </div>
+        <div class="panel-head">
+            <h2>Security Audit Manifest</h2>
+            <span class="badge neutral">Read-only</span>
+        </div>
+        <p class="copy hero-copy">
+            Structured declaration of cryptographic controls, operational posture, logging policy,
+            and explicit non-claims. Intended for security researchers and institutional reviewers.
+        </p>
+    </section>
+
+    {% for section in sections %}
+    <section class="panel audit-section">
+        <div class="panel-head">
+            <h2>{{ section.title }}</h2>
+        </div>
+        <dl class="audit-kv">
+            {% for entry in section.entries %}
+            <dt>{{ entry.key }}</dt>
+            <dd>{{ entry.value }}</dd>
+            {% endfor %}
+        </dl>
+    </section>
+    {% endfor %}
+</div>
+{% endblock %}

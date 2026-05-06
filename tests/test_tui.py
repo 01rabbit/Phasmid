@@ -1,0 +1,492 @@
+"""Tests for the TUI layer, services, models, and CLI routing."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Banner
+# ---------------------------------------------------------------------------
+
+
+def test_banner_full_on_wide_terminal():
+    from phasmid.tui.banner import (
+        BANNER_FULL_MIN_WIDTH,
+        FULL_BANNER,
+        get_banner,
+    )
+
+    result = get_banner(BANNER_FULL_MIN_WIDTH)
+    assert result == FULL_BANNER
+
+
+def test_banner_compact_on_narrow_terminal():
+    from phasmid.tui.banner import BANNER_FULL_MIN_WIDTH, COMPACT_BANNER, get_banner
+
+    result = get_banner(BANNER_FULL_MIN_WIDTH - 1)
+    assert result == COMPACT_BANNER
+
+
+def test_banner_compact_flag_overrides_width():
+    from phasmid.tui.banner import COMPACT_BANNER, get_banner
+
+    result = get_banner(200, compact=True)
+    assert result == COMPACT_BANNER
+
+
+def test_full_banner_contains_phasmid():
+    from phasmid.tui.banner import FULL_BANNER
+
+    assert "Janus Eidolon System" in FULL_BANNER
+    assert "coercion-aware deniable storage" in FULL_BANNER
+    assert "one vessel / multiple faces / no confession" in FULL_BANNER
+
+
+def test_compact_banner_contains_required_text():
+    from phasmid.tui.banner import COMPACT_BANNER
+
+    assert "PHASMID" in COMPACT_BANNER
+    assert "JANUS EIDOLON SYSTEM" in COMPACT_BANNER
+    assert "coercion-aware deniable storage" in COMPACT_BANNER
+
+
+# ---------------------------------------------------------------------------
+# Profile service
+# ---------------------------------------------------------------------------
+
+
+def test_profile_config_path_uses_platformdirs():
+    from phasmid.services.profile_service import config_dir
+
+    p = config_dir()
+    assert isinstance(p, Path)
+    assert "phasmid" in str(p).lower()
+
+
+def test_profile_save_and_load(tmp_path, monkeypatch):
+    from phasmid.services import profile_service
+
+    monkeypatch.setattr(profile_service, "config_dir", lambda: tmp_path)
+
+    from phasmid.models.profile import Profile
+    from phasmid.services.profile_service import load_profile, save_profile
+
+    p = Profile(name="test", container_size="256M", default_vessel_dir="/tmp/vessels")
+    save_profile(p)
+
+    loaded = load_profile("test")
+    assert loaded.name == "test"
+    assert loaded.container_size == "256M"
+    assert loaded.default_vessel_dir == "/tmp/vessels"
+
+
+def test_profile_does_not_store_secrets():
+    from phasmid.models.profile import Profile
+
+    p = Profile()
+    assert not p.has_secrets()
+    d = p.to_dict()
+    for forbidden in Profile.FORBIDDEN_KEYS:
+        assert forbidden not in d
+
+
+def test_profile_load_returns_default_if_missing(tmp_path, monkeypatch):
+    from phasmid.services import profile_service
+
+    monkeypatch.setattr(profile_service, "config_dir", lambda: tmp_path)
+
+    from phasmid.services.profile_service import load_profile
+
+    p = load_profile("nonexistent")
+    assert p.name == "nonexistent"
+
+
+def test_profile_list(tmp_path, monkeypatch):
+    from phasmid.services import profile_service
+
+    monkeypatch.setattr(profile_service, "config_dir", lambda: tmp_path)
+
+    from phasmid.models.profile import Profile
+    from phasmid.services.profile_service import list_profiles, save_profile
+
+    save_profile(Profile(name="alpha"))
+    save_profile(Profile(name="beta"))
+    names = list_profiles()
+    assert "alpha" in names
+    assert "beta" in names
+
+
+# ---------------------------------------------------------------------------
+# Vessel service
+# ---------------------------------------------------------------------------
+
+
+def test_vessel_register_and_list(tmp_path, monkeypatch):
+    from phasmid.services import profile_service
+    from phasmid.services import vessel_service as vs_mod
+
+    monkeypatch.setattr(profile_service, "config_dir", lambda: tmp_path)
+    monkeypatch.setattr(vs_mod, "config_dir", lambda: tmp_path)
+
+    from phasmid.services.vessel_service import list_vessels, register_vessel
+
+    vessel_file = tmp_path / "test.vessel"
+    vessel_file.write_bytes(b"\x00" * 1024)
+
+    register_vessel(vessel_file)
+    vessels = list_vessels()
+    names = [v.name for v in vessels]
+    assert "test.vessel" in names
+
+
+def test_vessel_filename_warning_detecting_revealing_terms():
+    from phasmid.services.vessel_service import check_filename_warnings
+
+    warnings = check_filename_warnings("secret_data.vessel")
+    assert any("secret" in w.lower() for w in warnings)
+
+
+def test_vessel_filename_no_warning_for_neutral_name():
+    from phasmid.services.vessel_service import check_filename_warnings
+
+    warnings = check_filename_warnings("travel.vessel")
+    assert not warnings
+
+
+def test_vessel_redact_path():
+    from phasmid.services.vessel_service import redact_path
+
+    home = Path.home()
+    long_path = home / "a" / "b" / "c" / "test.vessel"
+    result = redact_path(long_path)
+    assert "test.vessel" in result
+    assert str(home) not in result or "~" in result
+
+
+# ---------------------------------------------------------------------------
+# Inspection service
+# ---------------------------------------------------------------------------
+
+
+def test_inspection_service_returns_structured_result(tmp_path):
+    import secrets
+
+    from phasmid.services.inspection_service import InspectionService
+
+    vessel = tmp_path / "test.vessel"
+    vessel.write_bytes(secrets.token_bytes(65536))
+
+    svc = InspectionService()
+    result = svc.inspect(vessel)
+
+    assert result.ok
+    assert result.fields
+    labels = [f.label for f in result.fields]
+    assert "File" in labels
+    assert "Size" in labels
+    assert "Header" in labels
+    assert "Entropy" in labels
+
+
+def test_inspection_service_on_missing_file(tmp_path):
+    from phasmid.services.inspection_service import InspectionService
+
+    svc = InspectionService()
+    result = svc.inspect(tmp_path / "does_not_exist.vessel")
+    assert not result.ok
+    assert result.error
+
+
+def test_inspection_no_recognized_header_for_random_data(tmp_path):
+    import secrets
+
+    from phasmid.services.inspection_service import InspectionService
+
+    vessel = tmp_path / "rand.vessel"
+    vessel.write_bytes(secrets.token_bytes(65536))
+    svc = InspectionService()
+    result = svc.inspect(vessel)
+    header_field = next((f for f in result.fields if f.label == "Header"), None)
+    assert header_field is not None
+    assert "no recognized header" in header_field.value.lower()
+
+
+# ---------------------------------------------------------------------------
+# Doctor service
+# ---------------------------------------------------------------------------
+
+
+def test_doctor_returns_structured_result():
+    from phasmid.models.doctor import DoctorLevel
+    from phasmid.services.doctor_service import DoctorService
+
+    svc = DoctorService()
+    result = svc.run()
+    assert result.checks
+    assert result.disclaimer
+    for check in result.checks:
+        assert isinstance(check.level, DoctorLevel)
+        assert check.name
+        assert check.message
+
+
+def test_doctor_result_overall_level():
+    from phasmid.models.doctor import DoctorCheck, DoctorLevel, DoctorResult
+
+    r = DoctorResult(
+        checks=[
+            DoctorCheck("a", DoctorLevel.OK, "ok"),
+            DoctorCheck("b", DoctorLevel.WARN, "warn"),
+        ]
+    )
+    assert r.overall_level == DoctorLevel.WARN
+
+    r2 = DoctorResult(
+        checks=[
+            DoctorCheck("a", DoctorLevel.OK, "ok"),
+            DoctorCheck("b", DoctorLevel.FAIL, "fail"),
+        ]
+    )
+    assert r2.overall_level == DoctorLevel.FAIL
+
+    r3 = DoctorResult(
+        checks=[
+            DoctorCheck("a", DoctorLevel.OK, "ok"),
+        ]
+    )
+    assert r3.overall_level == DoctorLevel.OK
+
+
+# ---------------------------------------------------------------------------
+# Audit service
+# ---------------------------------------------------------------------------
+
+
+def test_audit_report_has_required_sections():
+    from phasmid.services.audit_service import AuditService
+
+    svc = AuditService()
+    report = svc.get_report()
+    titles = [s.title for s in report.sections]
+    assert "System Position" in titles
+    assert "Cryptographic Controls" in titles
+    assert "Operational Controls" in titles
+    assert "Known Limitations" in titles
+    assert "Non-Claims" in titles
+
+
+def test_audit_system_position_content():
+    from phasmid.services.audit_service import AuditService
+
+    svc = AuditService()
+    report = svc.get_report()
+    pos = next(s for s in report.sections if s.title == "System Position")
+    keys = [e.key for e in pos.entries]
+    assert "Status" in keys
+    status_entry = next(e for e in pos.entries if e.key == "Status")
+    assert "research-grade prototype" in status_entry.value
+
+
+# ---------------------------------------------------------------------------
+# Guided service
+# ---------------------------------------------------------------------------
+
+
+def test_guided_service_returns_all_workflows():
+    from phasmid.services.guided_service import GuidedService
+
+    svc = GuidedService()
+    workflows = svc.get_workflows()
+    ids = [wf.id for wf in workflows]
+    assert "coerced_disclosure" in ids
+    assert "headerless_inspection" in ids
+    assert "multiple_faces" in ids
+    assert "safety_checklist" in ids
+
+
+def test_guided_workflows_no_forbidden_terms():
+    from phasmid.services.guided_service import GuidedService
+
+    svc = GuidedService()
+    forbidden = {
+        "real secret",
+        "fake secret",
+        "decoy",
+        "hidden truth",
+        "production-grade",
+        "military-grade",
+        "forensic-proof",
+        "coercion-proof",
+        "undetectable",
+        "unbreakable",
+        "guaranteed safe",
+        "impossible to discover",
+    }
+    for wf in svc.get_workflows():
+        text = (
+            wf.title
+            + " "
+            + wf.description
+            + " "
+            + " ".join(s.text + " " + s.detail for s in wf.steps)
+        ).lower()
+        for term in forbidden:
+            assert (
+                term not in text
+            ), f"Forbidden term '{term}' found in workflow '{wf.id}'"
+
+
+# ---------------------------------------------------------------------------
+# TUI import smoke test
+# ---------------------------------------------------------------------------
+
+
+def test_tui_app_imports_successfully():
+    from phasmid.tui.app import PhasmidApp
+
+    assert PhasmidApp is not None
+
+
+def test_all_screens_importable():
+    from phasmid.tui.screens import (
+        AboutScreen,
+        AuditScreen,
+        CreateVesselScreen,
+        DoctorScreen,
+        FaceManagerScreen,
+        GuidedScreen,
+        HomeScreen,
+        InspectVesselScreen,
+        OpenVesselScreen,
+        SettingsScreen,
+    )
+
+    for cls in [
+        HomeScreen,
+        AboutScreen,
+        AuditScreen,
+        DoctorScreen,
+        GuidedScreen,
+        InspectVesselScreen,
+        CreateVesselScreen,
+        OpenVesselScreen,
+        FaceManagerScreen,
+        SettingsScreen,
+    ]:
+        assert cls is not None
+
+
+def test_all_widgets_importable():
+    from phasmid.tui.widgets import (
+        EventLog,
+        VesselSummaryPanel,
+        VesselTable,
+        WarningBox,
+    )
+
+    for cls in [VesselSummaryPanel, VesselTable, EventLog, WarningBox]:
+        assert cls is not None
+
+
+# ---------------------------------------------------------------------------
+# CLI routing
+# ---------------------------------------------------------------------------
+
+
+def test_cli_entry_point_is_main():
+    """Verify pyproject.toml wires phasmid = phasmid.cli:main."""
+    import importlib
+
+    mod = importlib.import_module("phasmid.cli")
+    assert callable(getattr(mod, "main", None))
+
+
+def test_cli_parser_no_args_routes_to_tui(monkeypatch):
+    """phasmid with no subcommand should trigger TUI."""
+    from phasmid.cli import _build_tui_parser
+
+    parser = _build_tui_parser()
+    args = parser.parse_args([])
+    assert args.command is None
+
+
+def test_cli_parser_guided_subcommand(monkeypatch):
+    from phasmid.cli import _build_tui_parser
+
+    parser = _build_tui_parser()
+    args = parser.parse_args(["guided"])
+    assert args.command == "guided"
+
+
+def test_cli_parser_audit_subcommand():
+    from phasmid.cli import _build_tui_parser
+
+    parser = _build_tui_parser()
+    args = parser.parse_args(["audit"])
+    assert args.command == "audit"
+
+
+def test_cli_parser_doctor_subcommand():
+    from phasmid.cli import _build_tui_parser
+
+    parser = _build_tui_parser()
+    args = parser.parse_args(["doctor"])
+    assert args.command == "doctor"
+
+
+def test_cli_parser_doctor_no_tui_flag():
+    from phasmid.cli import _build_tui_parser
+
+    parser = _build_tui_parser()
+    args = parser.parse_args(["doctor", "--no-tui"])
+    assert args.command == "doctor"
+    assert args.no_tui is True
+
+
+def test_cli_parser_open_with_vessel():
+    from phasmid.cli import _build_tui_parser
+
+    parser = _build_tui_parser()
+    args = parser.parse_args(["open", "travel.vessel"])
+    assert args.command == "open"
+    assert args.vessel == "travel.vessel"
+
+
+def test_cli_parser_create_with_vessel():
+    from phasmid.cli import _build_tui_parser
+
+    parser = _build_tui_parser()
+    args = parser.parse_args(["create", "new.vessel"])
+    assert args.command == "create"
+    assert args.vessel == "new.vessel"
+
+
+def test_cli_parser_inspect_with_vessel():
+    from phasmid.cli import _build_tui_parser
+
+    parser = _build_tui_parser()
+    args = parser.parse_args(["inspect", "travel.vessel"])
+    assert args.command == "inspect"
+    assert args.vessel == "travel.vessel"
+
+
+# ---------------------------------------------------------------------------
+# Vessel model
+# ---------------------------------------------------------------------------
+
+
+def test_vessel_size_human():
+    from pathlib import Path
+
+    from phasmid.models.vessel import VesselMeta
+
+    v = VesselMeta(path=Path("/tmp/t.vessel"), size_bytes=512 * 1024 * 1024)
+    assert "512" in v.size_human
+    assert "MiB" in v.size_human
+
+
+def test_vessel_meta_defaults_name_from_path():
+    from phasmid.models.vessel import VesselMeta
+
+    v = VesselMeta(path=Path("/tmp/travel.vessel"))
+    assert v.name == "travel.vessel"

@@ -52,6 +52,12 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 - Optional UI face lock (`PHASMID_UI_FACE_LOCK=1`) can gate normal WebUI routes with a short-lived local session. This is a UI access control only and is not used for vault encryption.
 - When UI face lock is enabled, the normal object-matching preview and object-match state are withheld until the UI is unlocked. The lock screen shows a separate camera preview for enrollment and verification alignment.
 - The Web server binds to `127.0.0.1` by default.
+- **Inactivity Auto-Kill**: When managed via the TUI, the WebUI server is
+  automatically terminated after 10 minutes of operator inactivity to minimize
+  exposure time and return the system to a stealth state.
+- **Exposure Visualization**: The TUI Home Screen displays a high-visibility
+  warning banner while the WebUI port is open, preventing accidental long-term
+  exposure.
 - Audit logging is disabled by default. If `PHASMID_AUDIT=1` is set, security-relevant operations append minimal versioned JSONL records to the state directory's event log without recording passwords, payload bytes, plaintext filenames, or internal slot labels. New records include local integrity fields for review.
 - Field Mode (`PHASMID_FIELD_MODE=1`) hides Maintenance paths, audit export, token rotation, and detailed diagnostics until restricted confirmation is active.
 - Store includes a local metadata risk check and limited best-effort metadata reduction for supported file types.

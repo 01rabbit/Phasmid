@@ -54,9 +54,17 @@ from .restricted_actions import (
     evaluate_restricted_action,
 )
 from .vault_core import PhasmidVault
+from .services.doctor_service import run_doctor_checks
+from .services.audit_service import build_audit_report
+from .services.guided_service import get_workflows
+from .services.inspection_service import inspect_vessel
 
 app = FastAPI(title="Phasmid - Local Secure Interface")
-app.mount("/static", StaticFiles(directory=str(Path(__file__).with_name("static"))), name="static")
+app.mount(
+    "/static",
+    StaticFiles(directory=str(Path(__file__).with_name("static"))),
+    name="static",
+)
 
 
 @app.on_event("startup")
@@ -492,7 +500,7 @@ async def emergency_page(request: Request):
         request=request,
         name="emergency.html",
         context=_template_context(
-            request, active="maintenance", restricted_confirmed=restricted_confirmed
+            request, active="emergency", restricted_confirmed=restricted_confirmed
         ),
     )
 
@@ -1037,6 +1045,123 @@ def create_file_response(content, filename, purge_applied=False):
             "Content-Disposition": f"attachment; filename*=UTF-8''{safe_filename}",
             "X-Result-Filename": safe_filename,
         },
+    )
+
+
+# ── Operator Console pages ────────────────────────────────────────────────
+
+_OPERATOR_DEPS = [Depends(require_web_token), Depends(require_ui_unlock)]
+
+
+@app.get("/operator/doctor", response_class=HTMLResponse, dependencies=_OPERATOR_DEPS)
+async def operator_doctor(request: Request):
+    guard = _guard_page(request)
+    if guard:
+        return guard
+    result = run_doctor_checks()
+    checks = [
+        {
+            "level": c.level.value.lower(),
+            "name": c.name,
+            "message": c.message,
+            "detail": c.detail or "",
+        }
+        for c in result.checks
+    ]
+    return templates.TemplateResponse(
+        request=request,
+        name="operator_doctor.html",
+        context=_template_context(request, active="operator-doctor", checks=checks),
+    )
+
+
+@app.get("/operator/audit", response_class=HTMLResponse, dependencies=_OPERATOR_DEPS)
+async def operator_audit(request: Request):
+    guard = _guard_page(request)
+    if guard:
+        return guard
+    report = build_audit_report()
+    sections = [
+        {
+            "title": s.title,
+            "entries": [{"key": e.key, "value": e.value} for e in s.entries],
+        }
+        for s in report.sections
+    ]
+    return templates.TemplateResponse(
+        request=request,
+        name="operator_audit.html",
+        context=_template_context(request, active="operator-audit", sections=sections),
+    )
+
+
+@app.get("/operator/guided", response_class=HTMLResponse, dependencies=_OPERATOR_DEPS)
+async def operator_guided(request: Request):
+    guard = _guard_page(request)
+    if guard:
+        return guard
+    workflows = [
+        {
+            "id": w.id,
+            "title": w.title,
+            "description": w.description,
+            "steps": [
+                {"number": s.number, "text": s.text, "detail": s.detail}
+                for s in w.steps
+            ],
+        }
+        for w in get_workflows()
+    ]
+    return templates.TemplateResponse(
+        request=request,
+        name="operator_guided.html",
+        context=_template_context(request, active="operator-guided", workflows=workflows),
+    )
+
+
+@app.get("/operator/inspect", response_class=HTMLResponse, dependencies=_OPERATOR_DEPS)
+async def operator_inspect_get(request: Request):
+    guard = _guard_page(request)
+    if guard:
+        return guard
+    return templates.TemplateResponse(
+        request=request,
+        name="operator_inspect.html",
+        context=_template_context(request, active="operator-inspect", result=None),
+    )
+
+
+@app.post("/operator/inspect", response_class=HTMLResponse, dependencies=_OPERATOR_DEPS)
+async def operator_inspect_post(
+    request: Request,
+    file: UploadFile = File(...),
+):
+    guard = _guard_page(request)
+    if guard:
+        return guard
+    import tempfile as _tmpfile
+    suffix = "".join(c for c in (file.filename or "upload") if c.isalnum() or c in "._-")[-64:]
+    with _tmpfile.NamedTemporaryFile(delete=False, suffix="_" + suffix) as tmp:
+        tmp.write(await file.read())
+        tmp_path = tmp.name
+    try:
+        inspection = inspect_vessel(tmp_path)
+    finally:
+        import os as _os
+        _os.unlink(tmp_path)
+    result = None
+    if inspection.error:
+        result = {"error": inspection.error, "fields": [], "notes": []}
+    else:
+        result = {
+            "error": None,
+            "fields": [{"label": f.label, "value": f.value, "note": f.note or ""} for f in inspection.fields],
+            "notes": inspection.notes,
+        }
+    return templates.TemplateResponse(
+        request=request,
+        name="operator_inspect.html",
+        context=_template_context(request, active="operator-inspect", result=result),
     )
 
 

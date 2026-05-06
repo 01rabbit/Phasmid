@@ -130,7 +130,16 @@ This CLI-only flow resets the optional WebUI face lock. It requires the typed co
 
 ## 7. WebUI v2
 
-Start the server:
+The WebUI is managed directly from the TUI Operator Console (hotkey `w`).
+
+### Exposure Control
+
+The TUI provides a high-visibility warning banner when the WebUI is active and
+includes an **Auto-Kill Timer**. If the TUI detects no operator input for 10
+minutes while the WebUI is running, it will automatically terminate the WebUI
+subprocess to return the system to a stealth state.
+
+To start the server manually:
 
 ```bash
 PYTHONPATH=src python3 -m phasmid.web_server

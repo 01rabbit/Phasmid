@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Phasmid | Operator Diagnostics{% endblock %}
+
+{% block content %}
+<div class="grid-single">
+    <section class="panel hero-panel">
+        <div class="panel-kicker">
+            <span class="eyebrow">System Health</span>
+        </div>
+        <div class="panel-head">
+            <h2>Operator Diagnostics</h2>
+            <span class="badge neutral">Local checks</span>
+        </div>
+        <p class="copy hero-copy">
+            Checks for obvious configuration and environment issues that may affect operational security.
+            This does not certify the host as secure.
+        </p>
+        <div style="margin-top: 16px;">
+            {% for check in checks %}
+            <div class="check-row {{ check.level }}">
+                <span class="check-symbol">{% if check.level == 'ok' %}✓{% elif check.level == 'warn' %}!{% elif check.level == 'fail' %}✗{% else %}·{% endif %}</span>
+                <span class="check-label">{{ check.name }}</span>
+                <span class="check-detail">
+                    {{ check.message }}{% if check.detail %} — <span style="color:var(--text-muted)">{{ check.detail }}</span>{% endif %}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="actions" style="margin-top: 20px;">
+            <a class="button secondary" href="/operator/doctor">Re-run diagnostics</a>
+        </div>
+    </section>
+    <section class="panel panel--caution">
+        <div class="panel-head">
+            <h2>Scope Notice</h2>
+            <span class="badge warn">Limited</span>
+        </div>
+        <p class="copy">
+            This check reduces obvious mistakes. It does not certify the host as secure.
+            Host compromise, memory forensics, swap analysis, keyloggers, and camera observation
+            are outside the scope of these checks.
+        </p>
+    </section>
+</div>
+{% endblock %}

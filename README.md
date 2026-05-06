@@ -135,10 +135,18 @@ Phasmid does not provide:
 .
 ├── main.py                  # Local CLI launcher
 ├── src/phasmid/            # Application package
-│   ├── cli.py
+│   ├── cli.py              # CLI entry point — routes to TUI by default
 │   ├── vault_core.py
 │   ├── ai_gate.py
 │   ├── web_server.py
+│   ├── tui/                # TUI Operator Console (textual)
+│   │   ├── app.py
+│   │   ├── banner.py
+│   │   ├── theme.py
+│   │   ├── screens/        # Home, Audit, Doctor, Guided, Inspect, ...
+│   │   └── widgets/        # VesselTable, EventLog, ActionBar, ...
+│   ├── services/           # Service layer (vessel, doctor, audit, guided, ...)
+│   ├── models/             # Data models (VesselMeta, DoctorResult, AuditReport, ...)
 │   └── templates/
 ├── docs/                    # Specification and threat model
 ├── scripts/                 # Utility scripts
@@ -163,6 +171,114 @@ pip install -e .
 
 The final step installs the local `phasmid` command into the active virtual
 environment so `phasmid --help` and the CLI subcommands work as documented.
+
+## TUI Operator Console
+
+### What is a Vessel?
+
+In Phasmid, a **Vessel** is a headerless deniable container file. It carries one or more disclosure faces without exposing metadata, magic bytes, or an obvious vault structure.
+
+### Starting the TUI
+
+```bash
+phasmid
+```
+
+Running `phasmid` with no arguments opens the Main Operator Console.
+
+```text
+┌─ PHASMID : JANUS EIDOLON SYSTEM ───────────────────────────┐
+│ coercion-aware deniable storage                             │
+│ one vessel / multiple faces / no confession                 │
+├───────────────────────┬─────────────────────────────────────┤
+│ Vessels               │ Vessel Summary                      │
+│ Deniable containers   │                                     │
+│                       │ Name          travel.vessel          │
+│ > travel.vessel       │ Size          512.0 MiB              │
+│   archive.vessel      │ Header        absent                 │
+│   field-notes.vessel  │ Magic Bytes   absent                 │
+│                       │ Faces         unknown                │
+│                       │ Posture       operational            │
+├───────────────────────┴─────────────────────────────────────┤
+│ o Open  c Create  i Inspect  f Faces  g Guided  a Audit … q │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### TUI Commands
+
+| Command | Description |
+|---|---|
+| `phasmid` | Open the Main Operator Console |
+| `phasmid open <vessel>` | Open a Vessel |
+| `phasmid create <vessel>` | Create a new Vessel |
+| `phasmid inspect <vessel>` | Inspect a Vessel |
+| `phasmid guided` | Open Guided Workflows |
+| `phasmid audit` | Open Audit View |
+| `phasmid doctor` | Run Doctor checks |
+| `phasmid doctor --no-tui` | Print Doctor output without TUI |
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|---|---|
+| `o` | Open selected Vessel |
+| `c` | Create new Vessel |
+| `i` | Inspect selected Vessel |
+| `f` | Manage Faces |
+| `g` | Guided Workflows |
+| `a` | Audit View |
+| `d` | Doctor |
+| `s` | Settings |
+| `?` | Help / About |
+| `q` | Quit |
+
+### Guided Workflows
+
+Guided Workflows are step-by-step interactive explanations for education, demonstrations, and operator onboarding. They are accessible from the main console (`g`) or directly:
+
+```bash
+phasmid guided
+```
+
+Available workflows:
+- **Coerced Disclosure Walkthrough** — Step through a compelled-disclosure scenario.
+- **Headerless Vessel Inspection** — See what an external observer finds when inspecting a Vessel.
+- **Multiple Disclosure Faces** — Walk through the concept of multiple disclosure faces.
+- **Operator Safety Checklist** — Review operational controls and known risks.
+
+### Audit View
+
+Audit View shows system position, cryptographic controls, operational controls, logging policy, known limitations, and non-claims. It exists to make Phasmid reviewable by security researchers, government-adjacent evaluators, and institutional stakeholders.
+
+```bash
+phasmid audit
+```
+
+### Doctor View
+
+Doctor View runs structured local risk checks on the operator's environment.
+
+```bash
+phasmid doctor
+```
+
+Checks include: configuration directory permissions, shell history risk, temporary directory policy, secure randomness availability, swap status (best effort), terminal scrollback notice, and debug logging status.
+
+> This check reduces obvious mistakes. It does not certify the host as secure.
+
+### Security Limitations
+
+Phasmid is a **research-grade prototype**. It does not claim:
+
+- deniability that is forensically unverifiable
+- operation that is coercion-proof
+- storage that is undetectable
+- encryption that is unbreakable
+- operation that is guaranteed safe
+
+Deniability is procedural and depends on operational context. Host compromise may defeat confidentiality. OS artifacts may reveal usage. Coercion resistance is not absolute.
+
+---
 
 ## CLI Usage
 
@@ -219,6 +335,13 @@ New local state checks use a typed state-store helper for atomic writes, restric
 When audit logging is enabled, new audit records include sequence and integrity fields for local review. Audit logging remains disabled by default because audit records can create additional local metadata.
 
 ## WebUI v2
+
+The local WebUI is managed directly through the TUI Operator Console (press `w`
+to start/stop). This is the recommended method as it includes an **Auto-Kill
+Timer** that automatically terminates the WebUI after 10 minutes of TUI
+inactivity.
+
+To start the WebUI manually:
 
 ```bash
 PYTHONPATH=src python3 -m phasmid.web_server
