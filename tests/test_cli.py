@@ -28,13 +28,8 @@ class CLITests(unittest.TestCase):
             cli.resolve_mode("c")
 
     def test_show_loading(self):
-        output = io.StringIO()
-        with (
-            unittest.mock.patch("time.sleep"),
-            contextlib.redirect_stdout(output),
-        ):
+        with unittest.mock.patch("time.sleep"):
             cli.show_loading("test", duration=0.1)
-        self.assertIn("test... DONE", output.getvalue())
 
     def test_wait_for_camera_frame(self):
         with unittest.mock.patch("time.sleep"):

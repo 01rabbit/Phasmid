@@ -56,7 +56,11 @@ from .restricted_actions import (
 from .vault_core import PhasmidVault
 
 app = FastAPI(title="Phasmid - Local Secure Interface")
-app.mount("/static", StaticFiles(directory=str(Path(__file__).with_name("static"))), name="static")
+app.mount(
+    "/static",
+    StaticFiles(directory=str(Path(__file__).with_name("static"))),
+    name="static",
+)
 
 
 @app.on_event("startup")

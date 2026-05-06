@@ -1,0 +1,170 @@
+from __future__ import annotations
+
+from textual.app import App, ComposeResult
+from textual.binding import Binding
+from textual.events import Key
+
+from ..services.webui_service import WebUIService
+from .screens.home import HomeScreen
+from .theme import PHASMID_DARK, PHASMID_LIGHT
+
+
+class PhasmidApp(App):
+    """Phasmid TUI Operator Console."""
+
+    TITLE = "Phasmid"
+    SUB_TITLE = "Janus Eidolon System"
+
+    BINDINGS = [
+        Binding("ctrl+c", "quit", "Quit", show=False),
+        Binding("w", "toggle_webui", "WebUI"),
+    ]
+
+    CSS = """
+    Screen {
+        background: #0d0d0d;
+    }
+    """
+
+    def __init__(
+        self,
+        initial_screen: str = "home",
+        vessel_path: str | None = None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self._initial_screen = initial_screen
+        self._vessel_path = vessel_path
+        self.webui_svc = WebUIService()
+        self.webui_svc.set_timeout_callback(self._on_webui_timeout)
+
+    def on_mount(self) -> None:
+        try:
+            self.register_theme(PHASMID_DARK)
+            self.register_theme(PHASMID_LIGHT)
+            self.theme = "phasmid-dark"
+        except Exception:
+            pass
+
+        screen_map = {
+            "home": self._push_home,
+            "guided": self._push_guided,
+            "audit": self._push_audit,
+            "doctor": self._push_doctor,
+            "inspect": self._push_inspect,
+            "create": self._push_create,
+            "open": self._push_open,
+            "about": self._push_about,
+        }
+        action = screen_map.get(self._initial_screen, self._push_home)
+        action()
+
+    def compose(self) -> ComposeResult:
+        return iter([])
+
+    def on_key(self, event: Key) -> None:
+        """Reset WebUI inactivity timer on any key press."""
+        self.webui_svc.reset_timer()
+
+    def action_toggle_webui(self) -> None:
+        """Toggle WebUI start/stop."""
+        if self.webui_svc.is_running():
+            from .screens.confirm_modal import ConfirmModal
+
+            def _on_confirm(result: bool | None) -> None:
+                if result:
+                    self.webui_svc.stop()
+                    self.notify(
+                        "WebUI server stopped.", title="WEBUI", severity="warning"
+                    )
+                    self._refresh_webui_status()
+
+            self.push_screen(
+                ConfirmModal(
+                    "RETRACT WEB INTERFACE",
+                    "You are about to shut down the WebUI server.\nAll active browser sessions will be disconnected.",
+                ),
+                _on_confirm,
+            )
+        else:
+            if self.webui_svc.start():
+                self.notify(
+                    "WebUI active at http://127.0.0.1:8000",
+                    title="WEBUI EXPOSED",
+                    severity="information",
+                    timeout=10,
+                )
+            else:
+                self.notify(
+                    "Failed to start WebUI server.", title="ERROR", severity="error"
+                )
+            self._refresh_webui_status()
+
+    def _on_webui_timeout(self) -> None:
+        """Called when WebUI is auto-killed."""
+        self.notify(
+            "WebUI auto-killed due to inactivity (Stealth Mode).",
+            title="SECURITY",
+            severity="warning",
+            timeout=10,
+        )
+        self._refresh_webui_status()
+
+    def _refresh_webui_status(self) -> None:
+        """Inform screens that WebUI status changed."""
+        for screen in self.screen_stack:
+            if hasattr(screen, "refresh_webui_status"):
+                screen.refresh_webui_status()
+
+    def _push_home(self) -> None:
+        self.push_screen(HomeScreen(initial_vessel_path=self._vessel_path))
+
+    def _push_guided(self) -> None:
+        from .screens.guided import GuidedScreen
+
+        self.push_screen(HomeScreen())
+        self.push_screen(GuidedScreen())
+
+    def _push_audit(self) -> None:
+        from .screens.audit import AuditScreen
+
+        self.push_screen(HomeScreen())
+        self.push_screen(AuditScreen())
+
+    def _push_doctor(self) -> None:
+        from .screens.doctor import DoctorScreen
+
+        self.push_screen(HomeScreen())
+        self.push_screen(DoctorScreen())
+
+    def _push_inspect(self) -> None:
+        from .screens.inspect_vessel import InspectVesselScreen
+
+        self.push_screen(HomeScreen())
+        self.push_screen(InspectVesselScreen(vessel_path=self._vessel_path))
+
+    def _push_create(self) -> None:
+        from .screens.create_vessel import CreateVesselScreen
+
+        self.push_screen(HomeScreen())
+        self.push_screen(CreateVesselScreen(initial_path=self._vessel_path or ""))
+
+    def _push_open(self) -> None:
+        from .screens.open_vessel import OpenVesselScreen
+
+        self.push_screen(HomeScreen())
+        self.push_screen(OpenVesselScreen(vessel_path=self._vessel_path or ""))
+
+    def _push_about(self) -> None:
+        from .screens.about import AboutScreen
+
+        self.push_screen(HomeScreen())
+        self.push_screen(AboutScreen())
+
+
+def run_tui(
+    initial_screen: str = "home",
+    vessel_path: str | None = None,
+) -> None:
+    app = PhasmidApp(initial_screen=initial_screen, vessel_path=vessel_path)
+    app.run()

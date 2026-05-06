@@ -46,6 +46,22 @@ phasmid export-redacted-log --out review-events.jsonl
 
 The redacted export uses a fixed schema and omits detailed fields that could reveal file labels, local paths, or operational grouping.
 
+## WebUI Exposure Management
+
+When a graphical interface is required, the operator may "expose" the WebUI. Because this opens a network listener, it is managed with strict exposure controls.
+
+### Procedure
+
+1.  **Expose**: Press `w` in the TUI Main Console. Confirm the "WebUI Exposed" notification.
+2.  **Operate**: Perform necessary tasks via `http://127.0.0.1:8000`.
+3.  **Retract**: Press `w` again in the TUI. Confirm the shutdown of the WebUI process.
+
+### Safety Mechanisms
+
+- **Inactivity Auto-Kill**: The TUI monitors operator input. If no keys are pressed for 10 minutes, the WebUI is automatically terminated.
+- **Visual Feedback**: The TUI Home Screen displays a prominent warning while the WebUI is active.
+- **Process Isolation**: The WebUI runs as a managed subprocess and is terminated cleanly by the TUI on exit or retraction.
+
 ## Output Rules
 
 Operational commands should report:

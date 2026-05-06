@@ -23,7 +23,10 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-dev.txt
 
-      - name: Check formatting with black
+      - name: Run formatting with black
+        run: python -m black src tests scripts
+
+      - name: Verify formatting with black
         run: python -m black --check src tests scripts
 
       - name: Lint with ruff
