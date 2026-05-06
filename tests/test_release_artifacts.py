@@ -4,6 +4,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = ROOT / "scripts" / "generate_release_artifacts.py"
 
@@ -60,6 +63,38 @@ class ReleaseArtifactTests(unittest.TestCase):
         )
 
         self.assertEqual(module.read_project_dependencies(pyproject), ["fastapi"])
+
+    def test_manifest_signature_is_generated_and_verifiable(self):
+        module = load_release_script()
+        tmpdir = Path(tempfile.mkdtemp())
+        output_dir = tmpdir / "out"
+        (tmpdir / "src").mkdir()
+        (tmpdir / "src" / "sample.py").write_text("print('ok')\n", encoding="utf-8")
+
+        private_key = Ed25519PrivateKey.generate()
+        private_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+        public_pem = private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+
+        private_key_path = tmpdir / "signing-private.pem"
+        public_key_path = tmpdir / "signing-public.pem"
+        private_key_path.write_bytes(private_pem)
+        public_key_path.write_bytes(public_pem)
+
+        summary = module.generate(tmpdir, output_dir, signing_key=private_key_path)
+        self.assertEqual(summary["manifest_signature"], "MANIFEST.sha256.sig")
+
+        module.verify_manifest_signature(
+            output_dir / "MANIFEST.sha256",
+            output_dir / "MANIFEST.sha256.sig",
+            public_key_path,
+        )
 
 
 if __name__ == "__main__":

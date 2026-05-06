@@ -10,6 +10,13 @@ import tarfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
+
 EXCLUDED_DIRS = {
     ".git",
     ".mypy_cache",
@@ -136,17 +143,41 @@ def write_archive(base_dir: Path, output_path: Path, files):
             archive.add(base_dir / relative, arcname=relative.as_posix())
 
 
-def generate(base_dir: Path, output_dir: Path, archive: bool = False):
+def sign_manifest(manifest_path: Path, signature_path: Path, key_path: Path):
+    private_key = serialization.load_pem_private_key(
+        key_path.read_bytes(),
+        password=None,
+    )
+    if not isinstance(private_key, Ed25519PrivateKey):
+        raise ValueError("signing key must be an Ed25519 private key")
+    signature = private_key.sign(manifest_path.read_bytes())
+    signature_path.write_bytes(signature)
+
+
+def verify_manifest_signature(manifest_path: Path, signature_path: Path, key_path: Path):
+    public_key = serialization.load_pem_public_key(key_path.read_bytes())
+    if not isinstance(public_key, Ed25519PublicKey):
+        raise ValueError("verify key must be an Ed25519 public key")
+    try:
+        public_key.verify(signature_path.read_bytes(), manifest_path.read_bytes())
+    except InvalidSignature as exc:
+        raise ValueError("manifest signature verification failed") from exc
+
+
+def generate(base_dir: Path, output_dir: Path, archive: bool = False, signing_key: Path | None = None):
     base_dir = base_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     files = collect_release_files(base_dir)
 
     manifest_path = output_dir / "MANIFEST.sha256"
+    manifest_sig_path = output_dir / "MANIFEST.sha256.sig"
     sbom_path = output_dir / "sbom.cyclonedx.json"
     summary_path = output_dir / "release-summary.json"
 
     manifest_lines = write_manifest(base_dir, manifest_path, files)
     sbom = write_sbom(base_dir, sbom_path)
+    if signing_key is not None:
+        sign_manifest(manifest_path, manifest_sig_path, signing_key)
     archive_path = None
     if archive:
         archive_path = output_dir / "phasmid-release.tar.gz"
@@ -159,6 +190,7 @@ def generate(base_dir: Path, output_dir: Path, archive: bool = False):
         "files": len(files),
         "manifest": manifest_path.name,
         "manifest_entries": len(manifest_lines),
+        "manifest_signature": manifest_sig_path.name if signing_key else None,
         "sbom": sbom_path.name,
         "sbom_components": len(sbom["components"]),
     }
@@ -179,12 +211,18 @@ def main(argv=None):
     parser.add_argument(
         "--archive", action="store_true", help="also write a local release archive"
     )
+    parser.add_argument(
+        "--signing-key",
+        default=None,
+        help="optional Ed25519 private key PEM for manifest signing",
+    )
     args = parser.parse_args(argv)
 
     summary = generate(
         base_dir=Path(args.base_dir),
         output_dir=Path(args.output_dir),
         archive=args.archive,
+        signing_key=Path(args.signing_key) if args.signing_key else None,
     )
     print(f"release artifacts generated: {summary['manifest']}, {summary['sbom']}")
 
