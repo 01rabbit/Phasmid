@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from typing import cast
+
 from textual.app import ComposeResult
 from textual.widget import Widget
-from textual.widgets import DataTable, Label
+from textual.widgets import DataTable, Label, Static
+
 
 from ...models.vessel import VesselMeta
 from ...services.vessel_service import redact_path
@@ -75,7 +78,7 @@ class VesselTable(Widget):
         if table.cursor_row < 0 or not self._vessels:
             return None
         try:
-            return self._vessels[table.cursor_row]
+            return cast(VesselMeta, self._vessels[table.cursor_row])
         except IndexError:
             return None
 
