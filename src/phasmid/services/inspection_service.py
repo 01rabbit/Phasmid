@@ -108,12 +108,13 @@ def inspect_vessel(path: str | Path) -> InspectionResult:
     return InspectionResult(path=p, fields=fields, notes=notes)
 
 
-def _human_size(size: int) -> str:
+def _human_size(n: int) -> str:
+    b: float = float(n)
     for unit in ("B", "KiB", "MiB", "GiB", "TiB"):
-        if size < 1024:
-            return f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
-        size /= 1024
-    return f"{size:.1f} PiB"
+        if b < 1024:
+            return f"{b:.0f} {unit}" if unit == "B" else f"{b:.1f} {unit}"
+        b /= 1024
+    return f"{b:.1f} PiB"
 
 
 class InspectionService:

@@ -54,7 +54,7 @@ class FaceManagerScreen(Screen):
             id="face-note",
             markup=True,
         )
-        table = DataTable(id="face-table", cursor_type="row")
+        table: DataTable = DataTable(id="face-table", cursor_type="row")
         yield table
         yield Label("Add face label", classes="field-label")
         yield Input(placeholder="Disclosure Face label (e.g. travel)", id="new-label")

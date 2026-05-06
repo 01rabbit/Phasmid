@@ -88,7 +88,7 @@ class HomeScreen(Screen):
         self.query_one("#compact-banner", Static).update(banner)
 
     def _refresh_vessels(self) -> None:
-        self._vessels = self._vessel_svc.list(self._profile.default_vessel_dir or None)
+        self._vessels = self._vessel_svc.list_all(self._profile.default_vessel_dir or None)
         table = self.query_one(VesselTable)
         table.update_vessels(self._vessels)
         self._update_summary()

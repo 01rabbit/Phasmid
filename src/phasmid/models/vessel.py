@@ -29,7 +29,7 @@ class VesselMeta:
 
     @property
     def size_human(self) -> str:
-        b = self.size_bytes
+        b: float = float(self.size_bytes)
         for unit in ("B", "KiB", "MiB", "GiB", "TiB"):
             if b < 1024:
                 return f"{b:.0f} {unit}" if unit == "B" else f"{b:.1f} {unit}"

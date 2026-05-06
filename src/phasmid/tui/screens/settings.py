@@ -85,7 +85,8 @@ class SettingsScreen(Screen):
         p.default_vessel_dir = self.query_one("#vessel-dir", Input).value.strip()
         p.default_output = self.query_one("#output-dir", Input).value.strip()
         p.container_size = self.query_one("#container-size", Input).value.strip() or "512M"
-        p.theme = self.query_one("#theme", Select).value or "dark"
+        theme_val = self.query_one("#theme", Select).value
+        p.theme = theme_val if isinstance(theme_val, str) else "dark"
         p.recent_tracking = self.query_one("#recent-tracking", Switch).value
         p.compact_banner = self.query_one("#compact-banner", Switch).value
         try:

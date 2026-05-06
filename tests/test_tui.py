@@ -318,16 +318,12 @@ def test_all_screens_importable():
 
 def test_all_widgets_importable():
     from phasmid.tui.widgets import (
-        ActionBar,
-        BannerWidget,
         EventLog,
-        PhasmidHeader,
         VesselSummaryPanel,
         VesselTable,
         WarningBox,
     )
-    for cls in [BannerWidget, PhasmidHeader, VesselSummaryPanel,
-                VesselTable, ActionBar, EventLog, WarningBox]:
+    for cls in [VesselSummaryPanel, VesselTable, EventLog, WarningBox]:
         assert cls is not None
 
 

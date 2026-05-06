@@ -5,7 +5,7 @@ from pathlib import Path
 import platformdirs
 
 try:
-    import tomllib
+    import tomllib  # type: ignore[import-not-found]
 except ImportError:
     import tomli as tomllib  # type: ignore[no-redef]
 

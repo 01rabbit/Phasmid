@@ -125,7 +125,7 @@ class VesselService:
     def unregister(self, path: str | Path) -> bool:
         return unregister_vessel(path)
 
-    def list(self, extra_dir: str | None = None) -> list[VesselMeta]:
+    def list_all(self, extra_dir: str | None = None) -> list[VesselMeta]:
         return list_vessels(extra_dir)
 
     def check_filename_warnings(self, path: str | Path) -> list[str]:

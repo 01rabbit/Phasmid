@@ -42,7 +42,7 @@ class VesselTable(Widget):
     def compose(self) -> ComposeResult:
         yield Label("Vessels", classes="section-title")
         yield Label("Deniable container files", classes="section-sub")
-        table = DataTable(id="vessel-data-table", cursor_type="row", zebra_stripes=True)
+        table: DataTable = DataTable(id="vessel-data-table", cursor_type="row", zebra_stripes=True)
         yield table
 
     def on_mount(self) -> None:

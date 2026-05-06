@@ -452,7 +452,7 @@ def _run_legacy_command(args) -> None:
             gate_started = True
             if not _wait_for_camera_frame():
                 error("Camera feed did not become available.")
-                return 1
+                return
 
         vault = PhasmidVault("vault.bin")
 
@@ -681,7 +681,7 @@ def _run_legacy_command(args) -> None:
                 warn("Local access path cleared.")
             except ValueError as exc:
                 info(f"Aborted: {exc}")
-                return 1
+                return
 
         elif args.command == "reset-face-lock":
             if not _confirm_face_lock_reset():
