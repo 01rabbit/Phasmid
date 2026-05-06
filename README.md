@@ -1,7 +1,7 @@
 # Phasmid
 
 <p align="center">
-  <img src="images/Phasmid_logo.png" alt="Phasmid logo" width="200">
+  <img src="images/Phasmid_logo.png" alt="Phasmid logo" width="350">
 </p>
 
 Phasmid is a field-evaluation prototype for local-only coercion-aware storage.
