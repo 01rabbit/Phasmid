@@ -492,7 +492,7 @@ async def emergency_page(request: Request):
         request=request,
         name="emergency.html",
         context=_template_context(
-            request, active="maintenance", restricted_confirmed=restricted_confirmed
+            request, active="emergency", restricted_confirmed=restricted_confirmed
         ),
     )
 
