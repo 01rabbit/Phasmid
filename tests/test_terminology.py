@@ -97,6 +97,12 @@ class TerminologyAuditTests(unittest.TestCase):
         internal_allowlist = {
             "src/phasmid/__init__.py",
             "src/phasmid/ai_gate.py",
+            "src/phasmid/camera_frame_source.py",
+            "src/phasmid/face_sample_matcher.py",
+            "src/phasmid/face_session_store.py",
+            "src/phasmid/local_state_crypto.py",
+            "src/phasmid/object_cue_matcher.py",
+            "src/phasmid/object_cue_store.py",
             "src/phasmid/vault_core.py",
             "src/phasmid/kdf_engine.py",
             "src/phasmid/record_cypher.py",

@@ -12,9 +12,30 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from phasmid import strings as text
 from phasmid.ai_gate import AIGate
+from phasmid.camera_frame_source import CameraFrameSource
+from phasmid.local_state_crypto import LocalStateCipher
+from phasmid.object_cue_matcher import ObjectCueMatcher
 
 
 class AIGateTemplateTests(unittest.TestCase):
+    def test_camera_frame_source_release_is_idempotent(self):
+        source = CameraFrameSource(frame_size=(640, 480))
+        source.release()
+        self.assertIsNone(source.cap)
+
+    def test_object_cue_matcher_provides_empty_reference_shape(self):
+        matcher = ObjectCueMatcher(
+            min_reference_keypoints=60,
+            min_frame_descriptors=10,
+            min_good_matches=50,
+            min_inliers=30,
+        )
+        empty = matcher.empty_reference()
+        self.assertEqual(
+            empty,
+            {"kp": None, "des": None, "shape": None, "pts": None, "path": None},
+        )
+
     def test_capture_similarity_message_is_neutral(self):
         with tempfile.TemporaryDirectory() as tmp:
             gate = AIGate(reference_dir=tmp)
@@ -171,6 +192,41 @@ class AIGateTemplateTests(unittest.TestCase):
         gate = AIGate()
         with self.assertRaises(ValueError):
             gate.sequence_for_mode("invalid")
+
+    def test_ai_gate_delegates_gray_conversion_to_matcher(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            frame = np.zeros((4, 4, 3), dtype=np.uint8)
+            expected = np.zeros((4, 4), dtype=np.uint8)
+            with mock.patch.object(
+                gate.matcher, "to_gray", return_value=expected
+            ) as to_gray:
+                result = gate._to_gray(frame)
+            to_gray.assert_called_once_with(frame)
+            self.assertIs(result, expected)
+
+    def test_ai_gate_close_releases_camera_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            with mock.patch.object(gate.camera, "release") as release:
+                gate.close()
+            release.assert_called_once_with()
+
+    def test_local_state_cipher_domain_separates_local_key_material(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            key_path = os.path.join(tmp, "lock.bin")
+            with open(key_path, "wb") as handle:
+                handle.write(b"k" * 32)
+
+            plain = LocalStateCipher(state_key_path=key_path, aad=b"plain")
+            scoped = LocalStateCipher(
+                state_key_path=key_path,
+                aad=b"scoped",
+                local_key_suffix=b":face-ui-lock",
+            )
+
+            self.assertEqual(plain.encryption_key(), b"k" * 32)
+            self.assertNotEqual(plain.encryption_key(), scoped.encryption_key())
 
 
 if __name__ == "__main__":

@@ -94,8 +94,8 @@ class WebServerBoundaryTests(unittest.TestCase):
 
     def test_status_uses_neutral_terms(self):
         with mock.patch.object(
-            web_server.gate,
-            "get_status",
+            web_server.access_cue_service,
+            "status",
             return_value={
                 "object_detected": True,
                 "matched_mode": "dummy",
@@ -119,7 +119,7 @@ class WebServerBoundaryTests(unittest.TestCase):
         with (
             mock.patch.object(web_server, "ui_face_lock_enabled", return_value=True),
             mock.patch.object(
-                web_server.face_lock, "session_valid", return_value=False
+                web_server.ui_face_lock_service, "session_valid", return_value=False
             ),
         ):
             with self.assertRaises(HTTPException) as ctx:
@@ -141,11 +141,11 @@ class WebServerBoundaryTests(unittest.TestCase):
                     web_server, "_recent_camera_frames", return_value=[object()]
                 ),
                 mock.patch.object(
-                    web_server.face_lock,
+                    web_server.ui_face_lock_service,
                     "verify_from_frames",
                     return_value=(True, "ok"),
                 ) as verify,
-                mock.patch.object(web_server.face_lock, "create_session") as create,
+                mock.patch.object(web_server.ui_face_lock_service, "create_session") as create,
             ):
                 response = await web_server.face_verify(request)
             verify.assert_called_once()
@@ -167,7 +167,7 @@ class WebServerBoundaryTests(unittest.TestCase):
                     web_server, "ui_face_lock_enabled", return_value=True
                 ),
                 mock.patch.object(
-                    web_server.face_lock, "session_valid", return_value=False
+                    web_server.ui_face_lock_service, "session_valid", return_value=False
                 ),
                 mock.patch.object(
                     web_server,
@@ -205,12 +205,16 @@ class WebServerBoundaryTests(unittest.TestCase):
             with (
                 mock.patch.object(web_server, "_access_attempts", limiter),
                 mock.patch.object(
-                    web_server,
-                    "get_gesture_sequence",
-                    return_value=[web_server.gate.MATCH_NONE],
+                    web_server.access_cue_service,
+                    "auth_sequence",
+                    return_value=[web_server.access_cue_service.match_none()],
+                ),
+                mock.patch.object(
+                    web_server.access_cue_service,
+                    "current_match_mode",
+                    return_value=web_server.access_cue_service.match_none(),
                 ),
             ):
-                web_server.gate.last_match_mode = web_server.gate.MATCH_NONE
                 first = await web_server.retrieve(request, password="wrong-passphrase")
                 second = await web_server.retrieve(request, password="wrong-passphrase")
             self.assertEqual(first["error"], web_server.text.NO_VALID_ENTRY_FOUND)
@@ -256,7 +260,7 @@ class WebServerBoundaryTests(unittest.TestCase):
                     web_server, "ui_face_lock_enabled", return_value=True
                 ),
                 mock.patch.object(
-                    web_server.gate, "generate_frames", return_value=iter([b"frame"])
+                    web_server.access_cue_service, "generate_frames", return_value=iter([b"frame"])
                 ),
             ):
                 response = await web_server.ui_lock_video_feed(request)
@@ -281,18 +285,18 @@ class WebServerBoundaryTests(unittest.TestCase):
                     web_server, "ui_face_enrollment_enabled", return_value=False
                 ),
                 mock.patch.object(
-                    web_server.face_lock, "enrollment_pending", return_value=False
+                    web_server.ui_face_lock_service, "enrollment_pending", return_value=False
                 ),
                 mock.patch.object(
-                    web_server.face_lock, "is_enrolled", return_value=False
+                    web_server.ui_face_lock_service, "is_enrolled", return_value=False
                 ),
                 mock.patch.object(
-                    web_server.face_lock,
+                    web_server.ui_face_lock_service,
                     "enroll_from_frames",
                     return_value=(True, "ok"),
                 ) as enroll,
                 mock.patch.object(
-                    web_server.face_lock, "clear_enrollment_request"
+                    web_server.ui_face_lock_service, "clear_enrollment_request"
                 ) as clear,
             ):
                 response = await web_server.face_enroll(request)
@@ -320,15 +324,15 @@ class WebServerBoundaryTests(unittest.TestCase):
                     web_server, "_recent_camera_frames", return_value=[object()]
                 ),
                 mock.patch.object(
-                    web_server.face_lock, "is_enrolled", return_value=False
+                    web_server.ui_face_lock_service, "is_enrolled", return_value=False
                 ),
                 mock.patch.object(
-                    web_server.face_lock,
+                    web_server.ui_face_lock_service,
                     "enroll_from_frames",
                     return_value=(True, "ok"),
                 ) as enroll,
                 mock.patch.object(
-                    web_server.face_lock, "clear_enrollment_request"
+                    web_server.ui_face_lock_service, "clear_enrollment_request"
                 ) as clear,
             ):
                 response = await web_server.face_enroll(request)
@@ -353,21 +357,21 @@ class WebServerBoundaryTests(unittest.TestCase):
                     web_server, "ui_face_enrollment_enabled", return_value=False
                 ),
                 mock.patch.object(
-                    web_server.face_lock, "enrollment_pending", return_value=True
+                    web_server.ui_face_lock_service, "enrollment_pending", return_value=True
                 ),
                 mock.patch.object(
                     web_server, "_recent_camera_frames", return_value=[object()]
                 ),
                 mock.patch.object(
-                    web_server.face_lock, "is_enrolled", return_value=False
+                    web_server.ui_face_lock_service, "is_enrolled", return_value=False
                 ),
                 mock.patch.object(
-                    web_server.face_lock,
+                    web_server.ui_face_lock_service,
                     "enroll_from_frames",
                     return_value=(True, "ok"),
                 ) as enroll,
                 mock.patch.object(
-                    web_server.face_lock, "clear_enrollment_request"
+                    web_server.ui_face_lock_service, "clear_enrollment_request"
                 ) as clear,
             ):
                 response = await web_server.face_enroll(request)
@@ -389,10 +393,10 @@ class WebServerBoundaryTests(unittest.TestCase):
                     web_server, "ui_face_lock_enabled", return_value=True
                 ),
                 mock.patch.object(
-                    web_server.face_lock, "is_enrolled", return_value=True
+                    web_server.ui_face_lock_service, "is_enrolled", return_value=True
                 ),
                 mock.patch.object(web_server, "_ui_unlocked", return_value=False),
-                mock.patch.object(web_server.face_lock, "enroll_from_frames") as enroll,
+                mock.patch.object(web_server.ui_face_lock_service, "enroll_from_frames") as enroll,
             ):
                 response = await web_server.face_enroll(request)
             enroll.assert_not_called()
@@ -412,10 +416,10 @@ class WebServerBoundaryTests(unittest.TestCase):
                     web_server, "ui_face_lock_enabled", return_value=True
                 ),
                 mock.patch.object(
-                    web_server.face_lock, "is_enrolled", return_value=True
+                    web_server.ui_face_lock_service, "is_enrolled", return_value=True
                 ),
                 mock.patch.object(web_server, "_ui_unlocked", return_value=True),
-                mock.patch.object(web_server.face_lock, "enroll_from_frames") as enroll,
+                mock.patch.object(web_server.ui_face_lock_service, "enroll_from_frames") as enroll,
             ):
                 response = await web_server.face_enroll(request)
             enroll.assert_not_called()
@@ -808,7 +812,7 @@ class WebServerBoundaryTests(unittest.TestCase):
                 ),
                 mock.patch.object(web_server.vault, "format_container") as init,
                 mock.patch.object(
-                    web_server.gate, "clear_references", return_value=(True, "ok")
+                    web_server.access_cue_service, "clear_references", return_value=(True, "ok")
                 ) as clear,
             ):
                 response = await web_server.emergency_initialize(

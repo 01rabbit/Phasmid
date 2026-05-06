@@ -24,7 +24,14 @@ The project is intended for USB gadget mode or localhost access. It is not a rep
 | `main.py` | Local CLI launcher |
 | `src/phasmid/cli.py` | CLI implementation |
 | `src/phasmid/vault_core.py` | Encrypted container logic |
-| `src/phasmid/ai_gate.py` | Camera input, object-cue registration, ORB matching |
+| `src/phasmid/ai_gate.py` | Camera input and object-cue orchestration |
+| `src/phasmid/camera_frame_source.py` | OpenCV camera capture lifecycle |
+| `src/phasmid/object_cue_matcher.py` | ORB-based object-cue matching logic |
+| `src/phasmid/object_cue_store.py` | Encrypted object-cue reference persistence |
+| `src/phasmid/face_lock.py` | Face UI lock orchestration and encrypted template lifecycle |
+| `src/phasmid/face_sample_matcher.py` | Face sample extraction and template comparison |
+| `src/phasmid/face_session_store.py` | In-memory UI face session and failure tracking |
+| `src/phasmid/local_state_crypto.py` | Shared AES-GCM helper for local state blobs and templates |
 | `src/phasmid/web_server.py` | FastAPI Web UI/API |
 | `src/phasmid/bridge_ui.py` | OpenCV status UI |
 | `src/phasmid/emergency_daemon.py` | Panic trigger watcher and local access-path clear flow |
