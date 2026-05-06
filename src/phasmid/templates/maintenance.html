@@ -6,6 +6,59 @@
 <style>
     .maintenance-header .badge { border-color: rgba(200,156,54,.35); color: var(--status-caution); background: rgba(200,156,54,.07); }
     .panel--maintenance { border-left-color: var(--status-caution); }
+    .action-sequence {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+    }
+    .action-sequence .sequence-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-secondary);
+    }
+    .action-sequence .sequence-label {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        height: 28px;
+        border-radius: var(--r-pill);
+        border: 1px solid var(--status-caution);
+        color: var(--status-caution);
+        font-family: "JetBrains Mono", "IBM Plex Mono", Consolas, monospace;
+        font-weight: 700;
+    }
+    .session-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 14px;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-left: 2px solid var(--status-ready);
+        border-radius: var(--r-md);
+        background: rgba(135,215,0,0.06);
+    }
+    .session-strip strong {
+        color: var(--status-ready);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-size: 12px;
+    }
+    .field code {
+        display: inline-block;
+        margin-top: 6px;
+        color: var(--accent-bright);
+    }
+    .action-result {
+        min-height: 24px;
+        margin-top: 12px;
+        color: var(--text-secondary);
+    }
+    .action-result[data-state="success"] { color: var(--status-ready); }
+    .action-result[data-state="error"] { color: var(--status-alert); }
 </style>
 {% endblock %}
 
@@ -23,21 +76,37 @@
         {% if field_mode and not restricted_confirmed %}
         <p class="copy">Field Mode is active. Sensitive maintenance details require restricted confirmation.</p>
         {% endif %}
+        <div class="action-sequence">
+            <div class="sequence-row"><span class="sequence-label">1</span><span>Confirm local control before exposing maintenance detail.</span></div>
+            <div class="sequence-row"><span class="sequence-label">2</span><span>Run one maintenance action at a time.</span></div>
+            <div class="sequence-row"><span class="sequence-label">3</span><span>Use restricted actions separately for local data-loss operations.</span></div>
+        </div>
         {{ ui.hero_metrics([
             {"label": "Scope", "value": "Local runtime only"},
             {"label": "Sensitive actions", "value": "Separated"},
             {"label": "Field Mode", "value": "Quiet by default" if field_mode else "Available"}
         ]) }}
+        {% if restricted_confirmed %}
+        <div class="session-strip">
+            <div>
+                <strong>Restricted confirmation active</strong>
+                <div class="copy">Maintenance detail is available until this confirmation expires.</div>
+            </div>
+            <span class="badge good"><span class="led led--ready"></span>{{ restricted_session_seconds_remaining }}s remaining</span>
+        </div>
+        {% else %}
         <details>
             <summary>Restricted confirmation</summary>
             <div class="detail-body">
                 <label class="field">
                     <span>Confirmation phrase</span>
-                    <input type="text" id="restrictedConfirmation" placeholder="{{ restricted_confirmation_phrase }}">
+                    <input type="text" id="restrictedConfirmation" placeholder="{{ restricted_confirmation_phrase }}" autocomplete="off">
+                    <code>{{ restricted_confirmation_phrase }}</code>
                 </label>
                 <button type="button" class="secondary small" data-action="confirm-restricted">Confirm local control</button>
             </div>
         </details>
+        {% endif %}
         <div class="status-grid" style="margin-top: 16px;">
             {% if field_mode and not restricted_confirmed %}
             {{ ui.status_card("Device Health", "deviceState", "Ready") }}
@@ -66,6 +135,7 @@
             <a class="button secondary" href="/maintenance/logs" id="exportLogs">Export logs</a>
             {% endif %}
         </div>
+        <div id="maintenanceResult" class="action-result" aria-live="polite"></div>
     </section>
     {% if not field_mode or restricted_confirmed %}
     <div class="split-grid">
@@ -103,8 +173,22 @@
 
 {% block scripts %}
 <script>
-    document.querySelector('[data-action="confirm-restricted"]').addEventListener('click', async () => {
-        if (await confirmRestrictedAction(document.getElementById('restrictedConfirmation').value)) {
+    function setMaintenanceResult(message, state) {
+        const el = document.getElementById('maintenanceResult');
+        if (!el) return;
+        el.textContent = message;
+        el.dataset.state = state || '';
+    }
+
+    async function ensureRestrictedConfirmation() {
+        const input = document.getElementById('restrictedConfirmation');
+        if (!input) return true;
+        return confirmRestrictedAction(input.value);
+    }
+
+    const confirmRestricted = document.querySelector('[data-action="confirm-restricted"]');
+    if (confirmRestricted) confirmRestricted.addEventListener('click', async () => {
+        if (await ensureRestrictedConfirmation()) {
             window.location.reload();
         }
     });
@@ -125,12 +209,14 @@
         const data = await res.json();
         if (data.web_token) webToken = data.web_token;
         toast(data.status || data.error || 'Token rotation finished.');
+        setMaintenanceResult(data.status || data.error || 'Token rotation finished.', data.status ? 'success' : 'error');
     });
 
     document.querySelector('[data-action="reset-session"]').addEventListener('click', async () => {
         const res = await apiFetch('/maintenance/reset_session', { method: 'POST', body: new URLSearchParams() });
         const data = await res.json();
         toast(data.status || data.error || 'Session reset finished.');
+        setMaintenanceResult(data.status || data.error || 'Session reset finished.', data.status ? 'success' : 'error');
     });
 
     const lockButton = document.querySelector('[data-action="lock-ui"]');
@@ -139,6 +225,7 @@
             const res = await apiFetch('/face/lock', { method: 'POST', body: new URLSearchParams() });
             const data = await res.json();
             toast(data.status || data.error || 'UI lock action finished.');
+            setMaintenanceResult(data.status || data.error || 'UI lock action finished.', data.status ? 'success' : 'error');
             if (data.status) window.location.href = '/ui-lock';
         });
     }
@@ -146,11 +233,12 @@
     const enrollButton = document.querySelector('[data-action="enroll-face"]');
     if (enrollButton) {
         enrollButton.addEventListener('click', async () => {
-            const confirmed = await confirmRestrictedAction(document.getElementById('restrictedConfirmation').value);
+            const confirmed = await ensureRestrictedConfirmation();
             if (!confirmed) return;
             const res = await apiFetch('/face/enroll', { method: 'POST', body: new URLSearchParams() });
             const data = await res.json();
             toast(data.status || data.error || 'Face enrollment finished.');
+            setMaintenanceResult(data.status || data.error || 'Face enrollment finished.', data.status ? 'success' : 'error');
         });
     }
 

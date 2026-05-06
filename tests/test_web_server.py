@@ -491,6 +491,30 @@ class WebServerBoundaryTests(unittest.TestCase):
             ):
                 response = await web_server.emergency_page(request)
             self.assertFalse(response.context["restricted_confirmed"])
+            self.assertEqual(response.context["restricted_session_seconds_remaining"], 0)
+
+        asyncio.run(run())
+
+    def test_emergency_page_reports_restricted_session_lifetime(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                cookies={web_server.RESTRICTED_SESSION_COOKIE: "token"},
+            )
+            with (
+                mock.patch.object(web_server, "_guard_page", return_value=None),
+                mock.patch.object(
+                    web_server, "_restricted_session_valid", return_value=True
+                ),
+                mock.patch.object(
+                    web_server,
+                    "_restricted_session_seconds_remaining",
+                    return_value=74,
+                ),
+            ):
+                response = await web_server.emergency_page(request)
+            self.assertTrue(response.context["restricted_confirmed"])
+            self.assertEqual(response.context["restricted_session_seconds_remaining"], 74)
 
         asyncio.run(run())
 
