@@ -1,5 +1,6 @@
 from .about import AboutScreen
 from .audit import AuditScreen
+from .confirm_modal import ConfirmModal
 from .create_vessel import CreateVesselScreen
 from .doctor import DoctorScreen
 from .face_manager import FaceManagerScreen
@@ -13,6 +14,7 @@ __all__ = [
     "HomeScreen",
     "AboutScreen",
     "AuditScreen",
+    "ConfirmModal",
     "DoctorScreen",
     "GuidedScreen",
     "InspectVesselScreen",

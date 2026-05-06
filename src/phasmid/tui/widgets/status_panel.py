@@ -38,7 +38,7 @@ class VesselSummaryPanel(Widget):
         self._vessel = vessel
 
     def compose(self) -> ComposeResult:
-        yield Static("Vessel Summary", classes="panel-title")
+        yield Static("VESSEL STATUS", classes="panel-title")
         if self._vessel is None:
             yield Static("No vessel selected.", classes="empty-msg")
         else:
@@ -61,7 +61,7 @@ class VesselSummaryPanel(Widget):
 
     def _build_children(self):
         from textual.widgets import Static as S
-        yield S("Vessel Summary", classes="panel-title")
+        yield S("VESSEL STATUS", classes="panel-title")
         if self._vessel is None:
             yield S("No vessel selected.", classes="empty-msg")
         else:

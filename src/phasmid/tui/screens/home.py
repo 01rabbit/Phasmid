@@ -42,6 +42,13 @@ class HomeScreen(Screen):
         dock: top;
         background: $background;
     }
+    HomeScreen #profile-status {
+        color: $text-muted;
+        padding: 0 4 1 4;
+        height: 1;
+        dock: top;
+        background: $background;
+    }
     HomeScreen #main-layout {
         height: 1fr;
         layout: horizontal;
@@ -68,6 +75,7 @@ class HomeScreen(Screen):
     def compose(self) -> ComposeResult:
         from textual.containers import Horizontal
         yield Static(COMPACT_BANNER, id="compact-banner", markup=False)
+        yield Static("", id="profile-status", markup=True)
         with Horizontal(id="main-layout"):
             yield VesselTable(id="vessel-panel")
             yield VesselSummaryPanel(id="summary-panel")
@@ -77,11 +85,18 @@ class HomeScreen(Screen):
     def on_mount(self) -> None:
         self._update_banner()
         self._refresh_vessels()
+        self._update_profile_status()
         self._log("Phasmid operator console ready.")
         self._run_startup_checks()
 
     def on_resize(self) -> None:
         self._update_banner()
+
+    def _update_profile_status(self) -> None:
+        name = self._profile.name if self._profile else "default"
+        vessel_count = len(self._vessels)
+        text = f"[dim]PROFILE:[/dim] {name}   [dim]VESSELS:[/dim] {vessel_count}"
+        self.query_one("#profile-status", Static).update(text)
 
     def _update_banner(self) -> None:
         force_compact = self._profile.compact_banner if self._profile else False
@@ -93,6 +108,10 @@ class HomeScreen(Screen):
         table = self.query_one(VesselTable)
         table.update_vessels(self._vessels)
         self._update_summary()
+        try:
+            self._update_profile_status()
+        except Exception:
+            pass
 
     def _update_summary(self) -> None:
         table = self.query_one(VesselTable)
@@ -140,15 +159,40 @@ class HomeScreen(Screen):
         self._log("Vessel list refreshed.")
 
     def action_open_vessel(self) -> None:
+        from .confirm_modal import ConfirmModal
         from .open_vessel import OpenVesselScreen
+
         table = self.query_one(VesselTable)
         vessel = table.selected_vessel
         path = str(vessel.path) if vessel else ""
-        self.app.push_screen(OpenVesselScreen(vessel_path=path))
+
+        def _on_confirm(result: bool | None) -> None:
+            if result:
+                self.app.push_screen(OpenVesselScreen(vessel_path=path))
+
+        self.app.push_screen(
+            ConfirmModal(
+                "VESSEL DISCLOSURE",
+                "You are about to disclose a vessel face.\nPassphrase will be required.",
+            ),
+            _on_confirm,
+        )
 
     def action_create_vessel(self) -> None:
+        from .confirm_modal import ConfirmModal
         from .create_vessel import CreateVesselScreen
-        self.app.push_screen(CreateVesselScreen())
+
+        def _on_confirm(result: bool | None) -> None:
+            if result:
+                self.app.push_screen(CreateVesselScreen())
+
+        self.app.push_screen(
+            ConfirmModal(
+                "NEW VESSEL INITIALIZATION",
+                "You are about to create a new deniable container.\nThis operation cannot be undone.",
+            ),
+            _on_confirm,
+        )
 
     def action_inspect_vessel(self) -> None:
         from .inspect_vessel import InspectVesselScreen
