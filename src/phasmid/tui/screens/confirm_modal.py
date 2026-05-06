@@ -18,7 +18,7 @@ class ConfirmModal(ModalScreen[bool]):
         align: center middle;
     }
     ConfirmModal #confirm-container {
-        width: 54;
+        width: 62;
         height: auto;
         background: $surface;
         border: solid $warning;
@@ -36,9 +36,15 @@ class ConfirmModal(ModalScreen[bool]):
         color: $text;
     }
     ConfirmModal #confirm-hint {
-        color: $text-muted;
+        color: $warning;
         text-align: center;
-        text-style: italic;
+        text-style: bold;
+        padding: 1 0 0 0;
+    }
+    ConfirmModal #confirm-hint-secondary {
+        color: $text;
+        text-align: center;
+        padding: 0 0 1 0;
     }
     """
 
@@ -53,7 +59,8 @@ class ConfirmModal(ModalScreen[bool]):
         with Container(id="confirm-container"):
             yield Static(self._title, id="confirm-title")
             yield Static(self._message, id="confirm-message")
-            yield Static("[y] Confirm   [n] Cancel", id="confirm-hint")
+            yield Static("Press Y to confirm", id="confirm-hint")
+            yield Static("Press N or Esc to cancel", id="confirm-hint-secondary")
 
     def action_confirm(self) -> None:
         self.dismiss(True)

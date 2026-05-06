@@ -55,10 +55,11 @@ class GuidedScreen(Screen):
         yield Static("OPERATOR WORKFLOWS", id="guided-title")
         with Horizontal(id="layout"):
             with Container(id="workflow-list-container"):
-                lv = ListView(id="workflow-list")
-                for wf in self._workflows:
-                    lv.append(ListItem(Static(wf.title)))
-                yield lv
+                yield ListView(
+                    *[ListItem(Static(wf.title)) for wf in self._workflows],
+                    id="workflow-list",
+                    initial_index=self._selected_idx,
+                )
             yield RichLog(id="workflow-detail", highlight=False, markup=True)
         yield Footer()
 
@@ -68,6 +69,7 @@ class GuidedScreen(Screen):
                 if wf.id == self._start_workflow:
                     self._selected_idx = i
                     break
+        self.query_one(ListView).index = self._selected_idx
         self._show_workflow(self._workflows[self._selected_idx])
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
