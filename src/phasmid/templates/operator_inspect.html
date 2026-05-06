@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Phasmid | Vessel Analysis{% endblock %}
+
+{% block content %}
+<div class="grid-single">
+    <section class="panel hero-panel">
+        <div class="panel-kicker">
+            <span class="eyebrow">Forensic-Neutral Analysis</span>
+        </div>
+        <div class="panel-head">
+            <h2>Vessel Analysis</h2>
+            <span class="badge neutral">Local only</span>
+        </div>
+        <p class="copy hero-copy">
+            Inspect a file for headers, magic bytes, and entropy without decrypting its contents.
+            Results are informational and do not assert vessel status.
+        </p>
+        <form id="inspectForm" method="post" enctype="multipart/form-data" style="margin-top:16px;">
+            <label class="field">
+                <span>File to inspect</span>
+                <input type="file" name="file" required>
+                <small>The file is read locally and not retained after analysis.</small>
+            </label>
+            <div class="actions tight">
+                <button type="submit">Inspect</button>
+            </div>
+        </form>
+    </section>
+
+    {% if result is not none %}
+    <section class="panel inspect-result is-visible">
+        <div class="panel-head">
+            <h2>Analysis Result</h2>
+            {% if result.error %}
+            <span class="badge bad">Error</span>
+            {% else %}
+            <span class="badge neutral">Complete</span>
+            {% endif %}
+        </div>
+
+        {% if result.error %}
+        <p class="copy" style="color:var(--status-alert);">{{ result.error }}</p>
+        {% else %}
+        <dl class="audit-kv">
+            {% for field in result.fields %}
+            <dt>{{ field.label }}</dt>
+            <dd>{{ field.value }}{% if field.note %} <span style="color:var(--text-muted);font-size:11px;">({{ field.note }})</span>{% endif %}</dd>
+            {% endfor %}
+        </dl>
+
+        {% if result.notes %}
+        <div style="margin-top:16px;">
+            <span class="section-label" style="display:block;margin-bottom:8px;">Notes</span>
+            {% for note in result.notes %}
+            <div class="check-row warn">
+                <span class="check-symbol">!</span>
+                <span class="check-detail">{{ note }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endif %}
+    </section>
+    {% endif %}
+
+    <section class="panel panel--neutral">
+        <h2>Analysis Scope</h2>
+        <p class="copy" style="margin-top:10px;">
+            This analysis checks for recognizable file headers, known magic bytes, and
+            byte-level entropy. High entropy and absent headers reduce the likelihood of
+            casual identification but do not guarantee deniability or security.
+            Vessel status is never asserted by this tool.
+        </p>
+    </section>
+</div>
+{% endblock %}
