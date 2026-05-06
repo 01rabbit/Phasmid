@@ -3,12 +3,13 @@ import io
 import os
 import time
 
-import cv2
 import numpy as np
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from .config import FACE_ENROLL_FLAG_NAME, FACE_TEMPLATE_NAME, STATE_KEY_NAME, state_dir
+from .face_sample_matcher import FaceSampleMatcher
+from .face_session_store import FaceSessionStore
 
 
 class FaceUILock:
@@ -32,12 +33,24 @@ class FaceUILock:
         self.template_path = os.path.join(self.state_dir, FACE_TEMPLATE_NAME)
         self.enrollment_path = os.path.join(self.state_dir, FACE_ENROLL_FLAG_NAME)
         self.state_key_path = os.path.join(self.state_dir, STATE_KEY_NAME)
-        cascade_path = os.path.join(
-            cv2.data.haarcascades, "haarcascade_frontalface_default.xml"
+        self.matcher = FaceSampleMatcher(
+            face_size=self.FACE_SIZE,
+            mse_threshold=self.MSE_THRESHOLD,
+            correlation_threshold=self.CORRELATION_THRESHOLD,
+            hist_threshold=self.HIST_THRESHOLD,
         )
-        self.detector = cv2.CascadeClassifier(cascade_path)
-        self.sessions = {}
-        self.failures = {}
+        self.session_store = FaceSessionStore(
+            ttl_seconds=self.SESSION_TTL_SECONDS,
+            verify_max_failures=self.VERIFY_MAX_FAILURES,
+        )
+
+    @property
+    def sessions(self):
+        return self.session_store.sessions
+
+    @property
+    def failures(self):
+        return self.session_store.failures
 
     def is_enrolled(self):
         return os.path.exists(self.template_path)
@@ -51,14 +64,14 @@ class FaceUILock:
             return False, "No usable face detected."
         templates = np.array(samples[: self.MAX_TEMPLATES], dtype=np.float32)
         self._write_templates(templates)
-        self.failures.clear()
+        self.session_store.clear_failures()
         return True, "Face UI lock enrolled."
 
     def verify_from_frame(self, frame, client_id):
         return self.verify_from_frames([frame], client_id)
 
     def verify_from_frames(self, frames, client_id):
-        if self.failures.get(client_id, 0) >= self.VERIFY_MAX_FAILURES:
+        if self.session_store.failure_count(client_id) >= self.VERIFY_MAX_FAILURES:
             return False, "Face lock is temporarily unavailable."
         try:
             templates = self._read_templates()
@@ -76,43 +89,23 @@ class FaceUILock:
                 good += 1
 
         if good >= min(self.VERIFY_REQUIRED, len(samples)):
-            self.failures.pop(client_id, None)
+            self.session_store.clear_failures(client_id)
             return True, "Face verified."
 
         self._record_failure(client_id)
         return False, "Face verification failed."
 
     def create_session(self, client_id, token):
-        self.sessions[token] = {
-            "client_id": client_id,
-            "expires_at": time.time()
-            + int(
-                os.environ.get(
-                    "PHASMID_UI_FACE_SESSION_SECONDS", self.SESSION_TTL_SECONDS
-                )
-            ),
-        }
+        self.session_store.create_session(client_id, token)
 
     def session_valid(self, client_id, token):
-        if not token:
-            return False
-        session = self.sessions.get(token)
-        if not session:
-            return False
-        if session["client_id"] != client_id:
-            return False
-        if session["expires_at"] < time.time():
-            self.sessions.pop(token, None)
-            return False
-        return True
+        return self.session_store.session_valid(client_id, token)
 
     def clear_session(self, token):
-        if token:
-            self.sessions.pop(token, None)
+        self.session_store.clear_session(token)
 
     def reset(self):
-        self.sessions.clear()
-        self.failures.clear()
+        self.session_store.reset()
         if not os.path.exists(self.template_path):
             return True, "Face UI lock is already clear."
         try:
@@ -170,43 +163,21 @@ class FaceUILock:
                 self.session_valid(client_id, token) if client_id is not None else False
             ),
             "max_failures": self.VERIFY_MAX_FAILURES,
-            "failures": self.failures.get(client_id, 0) if client_id is not None else 0,
+            "failures": (
+                self.session_store.failure_count(client_id)
+                if client_id is not None
+                else 0
+            ),
         }
 
     def _record_failure(self, client_id):
-        self.failures[client_id] = self.failures.get(client_id, 0) + 1
+        self.session_store.record_failure(client_id)
 
     def _collect_samples(self, frames):
-        samples = []
-        for frame in frames:
-            if frame is None:
-                continue
-            sample = self._face_sample(frame)
-            if sample is not None:
-                samples.append(sample)
-        return samples
+        return self.matcher.collect_samples(frames)
 
     def _face_sample(self, frame):
-        gray = cv2.equalizeHist(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))
-        faces = self.detector.detectMultiScale(
-            gray, scaleFactor=1.08, minNeighbors=4, minSize=(64, 64)
-        )
-        if len(faces) < 1:
-            return None
-        faces = sorted(faces, key=lambda item: item[2] * item[3], reverse=True)
-        x, y, w, h = faces[0]
-        pad_x = int(w * 0.15)
-        pad_y = int(h * 0.20)
-        x0 = max(0, x - pad_x)
-        y0 = max(0, y - pad_y)
-        x1 = min(gray.shape[1], x + w + pad_x)
-        y1 = min(gray.shape[0], y + h + pad_y)
-        face = gray[y0:y1, x0:x1]
-        if face.size == 0:
-            return None
-        resized = cv2.resize(face, self.FACE_SIZE, interpolation=cv2.INTER_AREA)
-        normalized = cv2.equalizeHist(resized).astype(np.float32)
-        return normalized
+        return self.matcher.face_sample(frame)
 
     def _write_templates(self, templates):
         payload = io.BytesIO()
@@ -273,32 +244,13 @@ class FaceUILock:
         return b"phasmid-ui-face-lock:v1"
 
     def _correlation(self, left, right):
-        left_flat = left.reshape(-1)
-        right_flat = right.reshape(-1)
-        left_norm = left_flat - np.mean(left_flat)
-        right_norm = right_flat - np.mean(right_flat)
-        denom = float(np.linalg.norm(left_norm) * np.linalg.norm(right_norm))
-        if denom == 0.0:
-            return 0.0
-        return float(np.dot(left_norm, right_norm) / denom)
+        return self.matcher.correlation(left, right)
 
     def _matches_any_template(self, sample, templates):
-        for template in templates:
-            mse = float(np.mean((sample - template) ** 2))
-            corr = self._correlation(sample, template)
-            hist = self._histogram_similarity(sample, template)
-            if mse <= self.MSE_THRESHOLD and (
-                corr >= self.CORRELATION_THRESHOLD or hist >= self.HIST_THRESHOLD
-            ):
-                return True
-        return False
+        return self.matcher.matches_any_template(sample, templates)
 
     def _histogram_similarity(self, left, right):
-        left_hist = cv2.calcHist([left.astype(np.uint8)], [0], None, [32], [0, 256])
-        right_hist = cv2.calcHist([right.astype(np.uint8)], [0], None, [32], [0, 256])
-        cv2.normalize(left_hist, left_hist)
-        cv2.normalize(right_hist, right_hist)
-        return float(cv2.compareHist(left_hist, right_hist, cv2.HISTCMP_CORREL))
+        return self.matcher.histogram_similarity(left, right)
 
 
 face_lock = FaceUILock()

@@ -10,7 +10,9 @@ from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from . import strings as text
+from .camera_frame_source import CameraFrameSource
 from .config import STATE_BLOB_NAME, STATE_KEY_NAME, state_dir
+from .object_cue_matcher import ObjectCueMatcher
 
 
 class AIGate:
@@ -35,7 +37,6 @@ class AIGate:
     TARGET_FPS = 5
 
     def __init__(self, reference_dir=None):
-        self.cap = None
         self._stop_event = threading.Event()
         self.lock = threading.Lock()
         self.latest_frame = None
@@ -54,8 +55,13 @@ class AIGate:
         self.match_states = {mode: False for mode in self.MODES}
         self.match_history = []
 
-        self.orb = cv2.ORB_create(nfeatures=1000)
-        self.bf = cv2.BFMatcher(cv2.NORM_HAMMING)
+        self.matcher = ObjectCueMatcher(
+            min_reference_keypoints=self.MIN_REFERENCE_KEYPOINTS,
+            min_frame_descriptors=self.MIN_FRAME_DESCRIPTORS,
+            min_good_matches=self.MIN_GOOD_MATCHES,
+            min_inliers=self.MIN_INLIERS,
+        )
+        self.camera = CameraFrameSource(frame_size=self.FRAME_SIZE)
 
         self.reference_data = {mode: self._empty_reference() for mode in self.MODES}
         self._load_references()
@@ -63,122 +69,33 @@ class AIGate:
         self._thread = None
 
     def _empty_reference(self):
-        return {
-            "kp": None,
-            "des": None,
-            "shape": None,
-            "pts": None,
-            "path": None,
-        }
+        return self.matcher.empty_reference()
 
     def _validate_mode(self, mode):
         if mode not in self.MODES:
             raise ValueError("unsupported local entry")
 
     def _reference_state_from_image(self, image):
-        if image is None:
-            return None
-
-        gray = self._to_gray(image)
-        kp, des = self.orb.detectAndCompute(gray, None)
-        if not kp or len(kp) < self.MIN_REFERENCE_KEYPOINTS or des is None:
-            return None
-
-        h, w = gray.shape
-        return {
-            "kp": kp,
-            "des": des,
-            "shape": (h, w),
-            "pts": np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(
-                -1, 1, 2
-            ),
-            "path": None,
-        }
+        return self.matcher.reference_state_from_image(image)
 
     def _to_gray(self, image):
-        return cv2.equalizeHist(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+        return self.matcher.to_gray(image)
 
     def _reference_state_from_arrays(self, des, kp_data, shape):
-        kp = [
-            cv2.KeyPoint(
-                x=float(row[0]),
-                y=float(row[1]),
-                size=float(row[2]),
-                angle=float(row[3]),
-                response=float(row[4]),
-                octave=int(row[5]),
-                class_id=int(row[6]),
-            )
-            for row in kp_data
-        ]
-        if not kp or des is None or len(kp) < self.MIN_REFERENCE_KEYPOINTS:
-            return self._empty_reference()
-
-        shape = tuple(int(v) for v in shape)
-        h, w = shape
-        return {
-            "kp": kp,
-            "des": des,
-            "shape": shape,
-            "pts": np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(
-                -1, 1, 2
-            ),
-            "path": self.state_blob_path,
-        }
+        state = self.matcher.reference_state_from_arrays(des, kp_data, shape)
+        if state["des"] is not None:
+            state["path"] = self.state_blob_path
+        return state
 
     def _load_references(self):
         with self.lock:
             self.reference_data = self._read_reference_blob()
 
     def _match_reference_state(self, ref_state, frame_gray):
-        ref_des = ref_state["des"]
-        ref_kp = ref_state["kp"]
-        ref_pts = ref_state["pts"]
-        if ref_des is None or ref_kp is None or ref_pts is None:
-            return None
-
-        kp, des = self.orb.detectAndCompute(frame_gray, None)
-        if des is None or len(des) <= self.MIN_FRAME_DESCRIPTORS:
-            return None
-
-        return self._match_descriptors(ref_state, kp, des)
+        return self.matcher.match_reference_state(ref_state, frame_gray)
 
     def _match_descriptors(self, ref_state, kp, des):
-        ref_des = ref_state["des"]
-        ref_kp = ref_state["kp"]
-        if ref_des is None or ref_kp is None or des is None or kp is None:
-            return None
-
-        matches = self.bf.knnMatch(ref_des, des, k=2)
-        good_matches = []
-        for pair in matches:
-            if len(pair) < 2:
-                continue
-            m, n = pair
-            if m.distance < 0.75 * n.distance:
-                good_matches.append(m)
-
-        if len(good_matches) <= self.MIN_GOOD_MATCHES:
-            return None
-
-        src_pts = np.float32([ref_kp[m.queryIdx].pt for m in good_matches]).reshape(
-            -1, 1, 2
-        )
-        dst_pts = np.float32([kp[m.trainIdx].pt for m in good_matches]).reshape(
-            -1, 1, 2
-        )
-        homography, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
-        if homography is None or mask is None:
-            return None
-
-        inliers = int(mask.ravel().tolist().count(1))
-        if inliers <= self.MIN_INLIERS:
-            return None
-
-        return {
-            "homography": homography,
-            "inliers": inliers,
-        }
+        return self.matcher.match_descriptors(ref_state, kp, des)
 
     def _references_too_similar(self, mode, candidate_state):
         other_mode = "secret" if mode == "dummy" else "dummy"
@@ -524,15 +441,10 @@ class AIGate:
         )
 
     def generate_frames(self):
-        if self.cap is None:
-            self.cap = cv2.VideoCapture(0)
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.FRAME_SIZE[0])
-            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.FRAME_SIZE[1])
-
         frame_delay = 1.0 / self.TARGET_FPS
         while not self._stop_event.is_set():
             loop_start = time.time()
-            success, frame = self.cap.read()
+            success, frame = self.camera.read()
             if not success:
                 continue
 
@@ -567,9 +479,7 @@ class AIGate:
 
     def close(self):
         self._stop_event.set()
-        if self.cap:
-            self.cap.release()
-            self.cap = None
+        self.camera.release()
         if self._thread:
             self._thread.join()
             self._thread = None

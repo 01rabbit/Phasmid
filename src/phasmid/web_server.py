@@ -25,7 +25,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from . import strings as text
-from .ai_gate import gate, get_gesture_sequence
 from .attempt_limiter import AttemptLimiter
 from .audit import audit_event
 from .capabilities import Capability, active_policy, capability_enabled
@@ -39,7 +38,6 @@ from .config import (
     ui_face_lock_enabled,
 )
 from .crypto_boundary import ensure_crypto_self_tests
-from .face_lock import face_lock
 from .kdf_providers import hardware_binding_status
 from .metadata import metadata_risk_report, scrub_metadata
 from .passphrase_policy import check_store_passphrases
@@ -53,11 +51,20 @@ from .restricted_actions import (
     RestrictedActionRejected,
     evaluate_restricted_action,
 )
+from .services.access_cue_service import access_cue_service
 from .services.audit_service import build_audit_report
 from .services.doctor_service import run_doctor_checks
 from .services.guided_service import get_workflows
 from .services.inspection_service import inspect_vessel
+from .services.ui_face_lock_service import ui_face_lock_service
 from .vault_core import PhasmidVault
+
+gate = access_cue_service.gate
+face_lock = ui_face_lock_service.face_lock
+
+
+def get_gesture_sequence(length=1):
+    return access_cue_service.auth_sequence(length=length)
 
 app = FastAPI(title="Phasmid - Local Secure Interface")
 app.mount(
@@ -89,8 +96,8 @@ _restricted_sessions = {}
 _access_attempts = AttemptLimiter()
 
 ENTRY_TO_MODE = {
-    "entry_1": gate.MODES[0],
-    "entry_2": gate.MODES[1],
+    "entry_1": access_cue_service.modes()[0],
+    "entry_2": access_cue_service.modes()[1],
 }
 LEGACY_SELECTOR_TO_ENTRY = {
     "prof" + "ile_a": "entry_1",
@@ -169,7 +176,9 @@ def _restricted_session_token(request):
 def _ui_unlocked(request):
     if not ui_face_lock_enabled():
         return True
-    return face_lock.session_valid(_client_id(request), _face_session_token(request))
+    return ui_face_lock_service.session_valid(
+        _client_id(request), _face_session_token(request)
+    )
 
 
 def _face_lock_status(request):
@@ -181,13 +190,15 @@ def _face_lock_status(request):
             "failures": 0,
             "max_failures": 0,
         }
-    return face_lock.status(_client_id(request), _face_session_token(request))
+    return ui_face_lock_service.status(
+        _client_id(request), _face_session_token(request)
+    )
 
 
 def _face_enrollment_allowed():
-    if not face_lock.is_enrolled():
+    if not ui_face_lock_service.is_enrolled():
         return True
-    return ui_face_enrollment_enabled() or face_lock.enrollment_pending()
+    return ui_face_enrollment_enabled() or ui_face_lock_service.enrollment_pending()
 
 
 def require_ui_unlock(request: Request):
@@ -273,8 +284,7 @@ def _guard_page(request):
 def _recent_camera_frames(count=FACE_FRAME_SAMPLES, delay=FACE_FRAME_DELAY_SECONDS):
     frames = []
     for _ in range(count):
-        with gate.lock:
-            frame = None if gate.latest_frame is None else gate.latest_frame.copy()
+        frame = access_cue_service.latest_frame_copy()
         if frame is not None:
             frames.append(frame)
         time.sleep(delay)
@@ -349,18 +359,17 @@ def _deceptive_path(original_path: str):
 
 
 def _raw_gate_status():
-    return gate.get_status()
+    return access_cue_service.status()
 
 
 def neutral_status():
     raw = _raw_gate_status()
     matched_mode = raw.get("matched_mode")
-    with gate.lock:
-        camera_ready = gate.latest_frame is not None
+    camera_ready = access_cue_service.camera_ready()
 
-    if matched_mode == gate.MATCH_AMBIGUOUS:
+    if matched_mode == access_cue_service.match_ambiguous():
         object_state = "ambiguous"
-    elif matched_mode in gate.AUTH_TOKENS:
+    elif matched_mode in access_cue_service.auth_tokens():
         object_state = "matched"
     elif raw.get("object_detected"):
         object_state = "detected"
@@ -403,7 +412,7 @@ def _first_unbound_entry():
 
 def _matched_entry():
     matched_mode = _raw_gate_status().get("matched_mode")
-    if matched_mode in gate.AUTH_TOKENS:
+    if matched_mode in access_cue_service.auth_tokens():
         return mode_to_entry(matched_mode)
     return None
 
@@ -424,7 +433,7 @@ def _select_entry_for_store(entry_hint=None, overwrite=False):
 
 
 def _capture_entry_binding(mode):
-    success, message = gate.capture_reference(mode)
+    success, message = access_cue_service.capture_reference(mode)
     if not success:
         return False, "Object binding failed. Retry capture."
     return True, message
@@ -533,7 +542,7 @@ async def ui_lock_page(request: Request):
 @app.get("/video_feed", dependencies=[Depends(require_ui_unlock)])
 async def video_feed():
     return StreamingResponse(
-        gate.generate_frames(),
+        access_cue_service.generate_frames(),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )
 
@@ -543,7 +552,7 @@ async def ui_lock_video_feed(request: Request):
     if not ui_face_lock_enabled():
         raise HTTPException(status_code=404, detail="face lock disabled")
     return StreamingResponse(
-        gate.generate_frames(),
+        access_cue_service.generate_frames(),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )
 
@@ -565,17 +574,17 @@ async def face_enroll(request: Request):
     require_capability(Capability.FACE_ENROLL)
     if not ui_face_lock_enabled():
         return {"error": "Face UI lock is disabled."}
-    if not face_lock.is_enrolled() and not _face_enrollment_allowed():
+    if not ui_face_lock_service.is_enrolled() and not _face_enrollment_allowed():
         return {"error": "Face enrollment is disabled for this session."}
-    if face_lock.is_enrolled() and not _ui_unlocked(request):
+    if ui_face_lock_service.is_enrolled() and not _ui_unlocked(request):
         return {"error": "UI must be unlocked before replacing the face lock."}
-    if face_lock.is_enrolled() and not _restricted_session_valid(request):
+    if ui_face_lock_service.is_enrolled() and not _restricted_session_valid(request):
         return {
             "error": "Restricted confirmation required. Please confirm local control and retry."
         }
-    success, message = face_lock.enroll_from_frames(_recent_camera_frames())
+    success, message = ui_face_lock_service.enroll_from_frames(_recent_camera_frames())
     if success:
-        face_lock.clear_enrollment_request()
+        ui_face_lock_service.clear_enrollment_request()
         audit_event("ui_face_lock_enrolled", source="web")
         return {"status": message}
     return {"error": message}
@@ -588,13 +597,15 @@ async def face_verify(request: Request):
     if not ui_face_lock_enabled():
         return {"error": "Face UI lock is disabled."}
     client_id = _client_id(request)
-    success, message = face_lock.verify_from_frames(_recent_camera_frames(), client_id)
+    success, message = ui_face_lock_service.verify_from_frames(
+        _recent_camera_frames(), client_id
+    )
     if not success:
         audit_event("ui_face_lock_failed", source="web")
         return {"error": message}
 
     token = secrets.token_urlsafe(32)
-    face_lock.create_session(client_id, token)
+    ui_face_lock_service.create_session(client_id, token)
     audit_event("ui_face_lock_unlocked", source="web")
     response = JSONResponse({"status": text.UI_UNLOCKED})
     response.set_cookie(
@@ -602,7 +613,8 @@ async def face_verify(request: Request):
         token,
         max_age=int(
             os.environ.get(
-                "PHASMID_UI_FACE_SESSION_SECONDS", face_lock.SESSION_TTL_SECONDS
+                "PHASMID_UI_FACE_SESSION_SECONDS",
+                ui_face_lock_service.session_ttl_seconds,
             )
         ),
         httponly=True,
@@ -613,7 +625,7 @@ async def face_verify(request: Request):
 
 @app.post("/face/lock", dependencies=[Depends(require_web_token)])
 async def face_lock_session(request: Request):
-    face_lock.clear_session(_face_session_token(request))
+    ui_face_lock_service.clear_session(_face_session_token(request))
     _restricted_sessions.pop(_restricted_session_token(request), None)
     response = JSONResponse({"status": text.UI_LOCKED_FEEDBACK})
     response.delete_cookie(FACE_SESSION_COOKIE)
@@ -764,7 +776,7 @@ async def store(
         vault.store(
             password,
             data,
-            gate.sequence_for_mode(mode),
+            access_cue_service.sequence_for_mode(mode),
             filename=orig_filename,
             mode=mode,
             restricted_recovery_password=restricted_recovery_password or None,
@@ -833,15 +845,15 @@ async def retrieve(request: Request, password: str = Form(...)):
     attempt_scope = f"web:{_client_id(request)}"
     if not _access_attempts.check(attempt_scope).allowed:
         return {"error": text.ACCESS_TEMPORARILY_UNAVAILABLE}
-    auth_sequence = get_gesture_sequence(length=1)
-    if gate.last_match_mode == gate.MATCH_AMBIGUOUS:
+    auth_sequence = access_cue_service.auth_sequence(length=1)
+    if access_cue_service.current_match_mode() == access_cue_service.match_ambiguous():
         _access_attempts.record_failure(attempt_scope)
         return {"error": text.AMBIGUOUS_OBJECT_MATCH}
-    if auth_sequence[0] == gate.MATCH_NONE:
+    if auth_sequence[0] == access_cue_service.match_none():
         _access_attempts.record_failure(attempt_scope)
         return {"error": text.NO_VALID_ENTRY_FOUND}
 
-    for mode in gate.MODES:
+    for mode in access_cue_service.modes():
         result, filename, password_role = vault.retrieve_with_policy(
             password, auth_sequence, mode=mode
         )
@@ -858,7 +870,7 @@ async def retrieve(request: Request, password: str = Form(...)):
         purge_applied = _purge_for_password_role(mode, password_role, source="web")
         if result is not None:
             # Release camera to save power and heat after successful retrieval
-            gate.close()
+            access_cue_service.close()
         _access_attempts.record_success(attempt_scope)
         if not purge_applied:
             purge_applied = _maybe_auto_purge(mode, source="web")
@@ -915,7 +927,7 @@ async def emergency_initialize(request: Request, confirmation: str = Form(...)):
     enforce_rate_limit(request)
     require_restricted_action("initialize_container", request, confirmation)
     vault.format_container(rotate_access_key=True)
-    success, message = gate.clear_references()
+    success, message = access_cue_service.clear_references()
     if not success:
         return {"error": message}
     audit_event("container_reinitialized", source="web")
@@ -1021,7 +1033,7 @@ async def export_logs(request: Request):
 
 def _maybe_auto_purge(accessed_mode, source):
     reason = None
-    if duress_mode_enabled() and accessed_mode == gate.MODES[0]:
+    if duress_mode_enabled() and accessed_mode == access_cue_service.modes()[0]:
         reason = "duress_access"
     elif not purge_confirmation_required():
         reason = "confirmation_disabled"
