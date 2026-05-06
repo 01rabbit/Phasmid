@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, cast
+
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
@@ -12,6 +14,9 @@ from ..banner import COMPACT_BANNER, get_banner
 from ..widgets.event_log import EventLog
 from ..widgets.status_panel import VesselSummaryPanel
 from ..widgets.vessel_table import VesselTable
+
+if TYPE_CHECKING:
+    from ..app import PhasmidApp
 
 
 class HomeScreen(Screen):
@@ -115,7 +120,8 @@ class HomeScreen(Screen):
     def refresh_webui_status(self) -> None:
         """Update the visibility of the WebUI warning banner."""
         banner = self.query_one("#webui-warning-banner", Static)
-        is_running = self.app.webui_svc.is_running()
+        app = cast("PhasmidApp", self.app)
+        is_running = app.webui_svc.is_running()
         banner.display = is_running
         if is_running:
             self._log("WebUI is currently exposed.", "warn")
