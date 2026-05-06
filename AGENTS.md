@@ -53,7 +53,6 @@ The following issues were resolved in order and merged to `main` via pull reques
 
 ### Other Open Priority Issues
 
-- **#38 Lightweight Recognition Evaluation**: Evaluate lightweight local face/object model candidates after camera refactor, with Raspberry Pi Zero 2 W benchmark evidence.
 - **#28 Dual-Passphrase Approval Analysis**: Design local dual-passphrase approval flow and threat tradeoffs.
 - **#18 Restricted-Recovery Observability Analysis**: Measure observability characteristics on target hardware.
 
@@ -73,6 +72,7 @@ The following issues were resolved in order and merged to `main` via pull reques
 - `#16`: Release integrity manifest and SBOM workflow (optional Ed25519 manifest signing). ✅
 - `#20`: Multi-object cue and visual sequence evaluation artifacts, neutral policy-gate prototype, and recommendation baseline. ✅
 - `#27`: AI gate decoupling (camera, cue matching/persistence, face-lock/session boundaries, service integration). ✅
+- `#38`: Lightweight recognition evaluation: LBP histogram face recognizer, ORB/AKAZE parametric object matcher, offline benchmark harness, and Pi Zero 2 W measurement plan. Hardware validation pending. ✅
 - `#39`: JES Neon-Ops design system: CSS token overhaul and component updates. ✅
 - `#40`: Operator Console navigation group and WebUI exposure warning banner. ✅
 - `#41`: Backend API endpoints and Operator pages (Doctor, Audit, Guided, Inspect). ✅
