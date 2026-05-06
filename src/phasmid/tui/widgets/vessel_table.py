@@ -4,8 +4,7 @@ from typing import cast
 
 from textual.app import ComposeResult
 from textual.widget import Widget
-from textual.widgets import DataTable, Label, Static
-
+from textual.widgets import DataTable, Label
 
 from ...models.vessel import VesselMeta
 from ...services.vessel_service import redact_path
