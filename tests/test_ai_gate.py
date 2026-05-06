@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 from phasmid import strings as text
 from phasmid.ai_gate import AIGate
 from phasmid.camera_frame_source import CameraFrameSource
+from phasmid.local_state_crypto import LocalStateCipher
 from phasmid.object_cue_matcher import ObjectCueMatcher
 
 
@@ -210,6 +211,22 @@ class AIGateTemplateTests(unittest.TestCase):
             with mock.patch.object(gate.camera, "release") as release:
                 gate.close()
             release.assert_called_once_with()
+
+    def test_local_state_cipher_domain_separates_local_key_material(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            key_path = os.path.join(tmp, "lock.bin")
+            with open(key_path, "wb") as handle:
+                handle.write(b"k" * 32)
+
+            plain = LocalStateCipher(state_key_path=key_path, aad=b"plain")
+            scoped = LocalStateCipher(
+                state_key_path=key_path,
+                aad=b"scoped",
+                local_key_suffix=b":face-ui-lock",
+            )
+
+            self.assertEqual(plain.encryption_key(), b"k" * 32)
+            self.assertNotEqual(plain.encryption_key(), scoped.encryption_key())
 
 
 if __name__ == "__main__":

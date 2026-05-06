@@ -1,15 +1,13 @@
-import hashlib
 import io
 import os
 import time
 
 import numpy as np
-from cryptography.exceptions import InvalidTag
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from .config import FACE_ENROLL_FLAG_NAME, FACE_TEMPLATE_NAME, STATE_KEY_NAME, state_dir
 from .face_sample_matcher import FaceSampleMatcher
 from .face_session_store import FaceSessionStore
+from .local_state_crypto import LocalStateCipher
 
 
 class FaceUILock:
@@ -33,6 +31,11 @@ class FaceUILock:
         self.template_path = os.path.join(self.state_dir, FACE_TEMPLATE_NAME)
         self.enrollment_path = os.path.join(self.state_dir, FACE_ENROLL_FLAG_NAME)
         self.state_key_path = os.path.join(self.state_dir, STATE_KEY_NAME)
+        self.state_cipher = LocalStateCipher(
+            state_key_path=self.state_key_path,
+            aad=self._aad(),
+            local_key_suffix=b":face-ui-lock",
+        )
         self.matcher = FaceSampleMatcher(
             face_size=self.FACE_SIZE,
             mse_threshold=self.MSE_THRESHOLD,
@@ -193,15 +196,11 @@ class FaceUILock:
     def _read_templates(self):
         with open(self.template_path, "rb") as handle:
             data = handle.read()
-        if len(data) <= 12:
-            raise ValueError("face template is too short")
-        nonce, ciphertext = data[:12], data[12:]
-        try:
-            plaintext = AESGCM(self._state_encryption_key()).decrypt(
-                nonce, ciphertext, self._aad()
-            )
-        except InvalidTag as exc:
-            raise ValueError("face template authentication failed") from exc
+        plaintext = self.state_cipher.decrypt(
+            data,
+            too_short_message="face template is too short",
+            auth_failed_message="face template authentication failed",
+        )
         with np.load(io.BytesIO(plaintext), allow_pickle=False) as payload:
             if "templates" in payload:
                 templates = payload["templates"].astype(np.float32)
@@ -211,34 +210,13 @@ class FaceUILock:
             return payload["template"].astype(np.float32).reshape((1, *self.FACE_SIZE))
 
     def _encrypt(self, plaintext):
-        nonce = os.urandom(12)
-        return nonce + AESGCM(self._state_encryption_key()).encrypt(
-            nonce, plaintext, self._aad()
-        )
+        return self.state_cipher.encrypt(plaintext)
 
     def _state_encryption_key(self):
-        external_value = os.environ.get("PHASMID_STATE_SECRET")
-        if external_value:
-            return hashlib.sha256(external_value.encode("utf-8")).digest()
-        return hashlib.sha256(
-            self._load_or_create_local_state_key() + b":face-ui-lock"
-        ).digest()
+        return self.state_cipher.encryption_key()
 
     def _load_or_create_local_state_key(self):
-        if os.path.exists(self.state_key_path):
-            with open(self.state_key_path, "rb") as handle:
-                key = handle.read()
-            if len(key) == 32:
-                return key
-
-        key = os.urandom(32)
-        with open(self.state_key_path, "wb") as handle:
-            handle.write(key)
-        try:
-            os.chmod(self.state_key_path, 0o600)
-        except OSError:
-            pass
-        return key
+        return self.state_cipher._load_or_create_local_state_key()
 
     def _aad(self):
         return b"phasmid-ui-face-lock:v1"

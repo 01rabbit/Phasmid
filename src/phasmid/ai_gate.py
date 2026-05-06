@@ -1,4 +1,3 @@
-import hashlib
 import io
 import os
 import threading
@@ -6,12 +5,11 @@ import time
 
 import cv2
 import numpy as np
-from cryptography.exceptions import InvalidTag
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from . import strings as text
 from .camera_frame_source import CameraFrameSource
 from .config import STATE_BLOB_NAME, STATE_KEY_NAME, state_dir
+from .local_state_crypto import LocalStateCipher
 from .object_cue_matcher import ObjectCueMatcher
 
 
@@ -49,6 +47,10 @@ class AIGate:
             pass
         self.state_blob_path = os.path.join(self.reference_dir, STATE_BLOB_NAME)
         self.state_key_path = os.path.join(self.reference_dir, STATE_KEY_NAME)
+        self.state_cipher = LocalStateCipher(
+            state_key_path=self.state_key_path,
+            aad=self._template_aad(self.state_blob_path),
+        )
 
         self.object_detected = False
         self.last_match_mode = self.MATCH_NONE
@@ -184,48 +186,22 @@ class AIGate:
         return references
 
     def _encrypt_template(self, plaintext, path):
-        nonce = os.urandom(12)
-        key = self._state_encryption_key()
-        aad = self._template_aad(path)
-        return nonce + AESGCM(key).encrypt(nonce, plaintext, aad)
+        return self.state_cipher.encrypt(plaintext)
 
     def _read_encrypted_template(self, path):
         with open(path, "rb") as handle:
             data = handle.read()
-        if len(data) <= 12:
-            raise ValueError("reference template is too short")
-
-        nonce, ciphertext = data[:12], data[12:]
-        try:
-            return AESGCM(self._state_encryption_key()).decrypt(
-                nonce,
-                ciphertext,
-                self._template_aad(path),
-            )
-        except InvalidTag as exc:
-            raise ValueError("reference template authentication failed") from exc
+        return self.state_cipher.decrypt(
+            data,
+            too_short_message="reference template is too short",
+            auth_failed_message="reference template authentication failed",
+        )
 
     def _state_encryption_key(self):
-        external_value = os.environ.get("PHASMID_STATE_SECRET")
-        if external_value:
-            return hashlib.sha256(external_value.encode("utf-8")).digest()
-        return self._load_or_create_local_state_key()
+        return self.state_cipher.encryption_key()
 
     def _load_or_create_local_state_key(self):
-        if os.path.exists(self.state_key_path):
-            with open(self.state_key_path, "rb") as handle:
-                key = handle.read()
-            if len(key) == 32:
-                return key
-
-        key = os.urandom(32)
-        with open(self.state_key_path, "wb") as handle:
-            handle.write(key)
-        try:
-            os.chmod(self.state_key_path, 0o600)
-        except OSError:
-            pass
-        return key
+        return self.state_cipher._load_or_create_local_state_key()
 
     def _template_aad(self, path):
         return f"phasmid-reference-state:{os.path.basename(path)}".encode("utf-8")
