@@ -4,6 +4,8 @@ This procedure evaluates local leakage, operational clarity, recovery behavior, 
 
 Physical shock resistance and tamper-resistant casing are out of scope for the Raspberry Pi Zero 2 W prototype. This procedure evaluates local leakage, offline operation, key separation, power-loss behavior, response headers, logs, and user-error resistance.
 
+The planned macOS-controlled remote SSH harness for running and collecting parts of this procedure is tracked in GitHub issues `#89` through `#94`. Until that harness is implemented, this procedure remains the authoritative manual validation checklist for Raspberry Pi Zero 2 W field testing.
+
 ## Boot and Service
 
 - Boot without network dependency.

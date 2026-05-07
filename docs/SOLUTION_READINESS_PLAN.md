@@ -35,6 +35,8 @@ Phasmid remains a field-evaluation prototype until all of these readiness gates 
 9. validation results are recorded in `docs/REVIEW_VALIDATION_RECORD.md`;
 10. README claims match the validation record.
 
+Implementation planning for the Raspberry Pi Zero 2 W remote field-test harness is tracked in GitHub issues `#89` through `#94`. Those issues support readiness gate 2, but gate 2 remains open until the harness is implemented, run on target hardware, and the results are recorded.
+
 ## Release Discipline
 
 Each release candidate should record:
@@ -79,3 +81,5 @@ Remote management platform.
 Current status is defined by `docs/REVIEW_VALIDATION_RECORD.md`.
 
 At the time this plan was added, automated tests had passed on a development machine, and target-hardware validation had not yet been recorded.
+
+As of 2026-05-08, the Raspberry Pi Zero 2 W validation workflow is planned and tracked in GitHub issues `#89` through `#94`, but target-hardware validation is still not recorded.

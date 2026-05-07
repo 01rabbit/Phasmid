@@ -55,6 +55,15 @@ Target-hardware validation result:
 Not yet recorded.
 ```
 
+Tracking note:
+
+```text
+The Raspberry Pi Zero 2 W remote field-test harness and reporting workflow are
+tracked in GitHub issues #89 through #94. Those issues are planning and
+implementation work only; they do not satisfy target-hardware validation by
+themselves.
+```
+
 ## Observability Measurements
 
 Offline probe results (development host — code-path structure only, not hardware timing):

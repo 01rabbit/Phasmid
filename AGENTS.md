@@ -1,7 +1,7 @@
 # AGENTS.md
 
 > **Notice**: This file is the primary context entry point for AI-assisted development.
-> It defines the project boundaries, security invariants, and the current roadmap.
+> It defines the project boundaries, security invariants, and the current work focus.
 
 ## 0. Quick Start for AI Agents
 
@@ -27,9 +27,9 @@ Use this file to keep AI-assisted changes small, scoped, and consistent with the
 
 ## Project Status & Roadmap
 
-### Current Focus: JES Operator Interface — Post-Unification Stabilization
+### Current Focus: JES Operator Interface — Post-Unification Stabilization and Pi Zero 2 W Validation Planning
 
-The JES Operator Interface unification work is now merged into **`main`**. The current focus is stabilizing the unified operator experience, preserving WebUI/TUI terminology parity, and continuing follow-on work without reintroducing branch-specific assumptions. Design concept: *政府機関・軍 × DEFCONハッカー* — institutional structure with terminal-hacker aesthetic.
+The JES Operator Interface unification work is now merged into **`main`**. The current focus is stabilizing the unified operator experience, preserving WebUI/TUI terminology parity, continuing follow-on work without reintroducing branch-specific assumptions, and preparing the Raspberry Pi Zero 2 W target-hardware validation track. Design concept: *政府機関・軍 × DEFCONハッカー* — institutional structure with terminal-hacker aesthetic.
 
 ### Active Branch
 
@@ -39,57 +39,18 @@ The JES Operator Interface unification work is now merged into **`main`**. The c
 
 Target: maintain and harden the unified JES operator surface on `main`.
 
-### WebUI Redesign — Completed Sequence
-
-The following issues were resolved in order and merged to `main` via pull request `#44`:
-
-| Order | Issue | Phase | Description |
-|-------|-------|-------|-------------|
-| 1 | **#39** | Phase 1–2 | JES Neon-Ops design system: CSS token overhaul, component updates |
-| 2 | **#40** | Phase 3 | Operator Console navigation group + WebUI exposure warning banner |
-| 3 | **#41** | Phase 0+4 | Backend API endpoints + Operator pages (Doctor, Audit, Guided, Inspect) |
-| 4 | **#42** | Phase 5 | WebUI/TUI terminology alignment (Disclosure Face, Passphrase, JES) |
-| 5 | **#43** | Phase 6–7 | Brand polish and animation update (cyan glow, phosphor green) |
-
 ### Other Open Priority Issues
 
-- No open priority issues are currently listed here. Add new items as post-unification work is prioritized.
+- `#89`: Tracking issue for the Raspberry Pi Zero 2 W remote field-test harness and validation workflow.
+- `#90`: Phase 1 — remote harness skeleton and safe execution contract.
+- `#91`: Phase 2 — repository synchronization and remote Python environment preparation.
+- `#92`: Phase 3 — system inventory, import baseline, and CLI baseline measurements.
+- `#93`: Phase 4 — vault, KDF, object-cue, WebUI, and TUI viability probes.
+- `#94`: Phase 5 — structured result artifacts and operator documentation.
 
-### Completed Milestones
+These issues define the current target-hardware validation implementation track. They do not mean Raspberry Pi Zero 2 W validation has already been completed.
 
-- `#8` & `#9`: CI pipeline with static analysis (`ruff`, `mypy`) and 70% coverage gate. ✅
-- `#19`: Multi-source KDF provider pipeline with hardware binding. ✅
-- `#31`: Audit log hash-chaining and integrity verification. ✅
-- `#32`: Hardware-binding status reporting for field-evaluation units. ✅
-- `#22`: Centralized restricted action policy enforcement. ✅
-- `#30`: Rigorous metadata scrubbing for JPEG, PNG, and Office ZIP formats. ✅
-- `#23`: Typed local state store with atomic transitions. ✅
-- `#24`: Local coercion scenario matrix and restricted-flow tests. ✅
-- `#25`: Centralized user-visible strings in `strings.py`. ✅
-- `#26`: Vault cryptographic core split (KDFEngine / RecordCipher / ContainerLayout). ✅
-- `#29`: Local operations commands (`doctor`, `verify-state`) and documentation alignment. ✅
-- `#16`: Release integrity manifest and SBOM workflow (optional Ed25519 manifest signing). ✅
-- `#20`: Multi-object cue and visual sequence evaluation artifacts, neutral policy-gate prototype, and recommendation baseline. ✅
-- `#27`: AI gate decoupling (camera, cue matching/persistence, face-lock/session boundaries, service integration). ✅
-- `#28`: Dual-passphrase approval flow: local supervisor role store (PBKDF2+AES-GCM), in-memory request/grant lifecycle, TTL enforcement, threat analysis, and optional gate (PHASMID_DUAL_APPROVAL). ✅
-- `#38`: Lightweight recognition evaluation: LBP histogram face recognizer, ORB/AKAZE parametric object matcher, offline benchmark harness, and Pi Zero 2 W measurement plan. Hardware validation pending. ✅
-- `#39`: JES Neon-Ops design system: CSS token overhaul and component updates. ✅
-- `#40`: Operator Console navigation group and WebUI exposure warning banner. ✅
-- `#41`: Backend API endpoints and Operator pages (Doctor, Audit, Guided, Inspect). ✅
-- `#42`: WebUI/TUI terminology alignment (Disclosure Face, Passphrase, JES). ✅
-- `#43`: Brand polish and animation update (cyan glow, phosphor green). ✅
-- TUI Operator Console: full Textual-based operator console. ✅
-- WebUI redesign gap fixes, including frame-lock animation, toast variants, and Store capture flow. ✅
-- `#18`: Restricted-recovery observability analysis (offline path measurement harness, timing and write-channel analysis, Pi Zero 2 W measurement plan). ✅
-- `#3`: Observable difference reduction — response/header neutrality tests, timing normalization documentation. ✅
-- `#4`: Cryptographic erase formalization — key-material invalidation sequence spec, ordering tests, best-effort overwrite language. ✅
-- `#5`: Argon2id + HKDF-SHA-256 key schedule design — domain-separated subkey module (`kdf_subkeys.py`), deterministic test vectors, v4 design documented in SPECIFICATION.md. ✅
-- `#11`: Process hardening — `process_hardening.py` (umask, RLIMIT_CORE, prctl, mlockall), integrated at CLI/WebUI startup, Doctor page status check. ✅
-- `#12`: Volatile key-material store — `volatile_state.py`, `PHASMID_TMPFS_STATE` env var, startup validation, Doctor check, tmpfs systemd setup guide in appliance docs. ✅
-- `#17`: LUKS documentation — systemd ordering example (crypttab + fstab + Requires), boot/fail-closed procedure in `RPI_ZERO_APPLIANCE_DEPLOYMENT.md`. ✅
-- `#1`: Threat model structured STRIDE analysis — `docs/THREAT_ANALYSIS_STRIDE.md` covering all six STRIDE categories with controls and residual risks; `docs/THREAT_MODEL.md` updated with cross-reference. ✅
-- `#13`: Device binding input evaluation — `docs/DEVICE_BINDING_ANALYSIS.md` covering CPU serial, machine-id, SD CID, and deploy-time seed; current `HardwareBindingProvider` confirmed as correct approach. ✅
-- `#14`: Threshold split-key recovery evaluation — `docs/SPLIT_KEY_RECOVERY_ANALYSIS.md` evaluating split files, memorized values, Shamir threshold schemes, and removable media; no custom SSS implementation; recommends reviewed external tool. ✅
+Historical roadmap detail, completed milestone history, and the WebUI redesign sequence are maintained in `docs/ROADMAP_HISTORY.md`. Keep this file focused on active context, not long-form project history.
 
 ---
 
