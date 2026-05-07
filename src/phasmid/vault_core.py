@@ -6,16 +6,22 @@ from cryptography.exceptions import InvalidTag
 from .config import VAULT_KEY_NAME
 from .config import state_dir as default_state_dir
 from .container_layout import ContainerLayout
+from .crypto_params import (
+    ARGON2_ITERATIONS,
+    ARGON2_LANES,
+    ARGON2_MEMORY_COST,
+    VAULT_FORMAT_VERSION,
+)
 from .kdf_engine import KDFEngine
 from .record_cypher import RecordCipher
 
 
 class PhasmidVault:
-    FORMAT_VERSION = 3
+    FORMAT_VERSION = VAULT_FORMAT_VERSION
     MIN_CONTAINER_SIZE = 4096
-    ARGON2_ITERATIONS = 2
-    ARGON2_LANES = 1
-    ARGON2_MEMORY_COST = 32768
+    ARGON2_ITERATIONS = ARGON2_ITERATIONS
+    ARGON2_LANES = ARGON2_LANES
+    ARGON2_MEMORY_COST = ARGON2_MEMORY_COST
     SALT_SIZE = RecordCipher.SALT_SIZE
     NONCE_SIZE = RecordCipher.NONCE_SIZE
     OPEN_ROLE = RecordCipher.OPEN_ROLE

@@ -5,6 +5,13 @@ import os
 from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
 
 from .config import VAULT_KEY_NAME
+from .crypto_params import (
+    ACCESS_KEY_SIZE,
+    ARGON2_ITERATIONS,
+    ARGON2_KEY_LENGTH,
+    ARGON2_LANES,
+    ARGON2_MEMORY_COST,
+)
 from .kdf_providers import (
     EnvSecretProvider,
     FileSecretProvider,
@@ -17,10 +24,10 @@ from .kdf_providers import (
 class KDFEngine:
     """Handles Argon2id key derivation and local access key management."""
 
-    ARGON2_ITERATIONS = 2
-    ARGON2_LANES = 1
-    ARGON2_MEMORY_COST = 32768
-    ACCESS_KEY_SIZE = 32
+    ARGON2_ITERATIONS = ARGON2_ITERATIONS
+    ARGON2_LANES = ARGON2_LANES
+    ARGON2_MEMORY_COST = ARGON2_MEMORY_COST
+    ACCESS_KEY_SIZE = ACCESS_KEY_SIZE
 
     def __init__(self, state_dir: str):
         self.state_dir = state_dir
@@ -45,7 +52,7 @@ class KDFEngine:
         """Derive a 32-byte key using Argon2id."""
         kdf = Argon2id(
             salt=salt,
-            length=32,
+            length=ARGON2_KEY_LENGTH,
             iterations=self.ARGON2_ITERATIONS,
             lanes=self.ARGON2_LANES,
             memory_cost=self.ARGON2_MEMORY_COST,

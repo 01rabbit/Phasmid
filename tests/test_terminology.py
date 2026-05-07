@@ -121,6 +121,7 @@ class TerminologyAuditTests(unittest.TestCase):
             "src/phasmid/lightweight_face_recognizer.py",
             "src/phasmid/lightweight_object_matcher.py",
             "src/phasmid/recognition_benchmark.py",
+            "src/phasmid/crypto_params.py",
         }
         self.assertEqual(all_modules, scanned | internal_allowlist)
 

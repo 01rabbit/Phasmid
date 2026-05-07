@@ -19,6 +19,7 @@ The hash uses PBKDF2-HMAC-SHA-256 with a random 32-byte salt (100 000 iterations
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
 from dataclasses import dataclass
@@ -26,10 +27,9 @@ from enum import Enum
 
 from . import strings as text
 from .config import ROLE_STATE_NAME, STATE_KEY_NAME, state_dir
+from .crypto_params import PBKDF2_DKLEN, PBKDF2_ITERATIONS, PBKDF2_SALT_SIZE
 from .local_state_crypto import LocalStateCipher
 
-_PBKDF2_ITERATIONS = 100_000
-_PBKDF2_DKLEN = 32
 _SCHEMA_VERSION = 1
 
 
@@ -79,7 +79,7 @@ class RoleStore:
         """Hash *passphrase* and store it.  Overwrites any previous value."""
         if not passphrase:
             return False, text.DUAL_APPROVAL_SUPERVISOR_NOT_CONFIGURED
-        salt = os.urandom(32)
+        salt = os.urandom(PBKDF2_SALT_SIZE)
         digest = self._hash(passphrase, salt)
         payload = {
             "schema": _SCHEMA_VERSION,
@@ -121,8 +121,7 @@ class RoleStore:
         salt = bytes.fromhex(stored["salt"])
         expected = bytes.fromhex(stored["hash"])
         actual = self._hash(passphrase, salt)
-        # Constant-time comparison
-        if not _constant_time_equal(actual, expected):
+        if not hmac.compare_digest(actual, expected):
             return RoleVerificationResult(
                 verified=False,
                 role=Role.SUPERVISOR,
@@ -161,8 +160,8 @@ class RoleStore:
             "sha256",
             passphrase.encode("utf-8"),
             salt,
-            _PBKDF2_ITERATIONS,
-            dklen=_PBKDF2_DKLEN,
+            PBKDF2_ITERATIONS,
+            dklen=PBKDF2_DKLEN,
         )
 
     def _read_supervisor(self) -> dict[str, str]:
@@ -180,10 +179,3 @@ class RoleStore:
         return {str(k): str(v) for k, v in supervisor.items()}
 
 
-def _constant_time_equal(a: bytes, b: bytes) -> bool:
-    if len(a) != len(b):
-        return False
-    result = 0
-    for x, y in zip(a, b, strict=False):
-        result |= x ^ y
-    return result == 0
