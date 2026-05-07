@@ -1,5 +1,4 @@
 import io
-import os
 import secrets
 import time
 import urllib.parse
@@ -30,10 +29,16 @@ from .audit import audit_event
 from .capabilities import Capability, active_policy, capability_enabled
 from .config import (
     AUDIT_LOG_NAME,
+    audit_enabled,
     duress_mode_enabled,
     field_mode_enabled,
+    max_upload_bytes,
     purge_confirmation_required,
+    restricted_session_seconds,
     state_dir,
+    web_host,
+    web_port,
+    web_token_env,
 )
 from .crypto_boundary import ensure_crypto_self_tests
 from .kdf_providers import hardware_binding_status
@@ -75,14 +80,12 @@ async def startup_self_tests():
 
 templates = Jinja2Templates(directory=str(Path(__file__).with_name("templates")))
 vault = PhasmidVault("vault.bin")
-WEB_TOKEN = os.environ.get("PHASMID_WEB_TOKEN") or secrets.token_urlsafe(32)
-MAX_UPLOAD_BYTES = int(os.environ.get("PHASMID_MAX_UPLOAD_BYTES", 25 * 1024 * 1024))
+WEB_TOKEN = web_token_env() or secrets.token_urlsafe(32)
+MAX_UPLOAD_BYTES = max_upload_bytes()
 RATE_LIMIT_WINDOW = 60
 RATE_LIMIT_MAX = 20
 RESTRICTED_SESSION_COOKIE = "phasmid_restricted_session"
-RESTRICTED_SESSION_TTL_SECONDS = int(
-    os.environ.get("PHASMID_RESTRICTED_SESSION_SECONDS", 120)
-)
+RESTRICTED_SESSION_TTL_SECONDS = restricted_session_seconds()
 _restricted_sessions = {}
 _access_attempts = AttemptLimiter()
 
@@ -457,7 +460,7 @@ async def maintenance_page(request: Request):
             request,
             active="maintenance",
             restricted_confirmed=restricted_confirmed,
-            audit_enabled=os.environ.get("PHASMID_AUDIT", "0"),
+            audit_enabled="1" if audit_enabled() else "0",
             state_path=(
                 state_dir()
                 if (not field_mode_enabled() or restricted_confirmed)
@@ -912,8 +915,7 @@ async def diagnostics(request: Request):
                 "hardware_binding": binding_status,
                 "state_directory": state_dir(),
                 "storage_node": _deceptive_path(state_dir()),
-                "audit_enabled": os.environ.get("PHASMID_AUDIT", "0").lower()
-                not in {"0", "false", "off", "no"},
+                "audit_enabled": audit_enabled(),
                 "upload_limit_bytes": MAX_UPLOAD_BYTES,
             }
         )
@@ -1088,9 +1090,7 @@ async def operator_inspect_post(
     try:
         inspection = inspect_vessel(tmp_path)
     finally:
-        import os as _os
-
-        _os.unlink(tmp_path)
+        Path(tmp_path).unlink()
     result: dict[str, object] | None = None
     if inspection.error:
         result = {"error": inspection.error, "fields": [], "notes": []}
@@ -1111,8 +1111,8 @@ async def operator_inspect_post(
 
 
 if __name__ == "__main__":
-    host = os.environ.get("PHASMID_HOST", "127.0.0.1")
-    port = int(os.environ.get("PHASMID_PORT", "8000"))
+    host = web_host()
+    port = web_port()
     print(f"[WEB] Starting on http://{host}:{port}")
     print("[WEB] Mutating requests require X-Phasmid-Token from the served UI.")
     __import__("uvicorn").run(app, host=host, port=port)

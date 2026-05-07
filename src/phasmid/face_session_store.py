@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import os
 import time
+
+from .config import ui_face_session_seconds
 
 
 class FaceSessionStore:
@@ -16,10 +17,7 @@ class FaceSessionStore:
     def create_session(self, client_id: str, token: str) -> None:
         self.sessions[token] = {
             "client_id": client_id,
-            "expires_at": time.time()
-            + int(
-                os.environ.get("PHASMID_UI_FACE_SESSION_SECONDS", self.ttl_seconds)
-            ),
+            "expires_at": time.time() + ui_face_session_seconds(self.ttl_seconds),
         }
 
     def session_valid(self, client_id: str, token: str) -> bool:

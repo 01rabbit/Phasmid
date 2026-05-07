@@ -47,5 +47,19 @@ jobs:
           python -m coverage report -m
           python -m coverage report --fail-under=70
 
+      - name: Check claims coverage
+        run: |
+          python scripts/check_claims_coverage.py \
+            --claims-file docs/CLAIMS.md \
+            --tests-dir tests \
+            --output /tmp/phasmid-release/claims_coverage.json \
+            --max-unverified 8
+
       - name: Generate release review artifacts
         run: python scripts/generate_release_artifacts.py --output-dir /tmp/phasmid-release --archive
+
+      - name: Upload release review artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: phasmid-release-review
+          path: /tmp/phasmid-release

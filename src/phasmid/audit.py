@@ -5,7 +5,13 @@ import os
 import time
 from datetime import datetime, timezone
 
-from .config import AUDIT_AUTH_NAME, AUDIT_LOG_NAME, state_dir
+from .config import (
+    AUDIT_AUTH_NAME,
+    AUDIT_LOG_NAME,
+    audit_enabled,
+    audit_filename_mode,
+    state_dir,
+)
 
 AUDIT_VERSION = "2.0"
 GENESIS_HASH = "sha256:GENESIS"
@@ -155,7 +161,7 @@ def _sanitize_fields(fields):
         if key == "filename":
             if value:
                 sanitized["filename_present"] = "yes"
-                if os.environ.get("PHASMID_AUDIT_FILENAMES") == "hash":
+                if audit_filename_mode() == "hash":
                     filename = os.path.basename(str(value))
                     sanitized["filename_hash"] = hashlib.sha256(
                         filename.encode("utf-8")
@@ -168,5 +174,4 @@ def _sanitize_fields(fields):
 
 
 def _audit_enabled():
-    value = os.environ.get("PHASMID_AUDIT", "0").lower()
-    return value not in {"0", "false", "off", "no"}
+    return audit_enabled()

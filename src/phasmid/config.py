@@ -13,11 +13,34 @@ FACE_ENROLL_FLAG_NAME = "face.enroll"
 ROLE_STATE_NAME = "roles.bin"
 
 
+def env_text(name: str, default: str = "") -> str:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return str(value)
+
+
+def env_int(name: str, default: int, minimum: int | None = None) -> int:
+    raw = env_text(name, str(default))
+    try:
+        value = int(raw)
+    except ValueError:
+        value = default
+    if minimum is not None:
+        return max(minimum, value)
+    return value
+
+
 def state_dir():
-    tmpfs = os.environ.get("PHASMID_TMPFS_STATE")
+    tmpfs = tmpfs_state_dir()
     if tmpfs:
         return tmpfs
-    return os.environ.get("PHASMID_STATE_DIR", DEFAULT_STATE_DIR)
+    return env_text("PHASMID_STATE_DIR", DEFAULT_STATE_DIR)
+
+
+def tmpfs_state_dir() -> str | None:
+    value = env_text("PHASMID_TMPFS_STATE", "").strip()
+    return value or None
 
 
 def env_flag(name, default=False):
@@ -48,28 +71,92 @@ def field_mode_enabled():
 
 
 def passphrase_min_length():
-    value = os.environ.get("PHASMID_MIN_PASSPHRASE_LENGTH", "10")
-    try:
-        return max(1, int(value))
-    except ValueError:
-        return 10
+    return env_int("PHASMID_MIN_PASSPHRASE_LENGTH", 10, minimum=1)
 
 
 def access_max_failures():
-    value = os.environ.get("PHASMID_ACCESS_MAX_FAILURES", "5")
-    try:
-        return max(1, int(value))
-    except ValueError:
-        return 5
+    return env_int("PHASMID_ACCESS_MAX_FAILURES", 5, minimum=1)
 
 
 def access_lockout_seconds():
-    value = os.environ.get("PHASMID_ACCESS_LOCKOUT_SECONDS", "60")
-    try:
-        return max(1, int(value))
-    except ValueError:
-        return 60
+    return env_int("PHASMID_ACCESS_LOCKOUT_SECONDS", 60, minimum=1)
 
 
 def dual_approval_enabled():
     return env_flag("PHASMID_DUAL_APPROVAL", default=False)
+
+
+def web_host() -> str:
+    return env_text("PHASMID_HOST", "127.0.0.1")
+
+
+def web_port() -> int:
+    return env_int("PHASMID_PORT", 8000, minimum=1)
+
+
+def web_token_env() -> str:
+    return env_text("PHASMID_WEB_TOKEN", "").strip()
+
+
+def max_upload_bytes() -> int:
+    return env_int("PHASMID_MAX_UPLOAD_BYTES", 25 * 1024 * 1024, minimum=1)
+
+
+def restricted_session_seconds() -> int:
+    return env_int("PHASMID_RESTRICTED_SESSION_SECONDS", 120, minimum=1)
+
+
+def audit_enabled() -> bool:
+    return env_flag("PHASMID_AUDIT", default=False)
+
+
+def audit_filename_mode() -> str:
+    return env_text("PHASMID_AUDIT_FILENAMES", "").strip().lower()
+
+
+def profile_name() -> str:
+    return env_text("PHASMID_PROFILE", "standard").strip().lower()
+
+
+def hardware_secret_file() -> str:
+    return env_text("PHASMID_HARDWARE_SECRET_FILE", "").strip()
+
+
+def hardware_secret_value() -> str:
+    return env_text("PHASMID_HARDWARE_SECRET", "")
+
+
+def hardware_secret_prompt_enabled() -> bool:
+    return env_text("PHASMID_HARDWARE_SECRET_PROMPT", "") == "1"
+
+
+def state_secret() -> str:
+    return env_text("PHASMID_STATE_SECRET", "")
+
+
+def debug_enabled() -> bool:
+    return env_flag("PHASMID_DEBUG", default=False)
+
+
+def doctor_recent_seconds() -> int:
+    return env_int("PHASMID_DOCTOR_RECENT_SECONDS", 86400, minimum=1)
+
+
+def display_enabled() -> bool:
+    return env_flag("PHASMID_ENABLE_DISPLAY", default=False)
+
+
+def ui_face_session_seconds(default_seconds: int) -> int:
+    return env_int("PHASMID_UI_FACE_SESSION_SECONDS", default_seconds, minimum=1)
+
+
+def ui_face_enroll_seconds(default_seconds: int) -> int:
+    return env_int("PHASMID_UI_FACE_ENROLL_SECONDS", default_seconds, minimum=1)
+
+
+def tui_dark_enabled() -> bool:
+    return env_flag("PHASMID_DARK", default=False)
+
+
+def tui_light_enabled() -> bool:
+    return env_flag("PHASMID_LIGHT", default=False)

@@ -4,7 +4,12 @@ import os
 
 from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
 
-from .config import VAULT_KEY_NAME
+from .config import (
+    VAULT_KEY_NAME,
+    hardware_secret_file,
+    hardware_secret_prompt_enabled,
+    hardware_secret_value,
+)
 from .crypto_params import (
     ACCESS_KEY_SIZE,
     ARGON2_ITERATIONS,
@@ -13,11 +18,11 @@ from .crypto_params import (
     ARGON2_MEMORY_COST,
 )
 from .kdf_providers import (
-    EnvSecretProvider,
     FileSecretProvider,
     HardwareBindingProvider,
     PromptSecretProvider,
     SecretProvider,
+    StaticSecretProvider,
 )
 
 
@@ -33,11 +38,11 @@ class KDFEngine:
         self.state_dir = state_dir
         self.access_key_path = os.path.join(state_dir, VAULT_KEY_NAME)
         self.providers: list[SecretProvider] = [
-            FileSecretProvider(os.environ.get("PHASMID_HARDWARE_SECRET_FILE", "")),
-            EnvSecretProvider("PHASMID_HARDWARE_SECRET"),
+            FileSecretProvider(hardware_secret_file()),
+            StaticSecretProvider(hardware_secret_value()),
             HardwareBindingProvider(),
         ]
-        if os.environ.get("PHASMID_HARDWARE_SECRET_PROMPT") == "1":
+        if hardware_secret_prompt_enabled():
             self.providers.append(PromptSecretProvider())
 
     def derive_key(

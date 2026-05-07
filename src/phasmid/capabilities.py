@@ -1,6 +1,7 @@
-import os
 from dataclasses import dataclass
 from enum import Enum
+
+from .config import profile_name
 
 
 class Capability(str, Enum):
@@ -74,7 +75,7 @@ POLICIES = {
 
 
 def active_policy() -> DeploymentPolicy:
-    selected = os.environ.get("PHASMID_PROFILE", "standard").strip().lower()
+    selected = profile_name()
     return POLICIES.get(selected, POLICIES["standard"])
 
 

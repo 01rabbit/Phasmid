@@ -9,7 +9,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from ..config import state_dir
+from ..config import debug_enabled, doctor_recent_seconds, state_dir
 from ..models.doctor import DoctorCheck, DoctorLevel, DoctorResult
 from ..process_hardening import hardening_status
 from ..volatile_state import check_volatile_state, volatile_state_path
@@ -242,8 +242,7 @@ def _check_process_hardening() -> DoctorCheck:
 
 
 def _check_debug_logging() -> DoctorCheck:
-    debug = os.environ.get("PHASMID_DEBUG", "").lower()
-    if debug in ("1", "true", "yes"):
+    if debug_enabled():
         return DoctorCheck(
             name="Debug Logging",
             level=DoctorLevel.WARN,
@@ -437,7 +436,7 @@ def _check_recent_file_activity(vault_path: Path) -> DoctorCheck:
             message=f"Could not inspect vault timestamps: {exc}",
         )
     now = time.time()
-    threshold = int(os.environ.get("PHASMID_DOCTOR_RECENT_SECONDS", "86400"))
+    threshold = doctor_recent_seconds()
     if now - max(st.st_mtime, st.st_atime) <= threshold:
         return DoctorCheck(
             name="Recent File Activity",

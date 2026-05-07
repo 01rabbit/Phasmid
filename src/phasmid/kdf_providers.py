@@ -5,6 +5,12 @@ import os
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 
+from .config import (
+    hardware_secret_file,
+    hardware_secret_prompt_enabled,
+    hardware_secret_value,
+)
+
 
 class SecretProvider(ABC):
     @abstractmethod
@@ -31,6 +37,17 @@ class FileSecretProvider(SecretProvider):
             return None
         with open(self.file_path, "rb") as handle:
             return handle.read().strip()
+
+
+class StaticSecretProvider(SecretProvider):
+    def __init__(self, value: str | bytes):
+        if isinstance(value, str):
+            self.value = value.encode("utf-8")
+        else:
+            self.value = value
+
+    def get_secret(self) -> bytes | None:
+        return self.value or None
 
 
 class HardwareBindingProvider(SecretProvider):
@@ -80,12 +97,12 @@ class HardwareBindingStatus:
 
 def hardware_binding_status(path: str = "/proc/cpuinfo") -> HardwareBindingStatus:
     provider = HardwareBindingProvider(path=path)
-    file_path = os.environ.get("PHASMID_HARDWARE_SECRET_FILE", "")
+    file_path = hardware_secret_file()
     external_binding_configured = any(
         (
-            bool(os.environ.get("PHASMID_HARDWARE_SECRET")),
+            bool(hardware_secret_value()),
             bool(file_path and os.path.exists(file_path)),
-            os.environ.get("PHASMID_HARDWARE_SECRET_PROMPT") == "1",
+            hardware_secret_prompt_enabled(),
         )
     )
     device_binding = provider.get_secret()

@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+from pathlib import Path
 from unittest import mock
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
@@ -72,6 +73,47 @@ class ConfigTests(unittest.TestCase):
         ):
             self.assertEqual(config.access_max_failures(), 2)
             self.assertEqual(config.access_lockout_seconds(), 9)
+
+    def test_web_host_and_port_defaults_and_invalid(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(config.web_host(), "127.0.0.1")
+            self.assertEqual(config.web_port(), 8000)
+        with mock.patch.dict(os.environ, {"PHASMID_PORT": "bad"}, clear=True):
+            self.assertEqual(config.web_port(), 8000)
+        with mock.patch.dict(os.environ, {"PHASMID_PORT": "0"}, clear=True):
+            self.assertEqual(config.web_port(), 1)
+
+    def test_runtime_flags_and_limits(self):
+        with mock.patch.dict(
+            os.environ,
+            {
+                "PHASMID_AUDIT": "1",
+                "PHASMID_DEBUG": "true",
+                "PHASMID_MAX_UPLOAD_BYTES": "8192",
+                "PHASMID_RESTRICTED_SESSION_SECONDS": "42",
+                "PHASMID_DOCTOR_RECENT_SECONDS": "120",
+            },
+            clear=True,
+        ):
+            self.assertTrue(config.audit_enabled())
+            self.assertTrue(config.debug_enabled())
+            self.assertEqual(config.max_upload_bytes(), 8192)
+            self.assertEqual(config.restricted_session_seconds(), 42)
+            self.assertEqual(config.doctor_recent_seconds(), 120)
+
+    def test_no_direct_phasmid_env_reads_outside_config(self):
+        root = Path(ROOT) / "src" / "phasmid"
+        offenders: list[str] = []
+        for path in root.rglob("*.py"):
+            if path.name == "config.py":
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            if 'os.environ.get("PHASMID_' in text:
+                offenders.append(str(path.relative_to(root)))
+        self.assertFalse(
+            offenders,
+            "Direct PHASMID_* env reads outside config.py:\n" + "\n".join(offenders),
+        )
 
 
 if __name__ == "__main__":

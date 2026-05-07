@@ -1,16 +1,11 @@
-import os
-
 import cv2
 import numpy as np
 
+from .config import display_enabled
+
 
 def _display_enabled() -> bool:
-    return os.environ.get("PHASMID_ENABLE_DISPLAY", "").lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
+    return display_enabled()
 
 
 class BridgeUI:
