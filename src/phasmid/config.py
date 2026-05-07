@@ -31,7 +31,7 @@ def env_int(name: str, default: int, minimum: int | None = None) -> int:
     return value
 
 
-def state_dir():
+def state_dir() -> str:
     tmpfs = tmpfs_state_dir()
     if tmpfs:
         return tmpfs
@@ -43,46 +43,46 @@ def tmpfs_state_dir() -> str | None:
     return value or None
 
 
-def env_flag(name, default=False):
+def env_flag(name: str, default: bool = False) -> bool:
     value = os.environ.get(name)
     if value is None:
         return default
     return value.lower() not in {"0", "false", "off", "no", ""}
 
 
-def purge_confirmation_required():
+def purge_confirmation_required() -> bool:
     return env_flag("PHASMID_PURGE_CONFIRMATION", default=True)
 
 
-def duress_mode_enabled():
+def duress_mode_enabled() -> bool:
     return env_flag("PHASMID_DURESS_MODE", default=False)
 
 
-def ui_face_lock_enabled():
+def ui_face_lock_enabled() -> bool:
     return env_flag("PHASMID_UI_FACE_LOCK", default=False)
 
 
-def ui_face_enrollment_enabled():
+def ui_face_enrollment_enabled() -> bool:
     return env_flag("PHASMID_UI_FACE_ENROLL", default=False)
 
 
-def field_mode_enabled():
+def field_mode_enabled() -> bool:
     return env_flag("PHASMID_FIELD_MODE", default=False)
 
 
-def passphrase_min_length():
+def passphrase_min_length() -> int:
     return env_int("PHASMID_MIN_PASSPHRASE_LENGTH", 10, minimum=1)
 
 
-def access_max_failures():
+def access_max_failures() -> int:
     return env_int("PHASMID_ACCESS_MAX_FAILURES", 5, minimum=1)
 
 
-def access_lockout_seconds():
+def access_lockout_seconds() -> int:
     return env_int("PHASMID_ACCESS_LOCKOUT_SECONDS", 60, minimum=1)
 
 
-def dual_approval_enabled():
+def dual_approval_enabled() -> bool:
     return env_flag("PHASMID_DUAL_APPROVAL", default=False)
 
 

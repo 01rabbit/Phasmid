@@ -109,6 +109,10 @@ Threat model and security review documents:
 - [`docs/NON_CLAIMS.md`](docs/NON_CLAIMS.md) — explicit non-claims and rationale
 - [`SECURITY.md`](SECURITY.md) — vulnerability disclosure policy
 - [`docs/BUS_FACTOR.md`](docs/BUS_FACTOR.md) — maintainer continuity note
+- [`docs/REPRODUCIBLE_BUILDS.md`](docs/REPRODUCIBLE_BUILDS.md) — reproducible release-review artifact procedure
+- [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md) — dependency pinning and update policy
+- [`docs/VERSIONING.md`](docs/VERSIONING.md) — versioning and compatibility policy
+- [`CHANGELOG.md`](CHANGELOG.md) — release history and security-impact notes
 
 Operational review and deployment guidance can be found in:
 
