@@ -8,7 +8,15 @@ Verifies that:
   LocalStateCipher and as a separate field in RecordCipher.
 """
 
+from __future__ import annotations
+
 import os
+import sys
+import tempfile
+import unittest
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
@@ -16,27 +24,29 @@ from phasmid.crypto_params import AESGCM_KEY_SIZE, AESGCM_NONCE_SIZE
 from phasmid.record_cypher import RecordCipher
 
 
-class TestNonceLength:
+class TestNonceLength(unittest.TestCase):
     def test_record_cipher_nonce_size_constant(self):
-        assert RecordCipher.NONCE_SIZE == 12
+        self.assertEqual(RecordCipher.NONCE_SIZE, 12)
 
     def test_crypto_params_nonce_size(self):
-        assert AESGCM_NONCE_SIZE == 12
+        self.assertEqual(AESGCM_NONCE_SIZE, 12)
 
     def test_generated_nonce_length(self):
         nonce = os.urandom(AESGCM_NONCE_SIZE)
-        assert len(nonce) == 12
+        self.assertEqual(len(nonce), 12)
 
 
-class TestNonceUniqueness:
+class TestNonceUniqueness(unittest.TestCase):
     """10 000 random nonces under the same key must be unique (collision test)."""
 
     SAMPLE_COUNT = 10_000
 
     def test_no_nonce_collisions(self):
         nonces = {os.urandom(AESGCM_NONCE_SIZE) for _ in range(self.SAMPLE_COUNT)}
-        assert len(nonces) == self.SAMPLE_COUNT, (
-            f"Expected {self.SAMPLE_COUNT} unique nonces, got {len(nonces)}"
+        self.assertEqual(
+            len(nonces),
+            self.SAMPLE_COUNT,
+            f"Expected {self.SAMPLE_COUNT} unique nonces, got {len(nonces)}",
         )
 
     def test_encrypt_decrypt_roundtrip_unique_nonces(self):
@@ -47,40 +57,45 @@ class TestNonceUniqueness:
 
         for _ in range(100):
             nonce = os.urandom(AESGCM_NONCE_SIZE)
-            assert nonce not in nonces_seen, "Nonce reuse detected"
+            self.assertNotIn(nonce, nonces_seen, "Nonce reuse detected")
             nonces_seen.add(nonce)
             ct = aesgcm.encrypt(nonce, plaintext, None)
-            assert aesgcm.decrypt(nonce, ct, None) == plaintext
+            self.assertEqual(aesgcm.decrypt(nonce, ct, None), plaintext)
 
 
-class TestLocalStateCipherNonceLayout:
+class TestLocalStateCipherNonceLayout(unittest.TestCase):
     """LocalStateCipher prepends a 12-byte nonce to every ciphertext blob."""
 
-    def test_encrypted_blob_starts_with_nonce(self, tmp_path):
+    def test_encrypted_blob_starts_with_nonce(self):
         from phasmid.local_state_crypto import LocalStateCipher
 
-        cipher = LocalStateCipher(
-            state_key_path=str(tmp_path / "state.key"),
-            aad=b"test-aad",
-        )
-        blob = cipher.encrypt(b"hello")
-        assert len(blob) > AESGCM_NONCE_SIZE
-        # First 12 bytes are the nonce; remaining bytes are the ciphertext+tag.
-        nonce = blob[:AESGCM_NONCE_SIZE]
-        assert len(nonce) == AESGCM_NONCE_SIZE
+        with tempfile.TemporaryDirectory() as tmp:
+            cipher = LocalStateCipher(
+                state_key_path=os.path.join(tmp, "state.key"),
+                aad=b"test-aad",
+            )
+            blob = cipher.encrypt(b"hello")
+            self.assertGreater(len(blob), AESGCM_NONCE_SIZE)
+            nonce = blob[:AESGCM_NONCE_SIZE]
+            self.assertEqual(len(nonce), AESGCM_NONCE_SIZE)
 
-    def test_decrypt_after_encrypt(self, tmp_path):
+    def test_decrypt_after_encrypt(self):
         from phasmid.local_state_crypto import LocalStateCipher
 
-        cipher = LocalStateCipher(
-            state_key_path=str(tmp_path / "state.key"),
-            aad=b"test-aad",
-        )
-        plaintext = b"round-trip test"
-        blob = cipher.encrypt(plaintext)
-        recovered = cipher.decrypt(
-            blob,
-            too_short_message="too short",
-            auth_failed_message="auth failed",
-        )
-        assert recovered == plaintext
+        with tempfile.TemporaryDirectory() as tmp:
+            cipher = LocalStateCipher(
+                state_key_path=os.path.join(tmp, "state.key"),
+                aad=b"test-aad",
+            )
+            plaintext = b"round-trip test"
+            blob = cipher.encrypt(plaintext)
+            recovered = cipher.decrypt(
+                blob,
+                too_short_message="too short",
+                auth_failed_message="auth failed",
+            )
+            self.assertEqual(recovered, plaintext)
+
+
+if __name__ == "__main__":
+    unittest.main()
