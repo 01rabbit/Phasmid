@@ -877,6 +877,40 @@ class WebServerBoundaryTests(unittest.TestCase):
         self.assertNotIn("x-local-state-updated", response.headers)
         self.assertNotIn("source-name", str(response.headers).lower())
 
+    def test_normal_and_restricted_recovery_responses_are_structurally_identical(self):
+        normal_response = web_server.create_file_response(
+            b"payload", "any-name.bin", purge_applied=False
+        )
+        restricted_response = web_server.create_file_response(
+            b"payload", "any-name.bin", purge_applied=True
+        )
+        self.assertEqual(
+            normal_response.headers["content-disposition"],
+            restricted_response.headers["content-disposition"],
+        )
+        self.assertEqual(
+            normal_response.media_type,
+            restricted_response.media_type,
+        )
+        normal_keys = set(normal_response.headers.keys())
+        restricted_keys = set(restricted_response.headers.keys())
+        self.assertEqual(normal_keys, restricted_keys)
+
+    def test_restricted_recovery_response_does_not_expose_slot_role(self):
+        response = web_server.create_file_response(
+            b"payload", "evidence.bin", purge_applied=True
+        )
+        headers_str = str(response.headers).lower()
+        for term in ("purge", "restricted", "slot", "role", "open", "clear"):
+            self.assertNotIn(term, headers_str)
+
+    def test_x_result_filename_is_neutral_regardless_of_original_name(self):
+        for original in ("classified_notes.txt", "evidence.bin", "my_secret.docx"):
+            response = web_server.create_file_response(b"data", original)
+            result_filename = response.headers.get("x-result-filename", "")
+            self.assertEqual(result_filename, "retrieved_payload.bin")
+            self.assertNotIn(original.split(".")[0], result_filename)
+
     def test_metadata_check_reports_obvious_local_risk(self):
         async def run():
             request = SimpleNamespace(

@@ -90,6 +90,8 @@ These surfaces should not reveal the internal disclosure model, internal trial o
 - Optional audit logs can support local review, including tamper detection for versioned records, but they also create local metadata.
 - Browser history, cache, shell history, systemd logs, environment variables, and temporary files can leak operational context if the appliance is not configured carefully.
 - Legacy v1/v2 retrieval has been removed. Old containers must be migrated by retrieving with an older build and storing again with this build.
+- Timing normalization between the NORMAL, FAILED, and RESTRICTED recovery paths is best-effort only. The Argon2id KDF cost dominates end-to-end latency, but the RESTRICTED path includes additional filesystem writes for local-state updates that are measurable with process-level instrumentation. This difference cannot be eliminated without removing the local-state update itself. An adversary with kernel-level tracing tools can distinguish the RESTRICTED path from the FAILED path. The NORMAL and RESTRICTED paths share the same HTTP response structure and file download format; they are not distinguishable from the WebUI client's perspective.
+- Response headers and download filenames for the NORMAL and RESTRICTED paths are structurally identical. Both return `retrieved_payload.bin` in `Content-Disposition` and the same media type. The `purge_applied` internal flag does not appear in any response header.
 
 ## Operational Guidance
 

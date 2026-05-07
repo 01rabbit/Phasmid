@@ -370,7 +370,62 @@ On flash media, complete overwrite-based deletion cannot be guaranteed across ev
 
 Restricted recovery must not be represented as guaranteed secure deletion. User-facing surfaces should use neutral terms such as restricted local update, local access path, key material, and best-effort overwrite.
 
-## 16. Appliance and Seizure Review
+### Key-Material Invalidation Sequence
+
+The following table defines the mandatory ordering for local access-path clear operations. Key-material destruction must precede any container overwrite. This ordering ensures that the container ciphertext becomes unrecoverable even if the overwrite fails or is partially reversed by the storage layer.
+
+| Step | Action | Target | Effect |
+|------|--------|--------|--------|
+| 1 | Overwrite + remove | `.state/access.bin` | Local access key destroyed; Argon2id derivation path broken |
+| 2 | Best-effort overwrite | `vault.bin` (full or partial slot) | Container ciphertext randomized; recovery requires the key from step 1 |
+
+**Step 1 alone** makes recovery infeasible: the Argon2id key cannot be recomputed without the local access key, even if the attacker has a copy of `vault.bin` and the user's passphrase. Step 2 is a secondary, best-effort measure.
+
+Tests confirming this ordering and behavior are in `tests/test_vault_core.py` under the "Key-material invalidation sequence" section.
+
+This invalidation sequence applies to: `vault.silent_brick()`, `vault.purge_mode()`, and the restricted-recovery path triggered by the restricted recovery password (PURGE_ROLE).
+
+## 16. v4 Key Schedule Design (Argon2id + HKDF-SHA-256)
+
+The v3 container format uses inline string concatenation for domain separation in the Argon2id context string. The v4 design introduces a second derivation stage via HKDF-SHA-256 that produces cryptographically independent, explicitly labelled subkeys from a single Argon2id output.
+
+### Design
+
+```
+Argon2id(passphrase + local_key + hardware_secret, salt)
+    → 32-byte IKM
+    → HKDF-SHA-256(IKM, info=<label>) → vault open subkey
+    → HKDF-SHA-256(IKM, info=<label>) → vault purge subkey
+    → HKDF-SHA-256(IKM, info=<label>) → local state subkey
+    → HKDF-SHA-256(IKM, info=<label>) → face lock subkey
+    → HKDF-SHA-256(IKM, info=<label>) → audit HMAC subkey
+```
+
+### Domain Labels (v4)
+
+| Label | Purpose |
+|-------|---------|
+| `phasmid-v4:vault:open:1` | AES-GCM key for the OPEN recovery slot |
+| `phasmid-v4:vault:purge:1` | AES-GCM key for the PURGE recovery slot |
+| `phasmid-v4:state:1` | AES-GCM key for local state blobs |
+| `phasmid-v4:face-lock:1` | AES-GCM key for the face lock template |
+| `phasmid-v4:audit-hmac:1` | HMAC-SHA-256 key for audit record chaining |
+
+Label format: `phasmid-v4:<purpose>:<version>`. The version suffix is incremented when the purpose changes semantically. This decouples label evolution from container format changes.
+
+### HKDF Role in This Design
+
+Argon2id provides memory-hard password stretching and is not replaced. HKDF-SHA-256 is used exclusively for domain-separated subkey derivation from the Argon2id output. HKDF does not replace or weaken the Argon2id stage.
+
+### v3 Compatibility
+
+v3 containers remain valid under the v3 KDFEngine path. A v4 container uses `src/phasmid/kdf_subkeys.py` for the second derivation stage. Migration: retrieve with v3, re-store with v4.
+
+This design is not a FIPS validation claim and does not imply certification. It is an engineering improvement to domain separation within the local key derivation pipeline.
+
+Test vectors and domain separation tests are in `tests/test_kdf_subkeys.py`.
+
+## 17. Appliance and Seizure Review
 
 Raspberry Pi Zero 2 W appliance assumptions are documented in `docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md`. The recommended appliance posture is local-only binding, USB gadget access, SSH disabled after provisioning, Wi-Fi and Bluetooth disabled unless explicitly needed, dedicated service user, systemd hardening, Field Mode, audit disabled by default, debug disabled by default, no telemetry, no cloud dependency, no remote management, and external key-material separation.
 
