@@ -55,7 +55,6 @@ The following issues were resolved in order and merged to `main` via pull reques
 
 - **#38 Lightweight Recognition Evaluation**: Evaluate lightweight local face/object model candidates after camera refactor, with Raspberry Pi Zero 2 W benchmark evidence.
 - **#28 Dual-Passphrase Approval Analysis**: Design local dual-passphrase approval flow and threat tradeoffs.
-- **#18 Restricted-Recovery Observability Analysis**: Measure observability characteristics on target hardware.
 
 ### Completed Milestones
 
@@ -82,6 +81,9 @@ The following issues were resolved in order and merged to `main` via pull reques
 - `#43`: Brand polish and animation update (cyan glow, phosphor green). ✅
 - TUI Operator Console: full Textual-based operator console. ✅
 - WebUI redesign gap fixes, including frame-lock animation, toast variants, and Store capture flow. ✅
+- `#38`: Lightweight recognition evaluation (LBP histogram face recognizer, ORB/AKAZE object matcher, offline benchmark harness). ✅
+- `#28`: Dual-passphrase approval flow (supervisor role store, request/grant lifecycle, single-use nonces). ✅
+- `#18`: Restricted-recovery observability analysis (offline path measurement harness, timing and write-channel analysis, Pi Zero 2 W measurement plan). ✅
 
 ---
 
@@ -338,7 +340,7 @@ Relevant issues:
 - `#12` volatile local key-material store using tmpfs
 - `#13` local device-binding inputs
 - `#17` optional LUKS layer
-- `#18` restricted recovery observability on target hardware
+- `#18` restricted recovery observability on target hardware ✅
 - `#21` deployment profiles and capability table
 - `#23` typed local state store and transition checks ✅
 - `#29` local operations commands and docs alignment ✅

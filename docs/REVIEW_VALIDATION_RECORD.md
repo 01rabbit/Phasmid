@@ -55,6 +55,27 @@ Target-hardware validation result:
 Not yet recorded.
 ```
 
+## Observability Measurements
+
+Offline probe results (development host — code-path structure only, not hardware timing):
+
+```text
+Not yet recorded. Run the probe command in docs/FIELD_TEST_PROCEDURE.md on Pi Zero 2 W
+and paste the JSON output here.
+```
+
+Hardware-accurate timing (Pi Zero 2 W, production Argon2id KDF):
+
+```text
+Not yet recorded.
+```
+
+Timing delta acceptance:
+
+```text
+Not yet recorded. Gate: max_timing_delta_ms < 5% of kdf_wall_ms (FAILED path).
+```
+
 ## Raspberry Pi Zero 2 W Field Test
 
 - [ ] First boot

@@ -67,4 +67,34 @@ Physical shock resistance and tamper-resistant casing are out of scope for the R
 - Test camera unavailable.
 - Test USB gadget-only access.
 
+## Observability Measurements
+
+Run the offline observability probe on the target hardware before field evaluation:
+
+```bash
+python3 - <<'EOF'
+from phasmid.observability_probe import ObservabilityProbe, RecoveryPath
+import argon2
+
+def real_kdf(password: bytes, salt: bytes) -> bytes:
+    return argon2.low_level.hash_secret_raw(
+        password, salt, time_cost=3, memory_cost=65536,
+        parallelism=1, hash_len=32, type=argon2.low_level.Type.ID,
+    )
+
+probe = ObservabilityProbe(kdf_fn=real_kdf)
+report = probe.measure_all(n=5)
+import json
+print(json.dumps(report.summary(), indent=2))
+print("max_timing_delta_ms:", report.max_timing_delta_ms())
+EOF
+```
+
+Record the full JSON output and `max_timing_delta_ms` in `docs/REVIEW_VALIDATION_RECORD.md`
+under "Observability Measurements".
+
+Acceptance gate: the post-KDF timing delta between FAILED and RESTRICTED paths must be
+less than 5% of Argon2id wall time, or the deviation must be documented with a risk
+acceptance note.
+
 Record failures with exact screen text, command output, and response headers.
