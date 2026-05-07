@@ -301,7 +301,9 @@ def _template_context(request: Request, active="home", **extra):
         "deployment_mode": active_policy().name,
         "restricted_confirmed": restricted_confirmed,
         "restricted_session_seconds_remaining": (
-            _restricted_session_seconds_remaining(request) if restricted_confirmed else 0
+            _restricted_session_seconds_remaining(request)
+            if restricted_confirmed
+            else 0
         ),
         "face_enrollment_enabled": _face_enrollment_allowed(),
         "face_lock": _face_lock_status(request),
@@ -632,6 +634,7 @@ async def store(
     request: Request,
     file: UploadFile = File(...),
     password: str = Form(...),
+    secondary_passphrase: str = Form(default=""),
     restricted_recovery_password: str = Form(default=""),
     local_note_label: str = Form(default=""),
     entry_hint: str = Form(default=""),
@@ -645,9 +648,12 @@ async def store(
     try:
         if not password:
             return {"error": text.ACCESS_PASSWORD_REQUIRED}
+        effective_secondary_passphrase = (
+            secondary_passphrase or restricted_recovery_password
+        )
         passphrase_check = check_store_passphrases(
             password,
-            restricted_recovery_password,
+            effective_secondary_passphrase,
         )
         if not passphrase_check.ok:
             return {"error": passphrase_check.message}
@@ -681,7 +687,7 @@ async def store(
             access_cue_service.sequence_for_mode(mode),
             filename=orig_filename,
             mode=mode,
-            restricted_recovery_password=restricted_recovery_password or None,
+            restricted_recovery_password=effective_secondary_passphrase or None,
         )
         audit_event(
             "payload_stored",
@@ -1045,7 +1051,9 @@ async def operator_guided(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="operator_guided.html",
-        context=_template_context(request, active="operator-guided", workflows=workflows),
+        context=_template_context(
+            request, active="operator-guided", workflows=workflows
+        ),
     )
 
 
@@ -1070,7 +1078,10 @@ async def operator_inspect_post(
     if guard:
         return guard
     import tempfile as _tmpfile
-    suffix = "".join(c for c in (file.filename or "upload") if c.isalnum() or c in "._-")[-64:]
+
+    suffix = "".join(
+        c for c in (file.filename or "upload") if c.isalnum() or c in "._-"
+    )[-64:]
     with _tmpfile.NamedTemporaryFile(delete=False, suffix="_" + suffix) as tmp:
         tmp.write(await file.read())
         tmp_path = tmp.name
@@ -1078,6 +1089,7 @@ async def operator_inspect_post(
         inspection = inspect_vessel(tmp_path)
     finally:
         import os as _os
+
         _os.unlink(tmp_path)
     result: dict[str, object] | None = None
     if inspection.error:
@@ -1085,7 +1097,10 @@ async def operator_inspect_post(
     else:
         result = {
             "error": None,
-            "fields": [{"label": f.label, "value": f.value, "note": f.note or ""} for f in inspection.fields],
+            "fields": [
+                {"label": f.label, "value": f.value, "note": f.note or ""}
+                for f in inspection.fields
+            ],
             "notes": inspection.notes,
         }
     return templates.TemplateResponse(
