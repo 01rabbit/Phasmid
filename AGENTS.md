@@ -87,6 +87,9 @@ The following issues were resolved in order and merged to `main` via pull reques
 - `#11`: Process hardening — `process_hardening.py` (umask, RLIMIT_CORE, prctl, mlockall), integrated at CLI/WebUI startup, Doctor page status check. ✅
 - `#12`: Volatile key-material store — `volatile_state.py`, `PHASMID_TMPFS_STATE` env var, startup validation, Doctor check, tmpfs systemd setup guide in appliance docs. ✅
 - `#17`: LUKS documentation — systemd ordering example (crypttab + fstab + Requires), boot/fail-closed procedure in `RPI_ZERO_APPLIANCE_DEPLOYMENT.md`. ✅
+- `#1`: Threat model structured STRIDE analysis — `docs/THREAT_ANALYSIS_STRIDE.md` covering all six STRIDE categories with controls and residual risks; `docs/THREAT_MODEL.md` updated with cross-reference. ✅
+- `#13`: Device binding input evaluation — `docs/DEVICE_BINDING_ANALYSIS.md` covering CPU serial, machine-id, SD CID, and deploy-time seed; current `HardwareBindingProvider` confirmed as correct approach. ✅
+- `#14`: Threshold split-key recovery evaluation — `docs/SPLIT_KEY_RECOVERY_ANALYSIS.md` evaluating split files, memorized values, Shamir threshold schemes, and removable media; no custom SSS implementation; recommends reviewed external tool. ✅
 
 ---
 

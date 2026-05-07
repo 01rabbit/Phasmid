@@ -12,6 +12,9 @@ USER_FACING_FILES = [
     "README.md",
     "docs/SPECIFICATION.md",
     "docs/THREAT_MODEL.md",
+    "docs/THREAT_ANALYSIS_STRIDE.md",
+    "docs/DEVICE_BINDING_ANALYSIS.md",
+    "docs/SPLIT_KEY_RECOVERY_ANALYSIS.md",
     "docs/RPI_ZERO_DEPLOYMENT.md",
     "docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md",
     "docs/SOURCE_SAFE_WORKFLOW.md",
@@ -179,6 +182,7 @@ def _line_is_allowed(line):
         or re.search(r"no lies, no unnecessary truth", line, flags=re.IGNORECASE)
         or re.search(r"PHASMID_HARDWARE_SECRET", line)
         or re.search(r"PHASMID_STATE_SECRET", line)
+        or re.search(r"Shamir Secret Sharing", line)
     )
 
 

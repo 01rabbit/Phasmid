@@ -6,6 +6,9 @@ Phasmid is a field-evaluation prototype for local-only coercion-aware storage. I
 
 It is not a substitute for audited full-disk encryption, hardware-backed key storage, classified-data handling procedures, or a complete answer to compelled disclosure.
 
+A structured STRIDE analysis mapping this model to the six threat categories is in
+`docs/THREAT_ANALYSIS_STRIDE.md`.
+
 ## Assets
 
 - Payload bytes and encrypted payload metadata.
