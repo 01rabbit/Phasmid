@@ -84,6 +84,9 @@ The following issues were resolved in order and merged to `main` via pull reques
 - `#3`: Observable difference reduction — response/header neutrality tests, timing normalization documentation. ✅
 - `#4`: Cryptographic erase formalization — key-material invalidation sequence spec, ordering tests, best-effort overwrite language. ✅
 - `#5`: Argon2id + HKDF-SHA-256 key schedule design — domain-separated subkey module (`kdf_subkeys.py`), deterministic test vectors, v4 design documented in SPECIFICATION.md. ✅
+- `#11`: Process hardening — `process_hardening.py` (umask, RLIMIT_CORE, prctl, mlockall), integrated at CLI/WebUI startup, Doctor page status check. ✅
+- `#12`: Volatile key-material store — `volatile_state.py`, `PHASMID_TMPFS_STATE` env var, startup validation, Doctor check, tmpfs systemd setup guide in appliance docs. ✅
+- `#17`: LUKS documentation — systemd ordering example (crypttab + fstab + Requires), boot/fail-closed procedure in `RPI_ZERO_APPLIANCE_DEPLOYMENT.md`. ✅
 
 ---
 

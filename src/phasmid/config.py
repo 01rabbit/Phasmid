@@ -14,6 +14,9 @@ ROLE_STATE_NAME = "roles.bin"
 
 
 def state_dir():
+    tmpfs = os.environ.get("PHASMID_TMPFS_STATE")
+    if tmpfs:
+        return tmpfs
     return os.environ.get("PHASMID_STATE_DIR", DEFAULT_STATE_DIR)
 
 

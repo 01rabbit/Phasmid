@@ -38,6 +38,8 @@ from .config import (
     ui_face_lock_enabled,
 )
 from .crypto_boundary import ensure_crypto_self_tests
+from .process_hardening import apply_process_hardening
+from .volatile_state import require_volatile_state
 from .kdf_providers import hardware_binding_status
 from .metadata import metadata_risk_report, scrub_metadata
 from .passphrase_policy import check_store_passphrases
@@ -69,6 +71,8 @@ app.mount(
 
 @app.on_event("startup")
 async def startup_self_tests():
+    apply_process_hardening()
+    require_volatile_state()
     ensure_crypto_self_tests()
 
 

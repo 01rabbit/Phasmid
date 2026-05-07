@@ -7,6 +7,8 @@ import tempfile
 from pathlib import Path
 
 from ..models.doctor import DoctorCheck, DoctorLevel, DoctorResult
+from ..process_hardening import hardening_status
+from ..volatile_state import check_volatile_state, volatile_state_path
 from .profile_service import config_dir
 
 
@@ -174,6 +176,54 @@ def _check_scrollback() -> DoctorCheck:
     )
 
 
+def _check_volatile_state() -> DoctorCheck:
+    path = volatile_state_path()
+    if path is None:
+        return DoctorCheck(
+            name="Volatile Key Store",
+            level=DoctorLevel.INFO,
+            message="PHASMID_TMPFS_STATE not configured (persistent state in use)",
+        )
+    ok, message = check_volatile_state(path)
+    if ok:
+        return DoctorCheck(
+            name="Volatile Key Store",
+            level=DoctorLevel.OK,
+            message=f"Volatile state path accessible: {path}",
+            detail=message,
+        )
+    return DoctorCheck(
+        name="Volatile Key Store",
+        level=DoctorLevel.FAIL,
+        message=f"Volatile state path unavailable: {message}",
+        detail="Ensure the tmpfs mount is in place before starting Phasmid.",
+    )
+
+
+def _check_process_hardening() -> DoctorCheck:
+    status = hardening_status()
+    if status is None:
+        return DoctorCheck(
+            name="Process Hardening",
+            level=DoctorLevel.INFO,
+            message="Process hardening has not been applied yet in this session",
+        )
+    applied = [k for k, v in status.as_dict().items() if v]
+    skipped = [k for k, v in status.as_dict().items() if not v]
+    if not skipped:
+        return DoctorCheck(
+            name="Process Hardening",
+            level=DoctorLevel.OK,
+            message="All process hardening steps applied",
+        )
+    return DoctorCheck(
+        name="Process Hardening",
+        level=DoctorLevel.INFO,
+        message=f"Hardening partial: applied={applied}, skipped={skipped} "
+        "(skipped steps are platform-dependent best-effort)",
+    )
+
+
 def _check_debug_logging() -> DoctorCheck:
     debug = os.environ.get("PHASMID_DEBUG", "").lower()
     if debug in ("1", "true", "yes"):
@@ -204,6 +254,8 @@ def run_doctor_checks(output_dir: str | None = None) -> DoctorResult:
 
     checks += [
         _check_secure_random(),
+        _check_volatile_state(),
+        _check_process_hardening(),
         _check_shell_history(),
         _check_swap(),
         _check_scrollback(),

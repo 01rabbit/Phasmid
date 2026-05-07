@@ -21,6 +21,8 @@ from .bridge_ui import ui
 from .capabilities import capability_enabled
 from .config import duress_mode_enabled, purge_confirmation_required
 from .crypto_boundary import CryptoSelfTestError, ensure_crypto_self_tests
+from .process_hardening import apply_process_hardening
+from .volatile_state import require_volatile_state
 from .emergency_daemon import EmergencyDaemon
 from .face_lock import face_lock
 from .operations import export_redacted_log, verify_audit_log, verify_state
@@ -394,6 +396,12 @@ def _add_legacy_subparser(subparsers) -> None:
 
 
 def main():
+    apply_process_hardening()
+    try:
+        require_volatile_state()
+    except RuntimeError as exc:
+        error(str(exc))
+        return
     if not _run_startup_checks():
         return
 

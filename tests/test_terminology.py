@@ -111,6 +111,8 @@ class TerminologyAuditTests(unittest.TestCase):
             "src/phasmid/kdf_providers.py",
             "src/phasmid/kdf_subkeys.py",
             "src/phasmid/observability_probe.py",
+            "src/phasmid/process_hardening.py",
+            "src/phasmid/volatile_state.py",
             "src/phasmid/roles.py",
             "src/phasmid/approval_flow.py",
             "src/phasmid/lightweight_face_recognizer.py",
