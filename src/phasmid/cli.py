@@ -25,6 +25,7 @@ from .emergency_daemon import EmergencyDaemon
 from .face_lock import face_lock
 from .operations import export_redacted_log, verify_audit_log, verify_state
 from .passphrase_policy import check_store_passphrases
+from .process_hardening import apply_process_hardening
 from .restricted_actions import (
     DESTRUCTIVE_CLEAR_PHRASE,
     FACE_RESET_PHRASE,
@@ -33,6 +34,7 @@ from .restricted_actions import (
     evaluate_restricted_action,
 )
 from .vault_core import PhasmidVault
+from .volatile_state import require_volatile_state
 
 console = Console()
 
@@ -394,6 +396,12 @@ def _add_legacy_subparser(subparsers) -> None:
 
 
 def main():
+    apply_process_hardening()
+    try:
+        require_volatile_state()
+    except RuntimeError as exc:
+        error(str(exc))
+        return
     if not _run_startup_checks():
         return
 

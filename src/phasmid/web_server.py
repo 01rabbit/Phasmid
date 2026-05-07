@@ -41,6 +41,7 @@ from .crypto_boundary import ensure_crypto_self_tests
 from .kdf_providers import hardware_binding_status
 from .metadata import metadata_risk_report, scrub_metadata
 from .passphrase_policy import check_store_passphrases
+from .process_hardening import apply_process_hardening
 from .restricted_actions import (
     DESTRUCTIVE_CLEAR_PHRASE,
     EMERGENCY_BRICK_PHRASE,
@@ -58,6 +59,7 @@ from .services.guided_service import get_workflows
 from .services.inspection_service import inspect_vessel
 from .services.ui_face_lock_service import ui_face_lock_service
 from .vault_core import PhasmidVault
+from .volatile_state import require_volatile_state
 
 app = FastAPI(title="Phasmid - Local Secure Interface")
 app.mount(
@@ -69,6 +71,8 @@ app.mount(
 
 @app.on_event("startup")
 async def startup_self_tests():
+    apply_process_hardening()
+    require_volatile_state()
     ensure_crypto_self_tests()
 
 

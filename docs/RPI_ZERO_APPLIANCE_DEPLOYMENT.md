@@ -123,6 +123,65 @@ On flash media, complete overwrite-based deletion cannot be guaranteed across ev
 
 External key material can be supplied with `PHASMID_HARDWARE_SECRET_FILE` or `PHASMID_HARDWARE_SECRET_PROMPT=1`. For high-risk deployment, store external key material away from the same SD card that holds `vault.bin` and the state directory.
 
+## Optional Volatile Key-Material Store (tmpfs)
+
+Phasmid supports storing its state directory on a tmpfs mount via the
+``PHASMID_TMPFS_STATE`` environment variable.  When configured, key material
+(including the local vault access key) lives only in RAM and disappears
+on power loss or controlled unmount.
+
+This does NOT protect against live memory capture by a privileged attacker
+or a compromised OS.  It reduces the window during which key material persists
+on flash storage.
+
+### Setup
+
+Create a dedicated tmpfs mount in systemd:
+
+```ini
+# /etc/systemd/system/phasmid-keys.mount
+[Unit]
+Description=Phasmid volatile key-material store
+Before=phasmid.service
+
+[Mount]
+What=tmpfs
+Where=/run/phasmid-keys
+Type=tmpfs
+Options=mode=0700,uid=phasmid,gid=phasmid,size=8M,noexec,nosuid,nodev
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Update `phasmid.service` to depend on the mount and use the volatile path:
+
+```ini
+[Unit]
+After=phasmid-keys.mount
+Requires=phasmid-keys.mount
+
+[Service]
+Environment=PHASMID_TMPFS_STATE=/run/phasmid-keys
+ReadWritePaths=/run/phasmid-keys
+```
+
+### Failure Behavior
+
+If ``PHASMID_TMPFS_STATE`` is set but the path does not exist or is not
+accessible, Phasmid will refuse to start rather than silently falling back
+to persistent storage.  This prevents accidental key-material leakage to
+flash in configurations that expect volatile storage.
+
+### Limitations
+
+- tmpfs contents are lost on power loss.  A controlled reboot requires
+  re-provisioning the state directory.
+- tmpfs does not protect against a privileged attacker with access to
+  ``/proc/<pid>/mem`` or physical RAM extraction.
+- Swap must be disabled or encrypted; otherwise pages may be written to disk.
+  Confirm swap status in the Doctor page before field evaluation.
+
 ## Optional LUKS Storage Layer
 
 An optional dm-crypt/LUKS2 layer can be used as defense in depth for appliance deployments. This is not a compliance claim and does not make Phasmid certified data-at-rest infrastructure.
@@ -165,9 +224,35 @@ Boot and service ordering:
 - Record the mount procedure in the deployment notes.
 - Test reboot, mount failure, and no-network startup before field evaluation.
 
+Systemd ordering example (for `/etc/crypttab` + `.mount` unit approach):
+
+```ini
+# /etc/systemd/system/phasmid.service (additional Unit section entries)
+[Unit]
+After=var-lib-phasmid\x2dsecure.mount
+Requires=var-lib-phasmid\x2dsecure.mount
+```
+
+Add to `/etc/crypttab` (opened at boot via systemd-cryptsetup):
+
+```text
+phasmid-state /dev/mmcblk0p3 none luks,discard
+```
+
+Add to `/etc/fstab`:
+
+```text
+/dev/mapper/phasmid-state /var/lib/phasmid-secure ext4 defaults,noatime 0 2
+```
+
+With this configuration, systemd will refuse to start `phasmid.service` if
+the LUKS volume is not opened and mounted.  This ensures the service never
+writes key material to unencrypted storage.
+
 Recovery and backup notes:
 
 - Losing the LUKS passphrase can make the local Phasmid state unavailable.
 - Backups of the encrypted volume should be handled as sensitive local media.
 - Do not store storage-layer passphrases, Phasmid access passwords, and optional external key material together.
 - SD card cloning can copy encrypted containers and stale state; review cloned media before reuse.
+- Test boot, mount failure (`cryptsetup luksClose`), and no-network startup scenarios before field evaluation.
