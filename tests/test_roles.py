@@ -154,17 +154,18 @@ class TestRoleStore(unittest.TestCase):
             digest = store._hash("test", salt)
             self.assertEqual(len(digest), 32)
 
-    def test_constant_time_equal_returns_true_for_identical(self):
-        from phasmid.roles import _constant_time_equal
-        self.assertTrue(_constant_time_equal(b"abc", b"abc"))
+    def test_hmac_compare_digest_true_for_identical(self):
+        # SH-07: _constant_time_equal replaced by hmac.compare_digest
+        import hmac
+        self.assertTrue(hmac.compare_digest(b"abc", b"abc"))
 
-    def test_constant_time_equal_returns_false_for_different(self):
-        from phasmid.roles import _constant_time_equal
-        self.assertFalse(_constant_time_equal(b"abc", b"xyz"))
+    def test_hmac_compare_digest_false_for_different(self):
+        import hmac
+        self.assertFalse(hmac.compare_digest(b"abc", b"xyz"))
 
-    def test_constant_time_equal_returns_false_for_different_lengths(self):
-        from phasmid.roles import _constant_time_equal
-        self.assertFalse(_constant_time_equal(b"ab", b"abc"))
+    def test_hmac_compare_digest_false_for_different_lengths(self):
+        import hmac
+        self.assertFalse(hmac.compare_digest(b"ab", b"abc"))
 
 
 if __name__ == "__main__":
