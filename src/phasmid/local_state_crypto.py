@@ -6,6 +6,8 @@ import os
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
+from .config import state_secret
+
 
 class LocalStateCipher:
     """Shared AES-GCM helper for local state blobs backed by a state key file."""
@@ -23,9 +25,7 @@ class LocalStateCipher:
 
     def encrypt(self, plaintext: bytes) -> bytes:
         nonce = os.urandom(12)
-        return nonce + AESGCM(self.encryption_key()).encrypt(
-            nonce, plaintext, self.aad
-        )
+        return nonce + AESGCM(self.encryption_key()).encrypt(nonce, plaintext, self.aad)
 
     def decrypt(
         self,
@@ -39,14 +39,12 @@ class LocalStateCipher:
 
         nonce, ciphertext = payload[:12], payload[12:]
         try:
-            return AESGCM(self.encryption_key()).decrypt(
-                nonce, ciphertext, self.aad
-            )
+            return AESGCM(self.encryption_key()).decrypt(nonce, ciphertext, self.aad)
         except InvalidTag as exc:
             raise ValueError(auth_failed_message) from exc
 
     def encryption_key(self) -> bytes:
-        external_value = os.environ.get("PHASMID_STATE_SECRET")
+        external_value = state_secret()
         if external_value:
             return hashlib.sha256(external_value.encode("utf-8")).digest()
 

@@ -26,16 +26,19 @@ See ``docs/RPI_ZERO_APPLIANCE_DEPLOYMENT.md`` for the recommended setup.
 If the variable is set but the path does not exist, the startup check will
 fail rather than fall back to persistent storage silently.
 """
+
 from __future__ import annotations
 
 import os
 import stat
 import sys
 
+from .config import tmpfs_state_dir
+
 
 def volatile_state_path() -> str | None:
     """Return the configured tmpfs state path, or None if not configured."""
-    return os.environ.get("PHASMID_TMPFS_STATE") or None
+    return tmpfs_state_dir()
 
 
 def check_volatile_state(path: str) -> tuple[bool, str]:

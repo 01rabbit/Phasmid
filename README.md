@@ -96,12 +96,19 @@ Use of Phasmid in government or organizational environments must follow applicab
 
 Phasmid is intentionally narrow.
 
-Configurable runtime parameters include `PHASMID_FIELD_MODE=1`, `PHASMID_MIN_PASSPHRASE_LENGTH`, and `PHASMID_ACCESS_MAX_FAILURES`.
+Configuration reference:
+
+- [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) — authoritative reference for `PHASMID_*` environment variables
+- Common examples: `PHASMID_FIELD_MODE`, `PHASMID_MIN_PASSPHRASE_LENGTH`, `PHASMID_ACCESS_MAX_FAILURES`, `PHASMID_ACCESS_LOCKOUT_SECONDS`
 
 Threat model and security review documents:
 
 - [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) — authoritative threat model (adversaries, assets, attack surfaces, threat scenarios, non-goals)
 - `docs/THREAT_ANALYSIS_STRIDE.md` — full STRIDE analysis cross-referencing the threat model
+- [`docs/CLAIMS.md`](docs/CLAIMS.md) — inventory of project claims with verification status
+- [`docs/NON_CLAIMS.md`](docs/NON_CLAIMS.md) — explicit non-claims and rationale
+- [`SECURITY.md`](SECURITY.md) — vulnerability disclosure policy
+- [`docs/BUS_FACTOR.md`](docs/BUS_FACTOR.md) — maintainer continuity note
 
 Operational review and deployment guidance can be found in:
 
@@ -137,21 +144,9 @@ python3 scripts/generate_release_artifacts.py \
 
 This writes `MANIFEST.sha256`, `sbom.cyclonedx.json`, `release-summary.json`, and `MANIFEST.sha256.sig` when signing is enabled.
 
-Phasmid does not provide:
+Phasmid non-claims are maintained in:
 
-- perfect deniability,
-- guaranteed secure deletion,
-- protection against compromised hosts,
-- protection against malware or keyloggers,
-- protection against live memory capture,
-- protection against camera observation,
-- protection against coercion after disclosure,
-- certified classified-data handling,
-- remote management,
-- communications security,
-- anonymity,
-- censorship bypass,
-- surveillance evasion.
+- [`docs/NON_CLAIMS.md`](docs/NON_CLAIMS.md)
 
 ## Repository Layout
 

@@ -4,7 +4,13 @@ import time
 
 import numpy as np
 
-from .config import FACE_ENROLL_FLAG_NAME, FACE_TEMPLATE_NAME, STATE_KEY_NAME, state_dir
+from .config import (
+    FACE_ENROLL_FLAG_NAME,
+    FACE_TEMPLATE_NAME,
+    STATE_KEY_NAME,
+    state_dir,
+    ui_face_enroll_seconds,
+)
 from .face_sample_matcher import FaceSampleMatcher
 from .face_session_store import FaceSessionStore
 from .local_state_crypto import LocalStateCipher
@@ -140,11 +146,7 @@ class FaceUILock:
             created_at = os.path.getmtime(self.enrollment_path)
         except OSError:
             return False
-        if now - created_at > int(
-            os.environ.get(
-                "PHASMID_UI_FACE_ENROLL_SECONDS", self.ENROLLMENT_TTL_SECONDS
-            )
-        ):
+        if now - created_at > ui_face_enroll_seconds(self.ENROLLMENT_TTL_SECONDS):
             self.clear_enrollment_request()
             return False
         return True
