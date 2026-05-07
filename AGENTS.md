@@ -590,6 +590,17 @@ Before finalizing an AI-generated change, verify:
 - Do not initiate broad repository-wide rewrites.
 - Check `ruff` and `mypy` before submitting any Python changes.
 
+### Self-Hardening Execution Rules
+
+When implementing tasks generated from `PHASMID_SELF_HARDENING_ISSUES.md`, follow these additional constraints:
+
+- No scope creep: do not add features or claims that are not explicitly requested by the scoped issue.
+- Keep README and implementation claims aligned; if behavior is implemented but not documented (or vice versa), open a follow-up issue instead of silently expanding claims.
+- Use test-first discipline for behavior changes: add a failing test first, then implement the fix.
+- Avoid custom cryptographic primitive logic when vetted high-level library APIs already cover the requirement.
+- Keep PR scope single-purpose by default (`1 issue = 1 PR`).
+- If changing `AGENTS.md`, explicitly mention that change in the PR description.
+
 ### Change & Test Strategy
 
 - **Surgical Edits**: Prefer targeted edits over full-file rewrites for large files.
