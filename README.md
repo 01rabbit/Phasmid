@@ -108,6 +108,7 @@ Threat model and security review documents:
 - [`docs/CLAIMS.md`](docs/CLAIMS.md) — inventory of project claims with verification status
 - [`docs/NON_CLAIMS.md`](docs/NON_CLAIMS.md) — explicit non-claims and rationale
 - [`SECURITY.md`](SECURITY.md) — vulnerability disclosure policy
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution scope, claim, and review discipline
 - [`docs/BUS_FACTOR.md`](docs/BUS_FACTOR.md) — maintainer continuity note
 - [`docs/REPRODUCIBLE_BUILDS.md`](docs/REPRODUCIBLE_BUILDS.md) — reproducible release-review artifact procedure
 - [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md) — dependency pinning and update policy
