@@ -98,6 +98,11 @@ Phasmid is intentionally narrow.
 
 Configurable runtime parameters include `PHASMID_FIELD_MODE=1`, `PHASMID_MIN_PASSPHRASE_LENGTH`, and `PHASMID_ACCESS_MAX_FAILURES`.
 
+Threat model and security review documents:
+
+- [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) — authoritative threat model (adversaries, assets, attack surfaces, threat scenarios, non-goals)
+- `docs/THREAT_ANALYSIS_STRIDE.md` — full STRIDE analysis cross-referencing the threat model
+
 Operational review and deployment guidance can be found in:
 
 - `docs/SOURCE_SAFE_WORKFLOW.md`

@@ -9,20 +9,35 @@ It is not a substitute for audited full-disk encryption, hardware-backed key sto
 A structured STRIDE analysis mapping this model to the six threat categories is in
 `docs/THREAT_ANALYSIS_STRIDE.md`.
 
-## Assets
+---
 
-- Payload bytes and encrypted payload metadata.
-- Separation between visible recovery outcomes and protected local state.
-- Encrypted camera reference state blob in the configured state directory.
-- Local vault access key in the configured state directory.
-- Panic token in the configured state directory.
-- Web UI mutation token created at process start or supplied through `PHASMID_WEB_TOKEN`.
-- Browser-visible surfaces such as rendered HTML, console output, response headers, filenames, and cached pages.
-- CLI output, shell history, application stdout/stderr, and systemd logs.
-- camera overlay text and Maintenance diagnostics output.
-- Source identity, notes, evidence metadata, temporary field data, and local operational context.
+## In-Scope Adversaries
 
-## Assumptions
+| Adversary | Capability | Goal |
+|---|---|---|
+| **Physical captor** | Physical possession of device at rest (powered off or locked) | Recover vault payload or confirm existence of restricted state |
+| **Local passive observer** | Can view screen, read shell history, inspect filesystem without active access | Extract operational context, identify Phasmid installation, learn slot count or mode |
+| **Local active attacker** | OS-level access to project directory and state directory | Copy `vault.bin` and state for offline cracking; replace access key; tamper with audit log |
+| **Remote attacker (local-network)** | Network access to the WebUI over localhost or USB gadget interface | Replay web token; brute-force passphrase via WebUI; exploit WebUI endpoint |
+| **Coercing authority** | Legal or physical coercion of operator | Compel disclosure of normal or restricted passphrase; compel confirmation of vault contents |
+
+---
+
+## Out-of-Scope Adversaries
+
+| Adversary | Reason for Exclusion |
+|---|---|
+| **Compromised host kernel or hypervisor** | Assumed trusted; kernel-level access defeats all software controls |
+| **Hardware implant or side-channel attacker** | Beyond prototype scope; requires hardware security module or certified enclave |
+| **Remote attacker over untrusted network** | WebUI is designed for localhost / USB gadget only; external exposure is an operational misconfiguration |
+| **Supply-chain attacker** | Package integrity is out of scope for this prototype; see `SH-22` (dependency pinning) |
+| **Cryptographic breaks against AES-GCM or Argon2id** | Assumed computationally secure under current parameters |
+
+---
+
+## Trust Assumptions
+
+> **Note:** This section was previously titled "Assumptions" (anchor `#assumptions`). The old anchor is preserved via this note.
 
 - The host operating system account is trusted while Phasmid is running.
 - Attackers may obtain a copy of `vault.bin`.
@@ -34,6 +49,275 @@ A structured STRIDE analysis mapping this model to the six threat categories is 
 - Field Mode reduces normal information exposure, but it is not a security boundary.
 - Hidden restricted routes reduce casual exposure, but they are not security boundaries.
 - Hidden routes are not access control by themselves; server-side token checks, restricted confirmation, and typed confirmation remain required.
+
+---
+
+## Assets
+
+- Payload bytes and encrypted payload metadata.
+- Separation between visible recovery outcomes and protected local state.
+- Encrypted camera reference state blob in the configured state directory.
+- Local vault access key in the configured state directory.
+- Panic token in the configured state directory.
+- Web UI mutation token created at process start or supplied through `PHASMID_WEB_TOKEN`.
+- Browser-visible surfaces such as rendered HTML, console output, response headers, filenames, and cached pages.
+- CLI output, shell history, application stdout/stderr, and systemd logs.
+- Camera overlay text and Maintenance diagnostics output.
+- Source identity, notes, evidence metadata, temporary field data, and local operational context.
+
+---
+
+## Attack Surfaces
+
+> **Note:** This section was previously titled "Capture-Visible Surfaces" (anchor `#capture-visible-surfaces`). The old anchor is preserved via this note.
+
+Attack surfaces include the WebUI, rendered HTML, browser history, browser cache, JavaScript console, response headers, download filenames, CLI output, shell history, systemd stdout/stderr, audit logs, state-directory filenames, screenshots, and documentation copied to the device.
+
+These surfaces should not reveal the internal disclosure model, internal trial order, slot purpose, restricted recovery side effects, or the existence of an alternate protected state.
+
+### WebUI Surface
+
+- HTTP endpoints served on `127.0.0.1` (default) or a configured bind address.
+- Mutation endpoints require `X-Phasmid-Token`; restricted action endpoints additionally require a live restricted confirmation session.
+- Response headers, `Content-Disposition` filename, and HTTP status codes are normalized to avoid leaking slot or mode information.
+
+### CLI Surface
+
+- Passphrase arguments are not passed on the command line; the TUI reads them interactively.
+- Shell history and terminal scrollback may retain operation output.
+- The Doctor page warns when shell history is active.
+
+### State Directory Surface
+
+- `access.bin`, `store.bin`, `lock.bin` — fixed filenames recognizable to an informed examiner.
+- The ORB state blob (`store.bin`) encrypts reference templates under AES-GCM; raw templates are not stored.
+
+### Filesystem and Log Surface
+
+- `vault.bin` contains no plaintext header or format marker (v3 format).
+- Optional audit log (`events.log`) records operation type, timestamp, and length only — not passwords, payload bytes, or plaintext filenames.
+
+---
+
+## Threat Scenarios
+
+Each scenario is tagged with applicable [STRIDE](https://learn.microsoft.com/en-us/azure/security/develop/threat-modeling-tool-threats) and [LINDDUN](https://linddun.org/) categories.
+
+> STRIDE: **S**poofing · **T**ampering · **R**epudiation · **I**nformation Disclosure · **D**enial of Service · **E**levation of Privilege  
+> LINDDUN: **Li**nkability · **Id**entifiability · **N**on-repudiation · **De**tectability · **Di**sclosure · **U**nawareness · **N**on-compliance
+
+---
+
+### TS-01: Vault Copy + Offline Cracking
+
+**Tags:** T, Di
+
+**Scenario:** Attacker copies `vault.bin` from captured or accessible device and attempts offline passphrase brute-force.
+
+**Mitigation:** Local access key is mixed into Argon2id derivation; `vault.bin` alone is insufficient. Default Argon2id parameters (`memory_cost=32768`, `iterations=2`, `lanes=1`) are tuned to impose meaningful cost on Raspberry Pi Zero 2 W class hardware. Each slot uses a fresh random salt and nonce.
+
+---
+
+### TS-02: State Directory Copy
+
+**Tags:** T, Di
+
+**Scenario:** Attacker copies both `vault.bin` and the state directory (including `access.bin`), removing the access-key separation benefit.
+
+**Mitigation:** State directory should be on encrypted storage (separate from `vault.bin` where operationally feasible). `PHASMID_HARDWARE_SECRET_FILE` or `PHASMID_HARDWARE_SECRET_PROMPT=1` adds a third factor requiring knowledge of an external value.
+
+**Residual risk:** If `vault.bin`, state directory, and external key material are all on one medium, separation benefits are eliminated.
+
+---
+
+### TS-03: Web Token Replay
+
+**Tags:** S, I
+
+**Scenario:** Attacker observes or captures `X-Phasmid-Token` from a local session and replays it to perform vault operations.
+
+**Mitigation:** Token is per-process; rotation available via restricted action endpoint. WebUI binds to `127.0.0.1` by default, limiting token exposure to the local session.
+
+**Residual risk:** Token is valid for the process lifetime; a compromised local session can replay it until process restart or explicit rotation.
+
+---
+
+### TS-04: Restricted Session Fixation or Replay
+
+**Tags:** S, E
+
+**Scenario:** Attacker who knows the restricted session cookie value replays it to access restricted action endpoints without re-confirmation.
+
+**Mitigation:** Cookie is `HttpOnly`, short TTL (120 s default), bound to client IP, and validated server-side against an in-memory session store (not a static value). Restricted actions additionally require typed confirmation phrases.
+
+**Residual risk:** Session state is in-process and clears on restart; no persistent invalidation mechanism.
+
+---
+
+### TS-05: Vault Ciphertext Tampering
+
+**Tags:** T
+
+**Scenario:** Attacker with filesystem access modifies bytes in `vault.bin` to corrupt or inject data.
+
+**Mitigation:** Each slot uses AES-GCM with per-record AAD `phasmid-record-v3:<mode>:<role>:<size>`. Bit flips produce `InvalidTag`; the slot returns `(None, None)` instead of modified plaintext.
+
+---
+
+### TS-06: Access Key Replacement
+
+**Tags:** T, E
+
+**Scenario:** Attacker replaces `.state/access.bin` with a known value to enable brute-force with a controlled key.
+
+**Mitigation:** Without the original `access.bin`, the Argon2id-derived AES-GCM key differs and decryption fails. State directory should be mode `0700` on encrypted storage.
+
+**Residual risk:** An attacker who replaces `access.bin` before re-provisioning may introduce a known key if the operator re-stores data.
+
+---
+
+### TS-07: Audit Log Truncation or Deletion
+
+**Tags:** R, T
+
+**Scenario:** Attacker with filesystem access truncates or deletes `events.log` to erase evidence of operations.
+
+**Mitigation:** Log integrity verification uses HMAC-SHA-256 chaining; gaps or hash mismatches are reported. Audit logging is opt-in (`PHASMID_AUDIT=1`).
+
+**Residual risk:** Tampering is detectable after the fact but not preventable. Off-device log shipping is out of scope.
+
+---
+
+### TS-08: Response Header / Filename Leakage
+
+**Tags:** I, Di, De
+
+**Scenario:** HTTP response headers or `Content-Disposition` filename reveal slot labels, restricted action outcomes, or stored filenames to an observer.
+
+**Mitigation:** `create_file_response()` always returns `retrieved_payload.bin` regardless of original filename. `purge_applied` flag is not exposed in any response header. Security headers include `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and a `Content-Security-Policy` with `frame-ancestors 'none'`. All responses include `Cache-Control: no-store, no-cache`.
+
+---
+
+### TS-09: Browser Cache Leakage
+
+**Tags:** Di, De
+
+**Scenario:** Cached browser responses reveal payload content, filenames, or slot information to a later visitor.
+
+**Mitigation:** All responses include `Cache-Control: no-store, no-cache` and `Pragma: no-cache`.
+
+**Residual risk:** Browser behavior varies; some browsers or proxies may not honor cache headers in all circumstances.
+
+---
+
+### TS-10: CLI Output or Shell History Leakage
+
+**Tags:** Di, Id
+
+**Scenario:** Shell history or terminal scrollback records passphrase arguments or operation results, exposing operational context.
+
+**Mitigation:** TUI reads passphrases interactively; they are not passed as CLI arguments. Doctor page warns when shell history is active. Field Mode suppresses diagnostic detail until restricted confirmation is active.
+
+---
+
+### TS-11: Metadata Leakage in Stored Files
+
+**Tags:** Di, Id, Li
+
+**Scenario:** Stored files (JPEG, Office, PDF) contain embedded metadata (EXIF, authorship, location) that reveals source identity or operational context.
+
+**Mitigation:** Store flow warns on metadata risk detection; best-effort scrubbing is available for supported file types. Unsupported types fail safely.
+
+**Residual risk:** Metadata checks are best-effort. They can miss embedded identifiers, thumbnails, histories, and application-specific fields.
+
+---
+
+### TS-12: Repeated Access Failure / Lockout Bypass
+
+**Tags:** D
+
+**Scenario:** Attacker submits repeated incorrect passwords to exhaust the attempt counter, or restarts the process to reset the in-memory limiter.
+
+**Mitigation:** `AttemptLimiter` applies per-client lockout after configurable failure threshold (`PHASMID_ACCESS_MAX_FAILURES`, default 5) for a configurable period (`PHASMID_ACCESS_LOCKOUT_SECONDS`, default 60 s). WebUI rate limiter (`enforce_rate_limit()`) limits 20 requests/60 s per client; exceeded rate returns HTTP 429.
+
+**Residual risk:** In-process limiters reset on restart. Process-level restart clears the counter; this does not stop offline guessing against copied data.
+
+---
+
+### TS-13: Timing Side-Channel on Recovery Path
+
+**Tags:** I, De
+
+**Scenario:** Adversary with kernel-level or process-level tracing distinguishes the RESTRICTED recovery path from the FAILED path by observing timing differences (RESTRICTED path includes additional filesystem writes).
+
+**Mitigation:** Argon2id KDF cost dominates end-to-end latency. NORMAL and RESTRICTED paths share the same HTTP response structure, `Content-Disposition` filename (`retrieved_payload.bin`), and media type. `purge_applied` flag does not appear in any response.
+
+**Residual risk (unmitigated for kernel-level tracing):** The additional filesystem write on the RESTRICTED path is measurable with kernel-level process instrumentation. This difference cannot be eliminated without removing the local-state update itself. An adversary with such access is outside the in-scope adversary model.
+
+---
+
+### TS-14: Secure Deletion Failure on Flash Media
+
+**Tags:** Di
+
+**Scenario:** Deleted or overwritten payload bytes are retained in flash media wear-leveling sectors, SSD remapped blocks, backups, or filesystem journals, and recovered after device seizure.
+
+**Mitigation (unmitigated):** Secure deletion of flash media is not reliably achievable through software alone. Key-material destruction (wiping `access.bin` or the LUKS container) renders retained ciphertext unrecoverable without the key. The seizure review checklist covers this risk.
+
+**Residual risk:** Physical recovery of flash chips may yield retained data. This threat is in-scope for awareness but not mitigated by Phasmid software controls alone.
+
+---
+
+### TS-15: State Directory Filename Detectability
+
+**Tags:** De, Id
+
+**Scenario:** Files named `access.bin`, `store.bin`, `lock.bin` in the state directory reveal to an examiner that a Phasmid-style installation is or was present.
+
+**Mitigation:** Field Mode and LUKS layer reduce casual exposure. The seizure review checklist covers state directory inspection. The v3 vault format avoids a plaintext format marker in `vault.bin`.
+
+**Residual risk:** File names are fixed by the current format version and are recognizable to an informed examiner.
+
+---
+
+### TS-16: Object Cue Spoofing
+
+**Tags:** S
+
+**Scenario:** Attacker who knows the reference object presents it to the camera to satisfy the object cue gate without authorization.
+
+**Mitigation:** Object matching is an operational access cue, not cryptographic material. The vault requires the correct passphrase in addition to the object match. The cue is a layered operational control, not a single authentication factor.
+
+---
+
+### TS-17: Coerced Disclosure
+
+**Tags:** Di, U
+
+**Scenario:** Operator is compelled by legal or physical coercion to reveal passphrase, confirm vault contents, or hand over device.
+
+**Mitigation:** Restricted recovery path provides a plausible-deniability operational option (design intent). Protected entries use distinct normal and restricted passphrases sharing the same object cue. `PHASMID_PURGE_CONFIRMATION=1` requires explicit confirmation before irreversible local-state updates.
+
+**Residual risk (partially unmitigated):** Phasmid does not claim to defeat compelled disclosure. The design provides operational friction and deniability tooling, not a legal or physical guarantee. See `docs/SPECIFICATION.md` Non-Claims section.
+
+---
+
+## Non-Goals
+
+Phasmid explicitly does not aim to provide:
+
+- **Certified cryptographic module compliance** (FIPS 140, Common Criteria) — Phasmid is a prototype; cryptographic primitives are standard but not validated.
+- **Protection against a compromised host OS or kernel** — A trusted host is a foundational assumption.
+- **Hardware-backed key storage or secure enclave isolation** — Key material resides in the filesystem under OS access controls.
+- **Guaranteed resistance to compelled disclosure** — Restricted recovery provides operational deniability tooling, not a legal defense.
+- **Reliable secure deletion on flash media** — Wear leveling and journaling prevent software-only guarantees.
+- **Full audit trail by default** — Audit logging is opt-in to minimize local metadata; it is not tamper-proof against filesystem access.
+- **Multi-user access control** — Phasmid is designed for single-operator local use.
+- **Remote or network-accessible deployment** — WebUI is designed for localhost or USB gadget; remote deployment is a misconfiguration.
+- **Protection against supply-chain compromise of dependencies** — Package integrity is operational responsibility; see `SH-22`.
+- **Cryptographic biometric authentication** — Camera matching is an operational gate; face recognition (if evaluated) is a UI lock only.
+
+---
 
 ## Current Defenses
 
@@ -65,11 +349,7 @@ A structured STRIDE analysis mapping this model to the six threat categories is 
 - Store includes a local metadata risk check and limited best-effort metadata reduction for supported file types.
 - Documentation includes seizure review, source-safe storage separation, field testing, and Raspberry Pi Zero 2 W appliance deployment guidance.
 
-## Capture-Visible Surfaces
-
-Capture-visible surfaces include the WebUI, rendered HTML, browser history, browser cache, JavaScript console, response headers, download filenames, CLI output, shell history, systemd stdout/stderr, audit logs, state-directory filenames, screenshots, and documentation copied to the device.
-
-These surfaces should not reveal the internal disclosure model, internal trial order, slot purpose, restricted recovery side effects, or the existence of an alternate protected state.
+---
 
 ## Residual Risks
 
@@ -93,6 +373,8 @@ These surfaces should not reveal the internal disclosure model, internal trial o
 - Legacy v1/v2 retrieval has been removed. Old containers must be migrated by retrieving with an older build and storing again with this build.
 - Timing normalization between the NORMAL, FAILED, and RESTRICTED recovery paths is best-effort only. The Argon2id KDF cost dominates end-to-end latency, but the RESTRICTED path includes additional filesystem writes for local-state updates that are measurable with process-level instrumentation. This difference cannot be eliminated without removing the local-state update itself. An adversary with kernel-level tracing tools can distinguish the RESTRICTED path from the FAILED path. The NORMAL and RESTRICTED paths share the same HTTP response structure and file download format; they are not distinguishable from the WebUI client's perspective.
 - Response headers and download filenames for the NORMAL and RESTRICTED paths are structurally identical. Both return `retrieved_payload.bin` in `Content-Disposition` and the same media type. The `purge_applied` internal flag does not appear in any response header.
+
+---
 
 ## Operational Guidance
 
