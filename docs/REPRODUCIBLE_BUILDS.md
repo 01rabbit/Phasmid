@@ -46,4 +46,3 @@ CI runs this comparison in the `reproducible-build` job.
 ## Limits
 
 This process provides reproducibility for release-review artifacts, not for all possible runtime environments or OS package layers.
-

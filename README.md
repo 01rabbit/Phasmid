@@ -1,8 +1,6 @@
 # Phasmid
 
-<p align="center">
-  <img src="images/Phasmid_logo.png" alt="Phasmid logo" width="350">
-</p>
+![Phasmid logo](images/Phasmid_logo.png)
 
 Phasmid is a field-evaluation prototype for local-only coercion-aware storage.
 
@@ -265,6 +263,7 @@ phasmid guided
 ```
 
 Available workflows:
+
 - **Coerced Disclosure Walkthrough** — Step through a compelled-disclosure scenario.
 - **Headerless Vessel Inspection** — See what an external observer finds when inspecting a Vessel.
 - **Multiple Disclosure Faces** — Walk through the concept of multiple disclosure faces.

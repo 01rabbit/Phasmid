@@ -44,4 +44,3 @@ and this project follows SemVer-style release intent for documented interfaces.
 ## Changelog Rule
 
 Security-impacting changes must be listed under a `### Security` section.
-

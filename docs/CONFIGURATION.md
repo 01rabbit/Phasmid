@@ -37,4 +37,3 @@ All `PHASMID_*` reads are centralized in `src/phasmid/config.py`.
 | `PHASMID_ENABLE_DISPLAY` | bool | `false` | Bridge UI simulator | Enables OpenCV preview window for display simulator | `config.display_enabled()` |
 | `PHASMID_DARK` | bool | `false` | TUI theming | Optional dark theme selection flag | `config.tui_dark_enabled()` |
 | `PHASMID_LIGHT` | bool | `false` | TUI theming | Optional light theme selection flag | `config.tui_light_enabled()` |
-

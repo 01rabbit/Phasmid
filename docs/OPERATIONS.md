@@ -52,9 +52,9 @@ When a graphical interface is required, the operator may "expose" the WebUI. Bec
 
 ### Procedure
 
-1.  **Expose**: Press `w` in the TUI Main Console. Confirm the "WebUI Exposed" notification.
-2.  **Operate**: Perform necessary tasks via `http://127.0.0.1:8000`.
-3.  **Retract**: Press `w` again in the TUI. Confirm the shutdown of the WebUI process.
+1. **Expose**: Press `w` in the TUI Main Console. Confirm the "WebUI Exposed" notification.
+2. **Operate**: Perform necessary tasks via `http://127.0.0.1:8000`.
+3. **Retract**: Press `w` again in the TUI. Confirm the shutdown of the WebUI process.
 
 ### Safety Mechanisms
 

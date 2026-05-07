@@ -28,4 +28,3 @@ The project may be archived or declared EOL if one or more of the following appl
 ## Scope Reminder
 
 Phasmid is a field-evaluation prototype, not a continuity-guaranteed product platform.
-

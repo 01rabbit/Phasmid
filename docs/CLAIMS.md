@@ -40,4 +40,3 @@ A claim is listed with its source, verification method, and scope limitations.
 | CLM-33 | `PHASMID_MIN_PASSPHRASE_LENGTH` sets minimum passphrase length policy. | docs/SPECIFICATION.md §Passphrase policy | tests: `tests/test_passphrase_policy.py`, `tests/test_config.py` | Runtime configuration |
 | CLM-34 | No new network surfaces introduced for operator pages; routes are gated by web token and UI unlock checks. | docs/TUI_OPERATOR_CONSOLE.md §Security notes | tests: `tests/test_web_server.py` | Operator pages |
 | CLM-35 | Running `phasmid doctor` is diagnostic and does not certify the host as secure. | src/phasmid/models/doctor.py disclaimer | tests: `tests/test_tui.py`, `tests/test_doctor_m4.py` | Doctor output semantics |
-

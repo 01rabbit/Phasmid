@@ -5,6 +5,7 @@
 **Minimal implementation adopted — optional and off by default.**
 
 The repository now includes:
+
 - `src/phasmid/roles.py`: encrypted local supervisor passphrase store
 - `src/phasmid/approval_flow.py`: in-memory request/grant lifecycle with TTL enforcement
 - 46 unit tests covering the full acceptance-criteria matrix
@@ -22,6 +23,7 @@ stored passphrase to authorize it within a time window.
 **This is local knowledge separation, not an external-token factor.**
 
 It does not:
+
 - prevent a single person from knowing all credentials
 - prevent collusion between operator and supervisor
 - act as a cryptographic factor for vault derivation or AEAD parameters
@@ -38,6 +40,7 @@ It does not:
 | **Supervisor** | Second local principal; authorizes high-risk actions | Yes (PBKDF2-HMAC-SHA-256, encrypted) |
 
 Supervisor passphrase storage:
+
 - 32-byte random salt generated fresh on each enrollment
 - PBKDF2-HMAC-SHA-256, 100 000 iterations, 32-byte output
 - Hash stored as AES-GCM encrypted JSON (`roles.bin`) in the state directory
@@ -63,7 +66,7 @@ single-operator restricted confirmation flow unchanged.
 
 ## Approval Flow
 
-```
+```text
 Operator                          Supervisor
    │                                  │
    ├─ request(action_id)              │
@@ -148,18 +151,22 @@ Short grant TTL limits the window for grant theft or session fixation.
 ## Rejected Alternatives
 
 ### External Token (TOTP, hardware key)
+
 Requires a third-party service or hardware dependency.  Out of scope for
 Phasmid's local-only design boundary.
 
 ### Audit-Only (no block)
+
 Logging a warning without blocking high-risk actions provides no separation
 guarantee.  Rejected in favour of a hard block when the feature is enabled.
 
 ### Persistent Grant Store
+
 Persisting grants to disk extends the window of grant theft.  The in-memory
 design ensures grants disappear on process restart; this is the preferred
 posture for an appliance device.
 
 ### Three-Role Hierarchy (Operator / Supervisor / Auditor)
+
 Adds complexity without a concrete field requirement.  Auditor and Maintainer
 roles may be revisited if multi-site deployments emerge.

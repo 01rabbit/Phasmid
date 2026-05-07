@@ -32,4 +32,3 @@ Dependency declarations in:
 - `pyproject.toml`
 
 must stay consistent with each file’s role (runtime vs development tooling).
-

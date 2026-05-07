@@ -46,4 +46,3 @@ Each item includes a brief rationale to keep review and deployment decisions exp
 
 - Phasmid does not promise a single maintainer (bus factor 1) sustainability guarantee.  
   Rationale: long-term response capacity and maintenance continuity can be constrained by single-maintainer limits.
-

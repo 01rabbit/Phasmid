@@ -42,6 +42,7 @@ reliability gain within the Pi Zero 2 W budget.
   `status` ∈ `{"not_enrolled", "no_face", "low_confidence", "accepted"}`.
 
 **Why LBP over raw pixel matching**:
+
 - Insensitive to uniform illumination shifts; histogram captures texture, not
   absolute brightness.
 - Produces a single scalar confidence without requiring expensive nearest-
@@ -89,7 +90,7 @@ at 320×240.  AKAZE should be re-evaluated only if ORB shows a false-reject rate
 `RecognitionBenchmark` (`src/phasmid/recognition_benchmark.py`) is an offline
 harness that accepts pre-captured BGR frames as NumPy arrays.
 
-```
+```python
 from phasmid.recognition_benchmark import RecognitionBenchmark
 
 bench = RecognitionBenchmark()

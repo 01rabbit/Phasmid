@@ -30,4 +30,3 @@ A version update should ship with:
 - `CHANGELOG.md` entry,
 - updated security-impact notes under `### Security` when applicable,
 - claims and non-claims consistency checks (`docs/CLAIMS.md` / `docs/NON_CLAIMS.md`).
-

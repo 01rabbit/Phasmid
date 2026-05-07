@@ -34,4 +34,3 @@ These windows are best-effort for a single-maintainer project and can vary.
 
 Phasmid currently operates with a bus factor of 1.  
 Response time can be delayed by maintainer availability. In worst-case scenarios, an explicit EOL (end-of-life) declaration may be issued if sustained maintenance is no longer feasible.
-
