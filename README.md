@@ -13,6 +13,7 @@ Phasmid is research software. It is not a replacement for full-disk encryption, 
 - Creates an encrypted `vault.bin` container.
 - Stores protected entries in an internal two-slot container model.
 - Uses object-image matching with ORB as an operational access cue.
+- Can optionally evaluate an experimental lightweight local object model behind a feature flag.
 - Encrypts payloads with AES-GCM and Argon2id-derived keys.
 - Mixes a local access key into recovery so `vault.bin` alone is not enough.
 - Supports normal access and restricted recovery behavior.
@@ -98,6 +99,16 @@ Configuration reference:
 
 - [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) — authoritative reference for `PHASMID_*` environment variables
 - Common examples: `PHASMID_FIELD_MODE`, `PHASMID_MIN_PASSPHRASE_LENGTH`, `PHASMID_ACCESS_MAX_FAILURES`, `PHASMID_ACCESS_LOCKOUT_SECONDS`
+- Experimental object gate: `PHASMID_EXPERIMENTAL_OBJECT_MODEL=1` enables a local-only secondary object-gate path. It is disabled by default and does not affect key derivation.
+- Model provisioning is explicit. Phasmid does not auto-download models during normal startup or access attempts.
+
+Experimental model fetch flow:
+
+```bash
+python3 scripts/fetch_object_model.py
+export PHASMID_OBJECT_MODEL_PATH="$PWD/models/object_gate/mobilenet_v2_1.0_224_feature_vector.tflite"
+export PHASMID_EXPERIMENTAL_OBJECT_MODEL=1
+```
 
 Threat model and security review documents:
 
@@ -111,6 +122,7 @@ Threat model and security review documents:
 - [`docs/REPRODUCIBLE_BUILDS.md`](docs/REPRODUCIBLE_BUILDS.md) — reproducible release-review artifact procedure
 - [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md) — dependency pinning and update policy
 - [`docs/VERSIONING.md`](docs/VERSIONING.md) — versioning and compatibility policy
+- [`docs/OBJECT_CUE_LIGHTWEIGHT_AI_REEVALUATION.md`](docs/OBJECT_CUE_LIGHTWEIGHT_AI_REEVALUATION.md) — offline lightweight AI re-evaluation plan for object-cue matching
 - [`CHANGELOG.md`](CHANGELOG.md) — release history and security-impact notes
 
 Operational review and deployment guidance can be found in:
@@ -180,9 +192,18 @@ Runtime files such as `vault.bin`, `.state/`, and audit logs are intentionally i
 
 ## Install
 
-Run the following shell commands line by line. The leading and trailing
-`````bash````` markers shown in Markdown are display formatting only and should
-not be typed into the terminal.
+For normal repository-local use, start with:
+
+```bash
+./phasmid
+```
+
+The repo wrapper creates `.venv` on first use if needed, installs dependencies
+into that environment if the local `phasmid` entrypoint is missing, and then
+launches the TUI. This is the recommended path for both first run and later
+runs inside this repository.
+
+If you need to manage the virtual environment manually, use:
 
 ```bash
 python3 -m venv .venv
@@ -191,7 +212,7 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-The final step installs the local `phasmid` command into the active virtual
+That manual path installs the local `phasmid` command into the active virtual
 environment so `phasmid --help` and the CLI subcommands work as documented.
 
 ## TUI Operator Console
@@ -203,7 +224,7 @@ In Phasmid, a **Vessel** is a headerless deniable container file. It carries one
 ### Starting the TUI
 
 ```bash
-phasmid
+./phasmid
 ```
 
 Running `phasmid` with no arguments opens the Main Operator Console.
@@ -331,14 +352,6 @@ Clear the local access path:
 ```bash
 phasmid brick
 ```
-
-Reset the experimental UI face-lock state from the CLI:
-
-```bash
-phasmid reset-face-lock
-```
-
-This operation has no normal WebUI route. It requires the confirmation phrase `RESET FACE LOCK AND VAULT`, clears the enrolled face-lock template, rotates the local access key, initializes `vault.bin`, and clears physical-object bindings. The current operator flow does not require face recognition for WebUI use; this command remains for experimental face-lock evaluation only.
 
 Local operations checks:
 

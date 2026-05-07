@@ -7,10 +7,16 @@ import numpy as np
 
 from . import strings as text
 from .camera_frame_source import CameraFrameSource
-from .config import STATE_BLOB_NAME, STATE_KEY_NAME, state_dir
+from .config import (
+    STATE_BLOB_NAME,
+    STATE_KEY_NAME,
+    experimental_object_model_enabled,
+    state_dir,
+)
 from .local_state_crypto import LocalStateCipher
 from .object_cue_matcher import ObjectCueMatcher
 from .object_cue_store import ObjectCueStore
+from .object_gate import ObjectGate
 
 
 class AIGate:
@@ -64,6 +70,7 @@ class AIGate:
         self.last_match_mode = self.MATCH_NONE
         self.match_states = {mode: False for mode in self.MODES}
         self.match_history = []
+        self.latest_gate_results = {}
 
         self.matcher = ObjectCueMatcher(
             min_reference_keypoints=self.MIN_REFERENCE_KEYPOINTS,
@@ -71,6 +78,8 @@ class AIGate:
             min_good_matches=self.MIN_GOOD_MATCHES,
             min_inliers=self.MIN_INLIERS,
         )
+        self.experimental_object_model_enabled = experimental_object_model_enabled()
+        self.object_gate = ObjectGate()
         self.camera = CameraFrameSource(frame_size=self.FRAME_SIZE)
 
         self.reference_data = {mode: self._empty_reference() for mode in self.MODES}
@@ -201,6 +210,51 @@ class AIGate:
         self.object_detected = True
         self.match_states = {mode: mode == matched_mode for mode in self.MODES}
 
+    def _update_match_result_from_gate_results(self, results):
+        if any(result.state == "ambiguous" for result in results.values()):
+            self.latest_gate_results = results
+            self.last_match_mode = self.MATCH_AMBIGUOUS
+            self.object_detected = False
+            self.match_states = {mode: False for mode in self.MODES}
+            self.match_history = []
+            return
+
+        active_modes = [
+            mode for mode, result in results.items() if result.state == "accepted"
+        ]
+        self.match_history.append(tuple(active_modes))
+        self.match_history = self.match_history[-self.MATCH_HISTORY_FRAMES :]
+
+        stable_modes = []
+        stable_counts = {}
+        for mode in self.MODES:
+            count = sum(1 for active in self.match_history if mode in active)
+            stable_counts[mode] = count
+            if count >= self.MATCH_HISTORY_REQUIRED:
+                stable_modes.append(mode)
+
+        self.latest_gate_results = {
+            mode: result.with_stable_frames(stable_counts[mode])
+            for mode, result in results.items()
+        }
+
+        if not stable_modes:
+            self.last_match_mode = self.MATCH_NONE
+            self.object_detected = False
+            self.match_states = {mode: False for mode in self.MODES}
+            return
+
+        if len(stable_modes) > 1:
+            self.last_match_mode = self.MATCH_AMBIGUOUS
+            self.object_detected = False
+            self.match_states = {mode: mode in stable_modes for mode in self.MODES}
+            return
+
+        matched_mode = stable_modes[0]
+        self.last_match_mode = matched_mode
+        self.object_detected = True
+        self.match_states = {mode: mode == matched_mode for mode in self.MODES}
+
     def sequence_for_mode(self, mode, length=1):
         self._validate_mode(mode)
         return [self.AUTH_TOKENS[mode]] * length
@@ -257,7 +311,7 @@ class AIGate:
         return max(candidates, key=lambda state: len(state["kp"]))
 
     def get_status(self):
-        return {
+        status = {
             "object_detected": self.object_detected,
             "matched_mode": self.last_match_mode,
             "match_states": dict(self.match_states),
@@ -266,6 +320,16 @@ class AIGate:
                 for mode in self.MODES
             },
         }
+        if self.experimental_object_model_enabled:
+            status["object_gate"] = {
+                mode: {
+                    "state": result.state,
+                    "stable_frames": result.stable_frames,
+                    "reason_code": result.reason_code,
+                }
+                for mode, result in self.latest_gate_results.items()
+            }
+        return status
 
     def clear_references(self):
         empty = {mode: self._empty_reference() for mode in self.MODES}
@@ -280,6 +344,7 @@ class AIGate:
             self.object_detected = False
             self.match_states = {mode: False for mode in self.MODES}
             self.match_history = []
+            self.latest_gate_results = {}
 
         return True, text.AI_GATE_CUES_CLEARED
 
@@ -400,7 +465,14 @@ class AIGate:
                 mode: self._match_reference_state(state, processed_gray)
                 for mode, state in reference_data.items()
             }
-            self._update_match_result(matches)
+            if self.experimental_object_model_enabled:
+                gate_results = {
+                    mode: self.object_gate.evaluate_frame(frame=frame, orb_match=match)
+                    for mode, match in matches.items()
+                }
+                self._update_match_result_from_gate_results(gate_results)
+            else:
+                self._update_match_result(matches)
             self._draw_match_status(image)
 
             ok, buffer = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 80])

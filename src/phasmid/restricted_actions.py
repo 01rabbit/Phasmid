@@ -26,7 +26,6 @@ INITIALIZE_CONTAINER_PHRASE = "INITIALIZE LOCAL CONTAINER"
 EMERGENCY_BRICK_PHRASE = "CLEAR LOCAL ACCESS PATH"
 RESTRICTED_CONFIRMATION_PHRASE = "CONFIRM LOCAL CONTROL"
 OVERWRITE_CONFIRMATION_PHRASE = "REPLACE LOCAL ENTRY"
-FACE_RESET_PHRASE = "RESET FACE LOCK AND VAULT"
 
 RESTRICTED_ACTION_POLICIES = {
     "clear_unmatched_entry": RestrictedActionPolicy(
@@ -49,11 +48,6 @@ RESTRICTED_ACTION_POLICIES = {
         capability=Capability.RAPID_LOCAL_CLEAR,
         confirmation_phrase="BRICK",
         require_restricted_confirmation=False,
-    ),
-    "reset_face_lock": RestrictedActionPolicy(
-        action_id="reset_face_lock",
-        capability=Capability.RESTRICTED_ACTION,
-        confirmation_phrase=FACE_RESET_PHRASE,
     ),
 }
 

@@ -15,9 +15,82 @@ from phasmid.ai_gate import AIGate
 from phasmid.camera_frame_source import CameraFrameSource
 from phasmid.local_state_crypto import LocalStateCipher
 from phasmid.object_cue_matcher import ObjectCueMatcher
+from phasmid.object_gate_policy import ObjectGateResult
 
 
 class AIGateTemplateTests(unittest.TestCase):
+    def test_feature_flag_off_preserves_legacy_match_update(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            gate.experimental_object_model_enabled = False
+            gate._update_match_result({"dummy": {"inliers": 99}, "secret": None})
+            self.assertEqual(gate.last_match_mode, gate.MATCH_NONE)
+
+    def test_feature_flag_enabled_uses_gate_results(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            gate.experimental_object_model_enabled = True
+            accepted = ObjectGateResult(
+                state="accepted",
+                orb_score=30.0,
+                model_score=None,
+                quality_score=0.5,
+                stable_frames=1,
+                attempted_frames=1,
+                elapsed_ms=1,
+                reason_code="orb_match",
+            )
+            rejected = ObjectGateResult(
+                state="rejected",
+                orb_score=None,
+                model_score=None,
+                quality_score=0.5,
+                stable_frames=0,
+                attempted_frames=1,
+                elapsed_ms=1,
+                reason_code="unstable_match",
+            )
+            gate._update_match_result_from_gate_results(
+                {"dummy": accepted, "secret": rejected}
+            )
+            gate._update_match_result_from_gate_results(
+                {"dummy": accepted, "secret": rejected}
+            )
+            gate._update_match_result_from_gate_results(
+                {"dummy": accepted, "secret": rejected}
+            )
+            self.assertEqual(gate.last_match_mode, "dummy")
+            self.assertIn("dummy", gate.latest_gate_results)
+
+    def test_feature_flag_enabled_marks_ambiguous_result(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            gate.experimental_object_model_enabled = True
+            ambiguous = ObjectGateResult(
+                state="ambiguous",
+                orb_score=30.0,
+                model_score=0.2,
+                quality_score=0.5,
+                stable_frames=0,
+                attempted_frames=1,
+                elapsed_ms=1,
+                reason_code="ambiguous_match",
+            )
+            rejected = ObjectGateResult(
+                state="rejected",
+                orb_score=None,
+                model_score=None,
+                quality_score=0.5,
+                stable_frames=0,
+                attempted_frames=1,
+                elapsed_ms=1,
+                reason_code="unstable_match",
+            )
+            gate._update_match_result_from_gate_results(
+                {"dummy": ambiguous, "secret": rejected}
+            )
+            self.assertEqual(gate.last_match_mode, gate.MATCH_AMBIGUOUS)
+
     def test_camera_frame_source_release_is_idempotent(self):
         source = CameraFrameSource(frame_size=(640, 480))
         source.release()

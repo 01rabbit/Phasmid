@@ -20,8 +20,6 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.PANIC_TRIGGER_NAME, "signal.trigger")
         self.assertEqual(config.AUDIT_LOG_NAME, "events.log")
         self.assertEqual(config.AUDIT_AUTH_NAME, "events.auth")
-        self.assertEqual(config.FACE_TEMPLATE_NAME, "face.bin")
-        self.assertEqual(config.FACE_ENROLL_FLAG_NAME, "face.enroll")
 
     def test_purge_confirmation_defaults_to_required(self):
         with mock.patch.dict(os.environ, {}, clear=True):
@@ -31,14 +29,6 @@ class ConfigTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=True):
             self.assertFalse(config.duress_mode_enabled())
 
-    def test_face_enrollment_defaults_to_disabled(self):
-        with mock.patch.dict(os.environ, {}, clear=True):
-            self.assertFalse(config.ui_face_enrollment_enabled())
-
-    def test_face_enrollment_can_be_enabled(self):
-        with mock.patch.dict(os.environ, {"PHASMID_UI_FACE_ENROLL": "1"}, clear=True):
-            self.assertTrue(config.ui_face_enrollment_enabled())
-
     def test_field_mode_can_be_enabled(self):
         with mock.patch.dict(os.environ, {"PHASMID_FIELD_MODE": "1"}, clear=True):
             self.assertTrue(config.field_mode_enabled())
@@ -46,6 +36,30 @@ class ConfigTests(unittest.TestCase):
     def test_field_mode_defaults_to_disabled(self):
         with mock.patch.dict(os.environ, {}, clear=True):
             self.assertFalse(config.field_mode_enabled())
+
+    def test_experimental_object_model_defaults_to_disabled(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(config.experimental_object_model_enabled())
+
+    def test_experimental_object_model_can_be_enabled(self):
+        with mock.patch.dict(
+            os.environ, {"PHASMID_EXPERIMENTAL_OBJECT_MODEL": "1"}, clear=True
+        ):
+            self.assertTrue(config.experimental_object_model_enabled())
+
+    def test_object_model_path_defaults_to_empty(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(config.object_model_path(), "")
+
+    def test_object_model_path_reads_env(self):
+        with mock.patch.dict(
+            os.environ,
+            {"PHASMID_OBJECT_MODEL_PATH": "/tmp/object-gate/model.tflite"},
+            clear=True,
+        ):
+            self.assertEqual(
+                config.object_model_path(), "/tmp/object-gate/model.tflite"
+            )
 
     def test_passphrase_min_length_defaults_and_handles_invalid_env(self):
         with mock.patch.dict(os.environ, {}, clear=True):

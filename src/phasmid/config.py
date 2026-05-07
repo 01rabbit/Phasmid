@@ -8,8 +8,6 @@ PANIC_TOKEN_NAME = "signal.key"
 PANIC_TRIGGER_NAME = "signal.trigger"
 AUDIT_LOG_NAME = "events.log"
 AUDIT_AUTH_NAME = "events.auth"
-FACE_TEMPLATE_NAME = "face.bin"
-FACE_ENROLL_FLAG_NAME = "face.enroll"
 ROLE_STATE_NAME = "roles.bin"
 
 
@@ -58,16 +56,16 @@ def duress_mode_enabled() -> bool:
     return env_flag("PHASMID_DURESS_MODE", default=False)
 
 
-def ui_face_lock_enabled() -> bool:
-    return env_flag("PHASMID_UI_FACE_LOCK", default=False)
-
-
-def ui_face_enrollment_enabled() -> bool:
-    return env_flag("PHASMID_UI_FACE_ENROLL", default=False)
-
-
 def field_mode_enabled() -> bool:
     return env_flag("PHASMID_FIELD_MODE", default=False)
+
+
+def experimental_object_model_enabled() -> bool:
+    return env_flag("PHASMID_EXPERIMENTAL_OBJECT_MODEL", default=False)
+
+
+def object_model_path() -> str:
+    return env_text("PHASMID_OBJECT_MODEL_PATH", "").strip()
 
 
 def passphrase_min_length() -> int:
@@ -144,14 +142,6 @@ def doctor_recent_seconds() -> int:
 
 def display_enabled() -> bool:
     return env_flag("PHASMID_ENABLE_DISPLAY", default=False)
-
-
-def ui_face_session_seconds(default_seconds: int) -> int:
-    return env_int("PHASMID_UI_FACE_SESSION_SECONDS", default_seconds, minimum=1)
-
-
-def ui_face_enroll_seconds(default_seconds: int) -> int:
-    return env_int("PHASMID_UI_FACE_ENROLL_SECONDS", default_seconds, minimum=1)
 
 
 def tui_dark_enabled() -> bool:

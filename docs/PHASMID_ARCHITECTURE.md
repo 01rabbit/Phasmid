@@ -9,7 +9,7 @@ Phasmid is organized into a few narrow local layers:
 1. CLI and WebUI entry points coordinate local operations without exposing internal disclosure structure in normal capture-visible flows.
 2. Restricted-action policy checks enforce confirmation, timing, and capability requirements for sensitive local updates.
 3. The cryptographic core manages `vault.bin`, key derivation, container layout, record encryption, and local access-key mixing.
-4. Local state modules manage typed state, attempt limiting, face-lock state, object-cue material, and optional audit records.
+4. Local state modules manage typed state, attempt limiting, object-cue material, and optional audit records.
 5. Deployment and review documents define the operating boundary for field evaluation and appliance hardening.
 
 ## Naming Boundary
@@ -29,7 +29,7 @@ The architecture preserves these constraints:
 
 - `vault.bin` alone is not sufficient for normal recovery when required local state is absent
 - object cues are operational access cues, not cryptographic secrets
-- Experimental face-lock code is a local interface gate only and is not part of the current WebUI access path
+- an experimental lightweight local object model may contribute neutral status signals to object-cue policy, but it is disabled by default and is not cryptographic material
 - hidden routes are UX concealment, not access control
 - restricted actions require server-side checks and explicit confirmation
 - Field Mode reduces exposure but is not a security boundary

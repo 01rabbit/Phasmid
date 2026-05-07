@@ -1,5 +1,5 @@
 """
-Offline benchmark harness for face and object recognition evaluation (Issue #38).
+Offline benchmark harness for object recognition evaluation (Issue #38).
 
 No camera is required.  Callers supply pre-captured BGR frames (numpy arrays).
 The harness measures per-frame latency, produces accept/reject statistics, and
@@ -21,40 +21,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .lightweight_face_recognizer import (
-    FaceRecognitionResult,
-    LightweightFaceRecognizer,
-)
 from .lightweight_object_matcher import LightweightObjectMatcher, ObjectMatchResult
-
-
-@dataclass
-class FaceBenchmarkSummary:
-    """Aggregated face recognition benchmark result."""
-
-    algo: str
-    n_enroll_frames: int
-    n_probe_frames: int
-    enroll_ok: bool
-    accept_count: int
-    reject_count: int
-    no_face_count: int
-    latency_ms_mean: float
-    latency_ms_p50: float
-    latency_ms_p95: float
-    confidence_mean: float
-    notes: str = ""
-
-    @property
-    def accept_rate(self) -> float:
-        total = self.accept_count + self.reject_count + self.no_face_count
-        return self.accept_count / total if total else 0.0
-
-    @property
-    def false_reject_rate(self) -> float:
-        """Fraction of probe frames that detected a face but were rejected."""
-        detected = self.accept_count + self.reject_count
-        return self.reject_count / detected if detected else 0.0
 
 
 @dataclass
@@ -111,59 +78,13 @@ class ComparisonReport:
 
 class RecognitionBenchmark:
     """
-    Benchmark runner for :class:`LightweightFaceRecognizer` and
-    :class:`LightweightObjectMatcher`.
+    Benchmark runner for :class:`LightweightObjectMatcher`.
 
     All timing is wall-clock (``time.perf_counter``).  On a development
     machine this will be faster than Pi Zero 2 W; the measurements are useful
     for relative comparisons (ORB vs AKAZE, thresholds) and for establishing
     a lower-bound baseline before target-hardware runs.
     """
-
-    def run_face_benchmark(
-        self,
-        enroll_frames: list[np.ndarray],
-        probe_frames: list[np.ndarray],
-        *,
-        notes: str = "",
-    ) -> FaceBenchmarkSummary:
-        """
-        Enroll from *enroll_frames*, then predict on each *probe_frame*.
-
-        All probe frames are expected to contain the enrolled face (positive
-        probes).  Track accept, reject, and no-face counts.
-        """
-        recognizer = LightweightFaceRecognizer()
-        enroll_ok = recognizer.enroll(enroll_frames)
-
-        latencies: list[float] = []
-        results: list[FaceRecognitionResult] = []
-
-        for frame in probe_frames:
-            t0 = time.perf_counter()
-            result = recognizer.predict(frame)
-            latencies.append((time.perf_counter() - t0) * 1000.0)
-            results.append(result)
-
-        accept = sum(1 for r in results if r.status == "accepted")
-        reject = sum(1 for r in results if r.status == "low_confidence")
-        no_face = sum(1 for r in results if r.status in ("no_face", "not_enrolled"))
-        confidences = [r.confidence for r in results]
-
-        return FaceBenchmarkSummary(
-            algo="haar+lbp",
-            n_enroll_frames=len(enroll_frames),
-            n_probe_frames=len(probe_frames),
-            enroll_ok=enroll_ok,
-            accept_count=accept,
-            reject_count=reject,
-            no_face_count=no_face,
-            latency_ms_mean=float(np.mean(latencies)) if latencies else 0.0,
-            latency_ms_p50=float(np.percentile(latencies, 50)) if latencies else 0.0,
-            latency_ms_p95=float(np.percentile(latencies, 95)) if latencies else 0.0,
-            confidence_mean=float(np.mean(confidences)) if confidences else 0.0,
-            notes=notes,
-        )
 
     def run_object_benchmark(
         self,

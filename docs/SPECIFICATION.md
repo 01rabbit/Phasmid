@@ -28,9 +28,7 @@ The project is intended for USB gadget mode or localhost access. It is not a rep
 | `src/phasmid/camera_frame_source.py` | OpenCV camera capture lifecycle |
 | `src/phasmid/object_cue_matcher.py` | ORB-based object-cue matching logic |
 | `src/phasmid/object_cue_store.py` | Encrypted object-cue reference persistence |
-| `src/phasmid/face_lock.py` | Face UI lock orchestration and encrypted template lifecycle |
 | `src/phasmid/face_sample_matcher.py` | Face sample extraction and template comparison |
-| `src/phasmid/face_session_store.py` | In-memory UI face session and failure tracking |
 | `src/phasmid/local_state_crypto.py` | Shared AES-GCM helper for local state blobs and templates |
 | `src/phasmid/web_server.py` | FastAPI Web UI/API |
 | `src/phasmid/bridge_ui.py` | OpenCV status UI |
@@ -54,7 +52,6 @@ The project is intended for USB gadget mode or localhost access. It is not a rep
 | `.state/signal.trigger` | Panic trigger file |
 | `.state/events.log` | Optional audit log |
 | `.state/events.auth` | Optional audit verifier material |
-| `.state/face.bin` | Optional encrypted WebUI face-lock template |
 | `.state/face.enroll` | Short-lived first-time face enrollment request |
 
 The default state directory is `.state/` and can be changed with `PHASMID_STATE_DIR`. The directory is intended to be mode `0700`; sensitive files are intended to be mode `0600`. Neutral filenames reduce obvious metadata, but they do not provide deniability.
@@ -126,14 +123,6 @@ phasmid brick
 ```
 
 This flow destroys `.state/access.bin` first, then performs a best-effort overwrite of `vault.bin`. Flash media, snapshots, backups, and journaling filesystems may retain old data. Recovery resistance depends primarily on destruction, rotation, or removal of required key material, not on overwrite guarantees.
-
-### Reset UI Face Lock
-
-```bash
-phasmid reset-face-lock
-```
-
-This CLI-only flow resets the experimental face-lock state. It requires the typed confirmation phrase `RESET FACE LOCK AND VAULT`, removes the encrypted face-lock template, rotates the local access key, initializes `vault.bin`, clears physical-object bindings, and clears face-lock sessions. This is a data-loss operation because changing the UI user invalidates the local trust boundary for stored entries. The current operator flow does not use face lock for WebUI access.
 
 ## 7. WebUI v2
 
@@ -210,7 +199,7 @@ The normal UI must not display internal entry labels, internal retrieval order, 
 
 Detailed maintenance diagnostics may include neutral hardware-binding availability fields after restricted confirmation or when Field Mode is not suppressing detail.
 
-The current operator flow does not require face recognition for WebUI use. WebUI exposure is bounded instead by explicit operator start from the TUI, local-only binding to `127.0.0.1` by default, and TUI-managed auto-kill on inactivity. Experimental face-lock code may remain in the repository for evaluation work, but it is not part of the supported WebUI access path.
+WebUI exposure is bounded by explicit operator start from the TUI, local-only binding to `127.0.0.1` by default, and TUI-managed auto-kill on inactivity.
 
 ## 8. Capture-Visible Surface Rule
 
@@ -387,7 +376,6 @@ Argon2id(passphrase + local_key + hardware_secret, salt)
     → HKDF-SHA-256(IKM, info=<label>) → vault open subkey
     → HKDF-SHA-256(IKM, info=<label>) → vault purge subkey
     → HKDF-SHA-256(IKM, info=<label>) → local state subkey
-    → HKDF-SHA-256(IKM, info=<label>) → face lock subkey
     → HKDF-SHA-256(IKM, info=<label>) → audit HMAC subkey
 ```
 
@@ -398,7 +386,6 @@ Argon2id(passphrase + local_key + hardware_secret, salt)
 | `phasmid-v4:vault:open:1` | AES-GCM key for the OPEN recovery slot |
 | `phasmid-v4:vault:purge:1` | AES-GCM key for the PURGE recovery slot |
 | `phasmid-v4:state:1` | AES-GCM key for local state blobs |
-| `phasmid-v4:face-lock:1` | AES-GCM key for the face lock template |
 | `phasmid-v4:audit-hmac:1` | HMAC-SHA-256 key for audit record chaining |
 
 Label format: `phasmid-v4:<purpose>:<version>`. The version suffix is incremented when the purpose changes semantically. This decouples label evolution from container format changes.

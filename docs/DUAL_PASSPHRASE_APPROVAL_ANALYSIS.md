@@ -57,7 +57,6 @@ already hold a valid session or vault passphrase is sufficient.
 |---|---|---|
 | `clear_local_access_path` | Emergency brick / key-path invalidation | Most destructive; irreversible |
 | `initialize_container` | Reinitialize the vault container | Destroys all stored entries |
-| `reset_face_lock` | Replace the enrolled face lock | Replaces biometric UI gate |
 
 All other actions in `RESTRICTED_ACTION_POLICIES` continue to use the existing
 single-operator restricted confirmation flow unchanged.

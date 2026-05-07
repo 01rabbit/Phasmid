@@ -24,6 +24,7 @@ dummy.txt
 dump.txt
 *.out
 *.bin
+models/object_gate/
 
 !requirements.txt
 !MIO _Logo.png

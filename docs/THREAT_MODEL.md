@@ -44,6 +44,7 @@ A structured STRIDE analysis mapping this model to the six threat categories is 
 - Attackers may observe or copy files in the project directory if OS permissions are weak.
 - The Web UI is intended for local use through `127.0.0.1` or USB gadget networking.
 - Camera matching is an operational gate, not a cryptographic biometric factor.
+- Experimental object-model output, if enabled, is an operational cue only and must never influence key derivation or container layout.
 - Device capture is realistic, so rendered UI and documentation should avoid explaining the internal disclosure model during normal use.
 - The device hardware (e.g., CPU serial, hardware revision) is relatively static and can be used as a source of device-binding entropy.
 - Field Mode reduces normal information exposure, but it is not a security boundary.
@@ -290,7 +291,19 @@ Each scenario is tagged with applicable [STRIDE](https://learn.microsoft.com/en-
 
 ---
 
-### TS-17: Coerced Disclosure
+### TS-17: Experimental Object Model Misclassification
+
+**Tags:** S, D, Di
+
+**Scenario:** A lightweight local object model returns an overconfident result under low light, blur, printed spoof, partial occlusion, or poor camera quality.
+
+**Mitigation:** The model path is disabled by default, bounded by frame and time limits, and combined with neutral policy rather than trusted directly. ORB remains the baseline path unless target-hardware validation proves otherwise.
+
+**Residual risk:** False accepts, false rejects, timing differences, and operator retry pressure remain possible until Raspberry Pi Zero 2 W validation is complete.
+
+---
+
+### TS-18: Coerced Disclosure
 
 **Tags:** Di, U
 
@@ -315,7 +328,6 @@ Phasmid explicitly does not aim to provide:
 - **Multi-user access control** — Phasmid is designed for single-operator local use.
 - **Remote or network-accessible deployment** — WebUI is designed for localhost or USB gadget; remote deployment is a misconfiguration.
 - **Protection against supply-chain compromise of dependencies** — Package integrity is operational responsibility; see `SH-22`.
-- **Cryptographic biometric authentication** — Camera matching is an operational gate; face recognition (if evaluated) is a UI lock only.
 
 ---
 
@@ -336,7 +348,6 @@ Phasmid explicitly does not aim to provide:
 - Access recovery flows count repeated local failures and apply a bounded temporary lockout. WebUI limiting is process-local; CLI limiting is stored in local state.
 - Web responses include no-store cache headers, frame denial, MIME-sniffing protection, no-referrer policy, constrained browser permissions, and a local-only content security policy. These reduce browser residue and common Web embedding risks but do not make the WebUI safe for untrusted networks.
 - Sensitive Web actions require a fresh restricted confirmation session in addition to the Web token. Restricted action pages and entry maintenance details are withheld until that confirmation is active.
-- The current WebUI flow does not use face recognition as an access gate. Exposure is limited instead by explicit TUI start/stop control, default binding to `127.0.0.1`, and TUI-managed inactivity auto-kill.
 - The Web server binds to `127.0.0.1` by default.
 - **Inactivity Auto-Kill**: When managed via the TUI, the WebUI server is
   automatically terminated after 10 minutes of operator inactivity to minimize
@@ -388,7 +399,6 @@ Phasmid explicitly does not aim to provide:
 - For high-risk deployments, separate `vault.bin`, local state, memorized password, object cue, and optional external key material across different control conditions.
 - Use `PHASMID_FIELD_MODE=1` for appliance-style deployments.
 - Treat WebUI exposure control as an operational measure built from TUI-managed start/stop, default localhost binding, and inactivity auto-kill. It is not a substitute for passwords, object cues, or external values.
-- Use `phasmid reset-face-lock` only for experimental face-lock evaluation work. It rotates the local access key, clears stored vault data, and clears object bindings as part of the reset.
 - Use distinct high-entropy values for normal access and restricted recovery passwords.
 - Keep `PHASMID_PURGE_CONFIRMATION=1` unless the deployment explicitly accepts the data-loss risk of automatic local-state updates.
 - Reinitialize the container after a panic event.

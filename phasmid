@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="$ROOT_DIR/.venv"
+PYTHON_BIN="${PYTHON:-python3}"
+
+if [[ ! -d "$VENV_DIR" ]]; then
+  echo "Creating local virtual environment in $VENV_DIR" >&2
+  "$PYTHON_BIN" -m venv "$VENV_DIR"
+fi
+
+if [[ ! -x "$VENV_DIR/bin/python" ]]; then
+  echo "Virtual environment is incomplete: $VENV_DIR/bin/python not found" >&2
+  exit 1
+fi
+
+if [[ ! -x "$VENV_DIR/bin/phasmid" ]]; then
+  echo "Installing Phasmid into local virtual environment" >&2
+  "$VENV_DIR/bin/pip" install -r "$ROOT_DIR/requirements.txt"
+  "$VENV_DIR/bin/pip" install -e "$ROOT_DIR"
+fi
+
+exec "$VENV_DIR/bin/phasmid" "$@"

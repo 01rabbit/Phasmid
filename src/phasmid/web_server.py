@@ -167,20 +167,6 @@ def _ui_unlocked(request):
     return True
 
 
-def _face_lock_status(request):
-    return {
-        "enabled": False,
-        "enrolled": False,
-        "unlocked": True,
-        "failures": 0,
-        "max_failures": 0,
-    }
-
-
-def _face_enrollment_allowed():
-    return False
-
-
 def require_ui_unlock(request: Request):
     if not _ui_unlocked(request):
         raise HTTPException(status_code=423, detail=text.UI_LOCKED)
@@ -308,8 +294,6 @@ def _template_context(request: Request, active="home", **extra):
             if restricted_confirmed
             else 0
         ),
-        "face_enrollment_enabled": _face_enrollment_allowed(),
-        "face_lock": _face_lock_status(request),
         "destructive_clear_phrase": DESTRUCTIVE_CLEAR_PHRASE,
         "initialize_container_phrase": INITIALIZE_CONTAINER_PHRASE,
         "emergency_brick_phrase": EMERGENCY_BRICK_PHRASE,
@@ -502,11 +486,6 @@ async def emergency_page(request: Request):
     )
 
 
-@app.get("/ui-lock", response_class=HTMLResponse)
-async def ui_lock_page(request: Request):
-    return RedirectResponse(url="/", status_code=303)
-
-
 @app.get("/video_feed", dependencies=[Depends(require_ui_unlock)])
 async def video_feed():
     return StreamingResponse(
@@ -515,29 +494,9 @@ async def video_feed():
     )
 
 
-@app.get("/ui-lock/video_feed")
-async def ui_lock_video_feed(request: Request):
-    raise HTTPException(status_code=404, detail="face lock disabled")
-
-
 @app.get("/status")
 async def status(request: Request):
     return neutral_status()
-
-
-@app.post("/face/enroll", dependencies=[Depends(require_web_token)])
-async def face_enroll(request: Request):
-    raise HTTPException(status_code=404, detail="face lock disabled")
-
-
-@app.post("/face/verify", dependencies=[Depends(require_web_token)])
-async def face_verify(request: Request):
-    raise HTTPException(status_code=404, detail="face lock disabled")
-
-
-@app.post("/face/lock", dependencies=[Depends(require_web_token)])
-async def face_lock_session(request: Request):
-    raise HTTPException(status_code=404, detail="face lock disabled")
 
 
 @app.get(
