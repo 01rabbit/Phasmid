@@ -10,62 +10,17 @@ Verifies that:
 AST check scope: modules that handle key material, tokens, or digests.
 """
 
+from __future__ import annotations
+
 import ast
+import os
+import sys
+import tempfile
+import unittest
 from pathlib import Path
 
-import pytest
-
-# ---------------------------------------------------------------------------
-# Functional tests
-# ---------------------------------------------------------------------------
-
-SENSITIVE_MODULES = [
-    "phasmid.roles",
-    "phasmid.audit",
-    "phasmid.crypto_boundary",
-    "phasmid.web_server",
-    "phasmid.emergency_daemon",
-]
-
-
-class TestConstantTimeComparisons:
-    def test_hmac_compare_digest_used_in_roles(self):
-        """roles.py must use hmac.compare_digest for PBKDF2 hash comparison."""
-
-        from phasmid import roles
-
-        # Verify the module imports hmac
-        assert hasattr(roles, "hmac"), "roles module must import hmac"
-
-    def test_custom_constant_time_equal_removed(self):
-        """The hand-rolled _constant_time_equal function must not exist in roles."""
-        from phasmid import roles
-
-        assert not hasattr(roles, "_constant_time_equal"), (
-            "_constant_time_equal was removed in SH-07; "
-            "use hmac.compare_digest instead"
-        )
-
-    def test_roles_verification_uses_compare_digest(self, tmp_path):
-        """Supervisor passphrase verification must succeed for matching inputs."""
-        from phasmid.roles import RoleStore
-
-        store = RoleStore(state_path=str(tmp_path))
-        ok, _ = store.configure_supervisor("correct-passphrase-123")
-        assert ok
-
-        result = store.verify_supervisor("correct-passphrase-123")
-        assert result.verified
-
-        result_wrong = store.verify_supervisor("wrong-passphrase-999")
-        assert not result_wrong.verified
-
-    def test_audit_uses_compare_digest(self):
-        """audit.py must not use == for HMAC comparison."""
-        src = Path("src/phasmid/audit.py").read_text()
-        tree = ast.parse(src)
-        _assert_no_bytes_eq_in_hmac_context(tree, "audit.py")
-
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "src"))
 
 # ---------------------------------------------------------------------------
 # AST regression helpers
@@ -111,13 +66,55 @@ def _assert_no_bytes_eq_in_hmac_context(tree: ast.AST, filename: str) -> None:
                         f"{filename}:{node.lineno}: == comparison on '{name}' — "
                         "use hmac.compare_digest for sensitive byte comparisons"
                     )
-    assert not issues, "\n".join(issues)
+    if issues:
+        raise AssertionError("\n".join(issues))
 
 
-class TestASTRegressionCryptoModules:
+# ---------------------------------------------------------------------------
+# Functional tests
+# ---------------------------------------------------------------------------
+
+
+class TestConstantTimeComparisons(unittest.TestCase):
+    def test_hmac_compare_digest_used_in_roles(self):
+        """roles.py must use hmac.compare_digest for PBKDF2 hash comparison."""
+        from phasmid import roles
+
+        self.assertTrue(hasattr(roles, "hmac"), "roles module must import hmac")
+
+    def test_custom_constant_time_equal_removed(self):
+        """The hand-rolled _constant_time_equal function must not exist in roles."""
+        from phasmid import roles
+
+        self.assertFalse(
+            hasattr(roles, "_constant_time_equal"),
+            "_constant_time_equal was removed in SH-07; use hmac.compare_digest instead",
+        )
+
+    def test_roles_verification_uses_compare_digest(self):
+        """Supervisor passphrase verification must succeed for matching inputs."""
+        from phasmid.roles import RoleStore
+
+        with tempfile.TemporaryDirectory() as tmp:
+            store = RoleStore(state_path=tmp)
+            ok, _ = store.configure_supervisor("correct-passphrase-123")
+            self.assertTrue(ok)
+
+            result = store.verify_supervisor("correct-passphrase-123")
+            self.assertTrue(result.verified)
+
+            result_wrong = store.verify_supervisor("wrong-passphrase-999")
+            self.assertFalse(result_wrong.verified)
+
+    def test_audit_uses_compare_digest(self):
+        """audit.py must not use == for HMAC comparison."""
+        src = Path(os.path.join(ROOT, "src", "phasmid", "audit.py")).read_text()
+        tree = ast.parse(src)
+        _assert_no_bytes_eq_in_hmac_context(tree, "audit.py")
+
+
+class TestASTRegressionCryptoModules(unittest.TestCase):
     """AST-level check: no == on sensitive variable names in crypto-path modules."""
-
-    SRC_ROOT = Path("src/phasmid")
 
     CHECKED_FILES = [
         "audit.py",
@@ -125,11 +122,23 @@ class TestASTRegressionCryptoModules:
         "roles.py",
     ]
 
-    @pytest.mark.parametrize("filename", CHECKED_FILES)
-    def test_no_sensitive_eq_comparison(self, filename):
-        path = self.SRC_ROOT / filename
+    def _check_file(self, filename: str) -> None:
+        path = Path(os.path.join(ROOT, "src", "phasmid", filename))
         if not path.exists():
-            pytest.skip(f"{filename} not found")
+            self.skipTest(f"{filename} not found")
         src = path.read_text()
         tree = ast.parse(src)
         _assert_no_bytes_eq_in_hmac_context(tree, filename)
+
+    def test_no_sensitive_eq_in_audit(self):
+        self._check_file("audit.py")
+
+    def test_no_sensitive_eq_in_crypto_boundary(self):
+        self._check_file("crypto_boundary.py")
+
+    def test_no_sensitive_eq_in_roles(self):
+        self._check_file("roles.py")
+
+
+if __name__ == "__main__":
+    unittest.main()

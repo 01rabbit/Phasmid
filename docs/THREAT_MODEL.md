@@ -62,7 +62,7 @@ A structured STRIDE analysis mapping this model to the six threat categories is 
 - Web UI mutation token created at process start or supplied through `PHASMID_WEB_TOKEN`.
 - Browser-visible surfaces such as rendered HTML, console output, response headers, filenames, and cached pages.
 - CLI output, shell history, application stdout/stderr, and systemd logs.
-- Camera overlay text and Maintenance diagnostics output.
+- camera overlay text and Maintenance diagnostics output.
 - Source identity, notes, evidence metadata, temporary field data, and local operational context.
 
 ---
@@ -71,7 +71,7 @@ A structured STRIDE analysis mapping this model to the six threat categories is 
 
 > **Note:** This section was previously titled "Capture-Visible Surfaces" (anchor `#capture-visible-surfaces`). The old anchor is preserved via this note.
 
-Attack surfaces include the WebUI, rendered HTML, browser history, browser cache, JavaScript console, response headers, download filenames, CLI output, shell history, systemd stdout/stderr, audit logs, state-directory filenames, screenshots, and documentation copied to the device.
+Capture-visible surfaces include the WebUI, rendered HTML, browser history, browser cache, JavaScript console, response headers, download filenames, CLI output, shell history, systemd stdout/stderr, audit logs, state-directory filenames, screenshots, and documentation copied to the device.
 
 These surfaces should not reveal the internal disclosure model, internal trial order, slot purpose, restricted recovery side effects, or the existence of an alternate protected state.
 
