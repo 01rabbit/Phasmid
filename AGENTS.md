@@ -84,6 +84,12 @@ The following issues were resolved in order and merged to `main` via pull reques
 - `#3`: Observable difference reduction — response/header neutrality tests, timing normalization documentation. ✅
 - `#4`: Cryptographic erase formalization — key-material invalidation sequence spec, ordering tests, best-effort overwrite language. ✅
 - `#5`: Argon2id + HKDF-SHA-256 key schedule design — domain-separated subkey module (`kdf_subkeys.py`), deterministic test vectors, v4 design documented in SPECIFICATION.md. ✅
+- `#11`: Process hardening — umask 0o077, RLIMIT_CORE=0, prctl dumpable clear (Linux), mlockall (Linux); `process_hardening.py` module, Doctor page integration, CLI/WebUI startup hooks. ✅
+- `#12`: Volatile key-material store — `PHASMID_TMPFS_STATE` env var, `volatile_state.py`, `config.py` state-dir routing, fail-closed startup guard, Doctor page check, systemd tmpfs mount example in `RPI_ZERO_APPLIANCE_DEPLOYMENT.md`. ✅
+- `#17`: Optional LUKS encrypted storage layer — systemd crypttab + fstab + `Requires=` ordering documented in `RPI_ZERO_APPLIANCE_DEPLOYMENT.md`; fail-closed guarantee; no code changes required. ✅
+- `#1`: Threat model structured STRIDE analysis — `docs/THREAT_ANALYSIS_STRIDE.md` covering all six STRIDE categories with controls and residual risks; `docs/THREAT_MODEL.md` updated with cross-reference. ✅
+- `#13`: Device binding input evaluation — `docs/DEVICE_BINDING_ANALYSIS.md` covering CPU serial, machine-id, SD CID, and deploy-time seed; current `HardwareBindingProvider` confirmed as correct approach. ✅
+- `#14`: Threshold split-key recovery evaluation — `docs/SPLIT_KEY_RECOVERY_ANALYSIS.md` evaluating split files, memorized values, Shamir threshold schemes, and removable media; no custom SSS implementation; recommends reviewed external tool. ✅
 
 ---
 
