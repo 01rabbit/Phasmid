@@ -1,3 +1,4 @@
+import hashlib
 import importlib.util
 import json
 import tempfile
@@ -22,6 +23,11 @@ def load_release_script():
 
 
 class ReleaseArtifactTests(unittest.TestCase):
+    def _sha256_file(self, path: Path) -> str:
+        digest = hashlib.sha256()
+        digest.update(path.read_bytes())
+        return digest.hexdigest()
+
     def test_manifest_and_sbom_generation_exclude_runtime_files(self):
         module = load_release_script()
         tmpdir = Path(tempfile.mkdtemp())
@@ -35,7 +41,7 @@ class ReleaseArtifactTests(unittest.TestCase):
         (tmpdir / ".state" / "access.bin").write_bytes(b"local")
         (tmpdir / "vault.bin").write_bytes(b"vault")
         (tmpdir / "pyproject.toml").write_text(
-            '[project]\ndependencies = [\n    "cryptography==46.0.4",\n]\n',
+            '[project]\ndependencies = [\n    "cryptography==46.0.7",\n]\n',
             encoding="utf-8",
         )
 
@@ -52,6 +58,10 @@ class ReleaseArtifactTests(unittest.TestCase):
         )
         self.assertEqual(sbom["bomFormat"], "CycloneDX")
         self.assertEqual(sbom["components"][0]["name"], "cryptography")
+        self.assertEqual(
+            sbom["metadata"]["timestamp"],
+            "1970-01-01T00:00:00+00:00",
+        )
 
     def test_dependency_parser_handles_unpinned_values(self):
         module = load_release_script()
@@ -95,6 +105,38 @@ class ReleaseArtifactTests(unittest.TestCase):
             output_dir / "MANIFEST.sha256.sig",
             public_key_path,
         )
+
+    def test_generate_release_artifacts_is_bit_reproducible(self):
+        module = load_release_script()
+        tmpdir = Path(tempfile.mkdtemp())
+        (tmpdir / "src" / "phasmid").mkdir(parents=True)
+        (tmpdir / "src" / "phasmid" / "example.py").write_text(
+            "print('ok')\n",
+            encoding="utf-8",
+        )
+        (tmpdir / "README.md").write_text("phasmid\n", encoding="utf-8")
+        (tmpdir / "pyproject.toml").write_text(
+            '[project]\ndependencies = [\n    "cryptography==46.0.7",\n]\n',
+            encoding="utf-8",
+        )
+
+        out1 = Path(tempfile.mkdtemp()) / "out1"
+        out2 = Path(tempfile.mkdtemp()) / "out2"
+        module.generate(tmpdir, out1, archive=True, source_date_epoch=1700000000)
+        module.generate(tmpdir, out2, archive=True, source_date_epoch=1700000000)
+
+        files = [
+            "MANIFEST.sha256",
+            "sbom.cyclonedx.json",
+            "release-summary.json",
+            "phasmid-release.tar.gz",
+        ]
+        for name in files:
+            self.assertEqual(
+                self._sha256_file(out1 / name),
+                self._sha256_file(out2 / name),
+                msg=f"non-reproducible artifact: {name}",
+            )
 
 
 if __name__ == "__main__":

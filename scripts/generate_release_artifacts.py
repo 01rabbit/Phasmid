@@ -4,8 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
+import io
 import json
+import os
 import tarfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -44,6 +47,16 @@ INCLUDED_SUFFIXES = {
 INCLUDED_NAMES = {".gitignore", "LICENSE", "README.md"}
 
 
+def _source_date_epoch(explicit: int | None = None) -> int:
+    if explicit is not None:
+        return max(0, int(explicit))
+    value = os.environ.get("SOURCE_DATE_EPOCH", "0")
+    try:
+        return max(0, int(value))
+    except ValueError:
+        return 0
+
+
 def should_include(path: Path, base_dir: Path):
     relative = path.relative_to(base_dir)
     if any(part in EXCLUDED_DIRS for part in relative.parts):
@@ -55,9 +68,13 @@ def should_include(path: Path, base_dir: Path):
     return path.suffix in INCLUDED_SUFFIXES
 
 
-def collect_release_files(base_dir: Path):
+def collect_release_files(base_dir: Path, excluded_roots: list[Path] | None = None):
+    excluded_roots = [root.resolve() for root in (excluded_roots or [])]
     files = []
     for path in base_dir.rglob("*"):
+        resolved = path.resolve()
+        if any(resolved.is_relative_to(root) for root in excluded_roots):
+            continue
         if path.is_file() and should_include(path, base_dir):
             files.append(path.relative_to(base_dir))
     return sorted(files, key=lambda item: item.as_posix())
@@ -97,14 +114,15 @@ def read_project_dependencies(pyproject_path: Path):
         value = line.strip(",").strip('"')
         if value:
             dependencies.append(value)
-    return dependencies
+    return sorted(set(dependencies))
 
 
 def dependency_component(dependency: str):
-    if "==" in dependency:
-        name, version = dependency.split("==", 1)
+    normalized = dependency.split(";", 1)[0].strip()
+    if "==" in normalized:
+        name, version = normalized.split("==", 1)
     else:
-        name, version = dependency, None
+        name, version = normalized, None
     component = {
         "type": "library",
         "name": name,
@@ -116,14 +134,15 @@ def dependency_component(dependency: str):
     return component
 
 
-def write_sbom(base_dir: Path, output_path: Path):
+def write_sbom(base_dir: Path, output_path: Path, source_date_epoch: int):
     dependencies = read_project_dependencies(base_dir / "pyproject.toml")
+    timestamp = datetime.fromtimestamp(source_date_epoch, tz=timezone.utc).isoformat()
     sbom = {
         "bomFormat": "CycloneDX",
         "specVersion": "1.5",
         "version": 1,
         "metadata": {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": timestamp,
             "component": {
                 "type": "application",
                 "name": "phasmid-vault",
@@ -137,10 +156,28 @@ def write_sbom(base_dir: Path, output_path: Path):
     return sbom
 
 
-def write_archive(base_dir: Path, output_path: Path, files):
-    with tarfile.open(output_path, "w:gz") as archive:
-        for relative in files:
-            archive.add(base_dir / relative, arcname=relative.as_posix())
+def write_archive(base_dir: Path, output_path: Path, files, source_date_epoch: int):
+    with open(output_path, "wb") as raw:
+        with gzip.GzipFile(
+            filename="",
+            mode="wb",
+            fileobj=raw,
+            mtime=source_date_epoch,
+            compresslevel=9,
+        ) as gz:
+            with tarfile.open(fileobj=gz, mode="w") as archive:
+                for relative in files:
+                    abs_path = base_dir / relative
+                    data = abs_path.read_bytes()
+                    info = tarfile.TarInfo(name=relative.as_posix())
+                    info.size = len(data)
+                    info.mtime = source_date_epoch
+                    info.uid = 0
+                    info.gid = 0
+                    info.uname = ""
+                    info.gname = ""
+                    info.mode = 0o644
+                    archive.addfile(info, io.BytesIO(data))
 
 
 def sign_manifest(manifest_path: Path, signature_path: Path, key_path: Path):
@@ -154,7 +191,9 @@ def sign_manifest(manifest_path: Path, signature_path: Path, key_path: Path):
     signature_path.write_bytes(signature)
 
 
-def verify_manifest_signature(manifest_path: Path, signature_path: Path, key_path: Path):
+def verify_manifest_signature(
+    manifest_path: Path, signature_path: Path, key_path: Path
+):
     public_key = serialization.load_pem_public_key(key_path.read_bytes())
     if not isinstance(public_key, Ed25519PublicKey):
         raise ValueError("verify key must be an Ed25519 public key")
@@ -164,10 +203,18 @@ def verify_manifest_signature(manifest_path: Path, signature_path: Path, key_pat
         raise ValueError("manifest signature verification failed") from exc
 
 
-def generate(base_dir: Path, output_dir: Path, archive: bool = False, signing_key: Path | None = None):
+def generate(
+    base_dir: Path,
+    output_dir: Path,
+    archive: bool = False,
+    signing_key: Path | None = None,
+    source_date_epoch: int | None = None,
+):
     base_dir = base_dir.resolve()
+    output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    files = collect_release_files(base_dir)
+    files = collect_release_files(base_dir, excluded_roots=[output_dir])
+    epoch = _source_date_epoch(source_date_epoch)
 
     manifest_path = output_dir / "MANIFEST.sha256"
     manifest_sig_path = output_dir / "MANIFEST.sha256.sig"
@@ -175,13 +222,13 @@ def generate(base_dir: Path, output_dir: Path, archive: bool = False, signing_ke
     summary_path = output_dir / "release-summary.json"
 
     manifest_lines = write_manifest(base_dir, manifest_path, files)
-    sbom = write_sbom(base_dir, sbom_path)
+    sbom = write_sbom(base_dir, sbom_path, epoch)
     if signing_key is not None:
         sign_manifest(manifest_path, manifest_sig_path, signing_key)
     archive_path = None
     if archive:
         archive_path = output_dir / "phasmid-release.tar.gz"
-        write_archive(base_dir, archive_path, files)
+        write_archive(base_dir, archive_path, files, epoch)
 
     summary = {
         "archive": archive_path.name if archive_path else None,
@@ -193,6 +240,7 @@ def generate(base_dir: Path, output_dir: Path, archive: bool = False, signing_ke
         "manifest_signature": manifest_sig_path.name if signing_key else None,
         "sbom": sbom_path.name,
         "sbom_components": len(sbom["components"]),
+        "source_date_epoch": epoch,
     }
     summary_path.write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
@@ -216,6 +264,15 @@ def main(argv=None):
         default=None,
         help="optional Ed25519 private key PEM for manifest signing",
     )
+    parser.add_argument(
+        "--source-date-epoch",
+        type=int,
+        default=None,
+        help=(
+            "UNIX epoch to stamp reproducible artifacts "
+            "(default: SOURCE_DATE_EPOCH env or 0)"
+        ),
+    )
     args = parser.parse_args(argv)
 
     summary = generate(
@@ -223,6 +280,7 @@ def main(argv=None):
         output_dir=Path(args.output_dir),
         archive=args.archive,
         signing_key=Path(args.signing_key) if args.signing_key else None,
+        source_date_epoch=args.source_date_epoch,
     )
     print(f"release artifacts generated: {summary['manifest']}, {summary['sbom']}")
 
