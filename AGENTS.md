@@ -53,8 +53,7 @@ The following issues were resolved in order and merged to `main` via pull reques
 
 ### Other Open Priority Issues
 
-- **#38 Lightweight Recognition Evaluation**: Evaluate lightweight local face/object model candidates after camera refactor, with Raspberry Pi Zero 2 W benchmark evidence.
-- **#28 Dual-Passphrase Approval Analysis**: Design local dual-passphrase approval flow and threat tradeoffs.
+- No open priority issues are currently listed here. Add new items as post-unification work is prioritized.
 
 ### Completed Milestones
 
@@ -72,6 +71,8 @@ The following issues were resolved in order and merged to `main` via pull reques
 - `#16`: Release integrity manifest and SBOM workflow (optional Ed25519 manifest signing). ✅
 - `#20`: Multi-object cue and visual sequence evaluation artifacts, neutral policy-gate prototype, and recommendation baseline. ✅
 - `#27`: AI gate decoupling (camera, cue matching/persistence, face-lock/session boundaries, service integration). ✅
+- `#28`: Dual-passphrase approval flow: local supervisor role store (PBKDF2+AES-GCM), in-memory request/grant lifecycle, TTL enforcement, threat analysis, and optional gate (PHASMID_DUAL_APPROVAL). ✅
+- `#38`: Lightweight recognition evaluation: LBP histogram face recognizer, ORB/AKAZE parametric object matcher, offline benchmark harness, and Pi Zero 2 W measurement plan. Hardware validation pending. ✅
 - `#39`: JES Neon-Ops design system: CSS token overhaul and component updates. ✅
 - `#40`: Operator Console navigation group and WebUI exposure warning banner. ✅
 - `#41`: Backend API endpoints and Operator pages (Doctor, Audit, Guided, Inspect). ✅
@@ -79,6 +80,7 @@ The following issues were resolved in order and merged to `main` via pull reques
 - `#43`: Brand polish and animation update (cyan glow, phosphor green). ✅
 - TUI Operator Console: full Textual-based operator console. ✅
 - WebUI redesign gap fixes, including frame-lock animation, toast variants, and Store capture flow. ✅
+- `#18`: Restricted-recovery observability analysis (offline path measurement harness, timing and write-channel analysis, Pi Zero 2 W measurement plan). ✅
 - `#3`: Observable difference reduction — response/header neutrality tests, timing normalization documentation. ✅
 - `#4`: Cryptographic erase formalization — key-material invalidation sequence spec, ordering tests, best-effort overwrite language. ✅
 - `#5`: Argon2id + HKDF-SHA-256 key schedule design — domain-separated subkey module (`kdf_subkeys.py`), deterministic test vectors, v4 design documented in SPECIFICATION.md. ✅
@@ -338,7 +340,7 @@ Relevant issues:
 - `#12` volatile local key-material store using tmpfs
 - `#13` local device-binding inputs
 - `#17` optional LUKS layer
-- `#18` restricted recovery observability on target hardware
+- `#18` restricted recovery observability on target hardware ✅
 - `#21` deployment profiles and capability table
 - `#23` typed local state store and transition checks ✅
 - `#29` local operations commands and docs alignment ✅

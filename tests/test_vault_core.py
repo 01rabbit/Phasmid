@@ -205,7 +205,6 @@ class PhasmidVaultV3Tests(unittest.TestCase):
             vault.store("pw", b"payload", seq, filename="f.bin", mode="dummy")
 
             key_path = vault.access_key_path
-            container_path = vault.path
             destroyed_order = []
 
             original_destroy = vault.destroy_access_keys

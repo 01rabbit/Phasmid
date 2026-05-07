@@ -10,6 +10,7 @@ AUDIT_LOG_NAME = "events.log"
 AUDIT_AUTH_NAME = "events.auth"
 FACE_TEMPLATE_NAME = "face.bin"
 FACE_ENROLL_FLAG_NAME = "face.enroll"
+ROLE_STATE_NAME = "roles.bin"
 
 
 def state_dir():
@@ -65,3 +66,7 @@ def access_lockout_seconds():
         return max(1, int(value))
     except ValueError:
         return 60
+
+
+def dual_approval_enabled():
+    return env_flag("PHASMID_DUAL_APPROVAL", default=False)
