@@ -9,7 +9,6 @@ They are separated from normal Store and Retrieve flows.
 Restricted actions are evaluated by a shared local policy layer. Depending on the action, the policy can require:
 
 - a valid Web mutation token;
-- an unlocked UI session when face lock is enabled;
 - a fresh restricted confirmation window;
 - a typed action phrase;
 - a deployment capability mode that permits the action.

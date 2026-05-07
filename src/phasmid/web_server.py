@@ -34,8 +34,6 @@ from .config import (
     field_mode_enabled,
     purge_confirmation_required,
     state_dir,
-    ui_face_enrollment_enabled,
-    ui_face_lock_enabled,
 )
 from .crypto_boundary import ensure_crypto_self_tests
 from .kdf_providers import hardware_binding_status
@@ -57,7 +55,6 @@ from .services.audit_service import build_audit_report
 from .services.doctor_service import run_doctor_checks
 from .services.guided_service import get_workflows
 from .services.inspection_service import inspect_vessel
-from .services.ui_face_lock_service import ui_face_lock_service
 from .vault_core import PhasmidVault
 from .volatile_state import require_volatile_state
 
@@ -82,10 +79,7 @@ WEB_TOKEN = os.environ.get("PHASMID_WEB_TOKEN") or secrets.token_urlsafe(32)
 MAX_UPLOAD_BYTES = int(os.environ.get("PHASMID_MAX_UPLOAD_BYTES", 25 * 1024 * 1024))
 RATE_LIMIT_WINDOW = 60
 RATE_LIMIT_MAX = 20
-FACE_SESSION_COOKIE = "phasmid_ui_session"
 RESTRICTED_SESSION_COOKIE = "phasmid_restricted_session"
-FACE_FRAME_SAMPLES = 8
-FACE_FRAME_DELAY_SECONDS = 0.10
 RESTRICTED_SESSION_TTL_SECONDS = int(
     os.environ.get("PHASMID_RESTRICTED_SESSION_SECONDS", 120)
 )
@@ -162,40 +156,26 @@ def _client_id(request):
     return request.client.host if request.client else "unknown"
 
 
-def _face_session_token(request):
-    return request.cookies.get(FACE_SESSION_COOKIE, "")
-
-
 def _restricted_session_token(request):
     return request.cookies.get(RESTRICTED_SESSION_COOKIE, "")
 
 
 def _ui_unlocked(request):
-    if not ui_face_lock_enabled():
-        return True
-    return ui_face_lock_service.session_valid(
-        _client_id(request), _face_session_token(request)
-    )
+    return True
 
 
 def _face_lock_status(request):
-    if not ui_face_lock_enabled():
-        return {
-            "enabled": False,
-            "enrolled": False,
-            "unlocked": True,
-            "failures": 0,
-            "max_failures": 0,
-        }
-    return ui_face_lock_service.status(
-        _client_id(request), _face_session_token(request)
-    )
+    return {
+        "enabled": False,
+        "enrolled": False,
+        "unlocked": True,
+        "failures": 0,
+        "max_failures": 0,
+    }
 
 
 def _face_enrollment_allowed():
-    if not ui_face_lock_service.is_enrolled():
-        return True
-    return ui_face_enrollment_enabled() or ui_face_lock_service.enrollment_pending()
+    return False
 
 
 def require_ui_unlock(request: Request):
@@ -275,17 +255,7 @@ def require_restricted_action(action_id, request, confirmation=""):
 def _guard_page(request):
     if _ui_unlocked(request):
         return None
-    return RedirectResponse(url="/ui-lock", status_code=303)
-
-
-def _recent_camera_frames(count=FACE_FRAME_SAMPLES, delay=FACE_FRAME_DELAY_SECONDS):
-    frames = []
-    for _ in range(count):
-        frame = access_cue_service.latest_frame_copy()
-        if frame is not None:
-            frames.append(frame)
-        time.sleep(delay)
-    return frames
+    return RedirectResponse(url="/", status_code=303)
 
 
 def require_web_token(x_phasmid_token: str = Header(default="")):
@@ -529,11 +499,7 @@ async def emergency_page(request: Request):
 
 @app.get("/ui-lock", response_class=HTMLResponse)
 async def ui_lock_page(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="ui_lock.html",
-        context=_template_context(request, active="lock"),
-    )
+    return RedirectResponse(url="/", status_code=303)
 
 
 @app.get("/video_feed", dependencies=[Depends(require_ui_unlock)])
@@ -546,88 +512,27 @@ async def video_feed():
 
 @app.get("/ui-lock/video_feed")
 async def ui_lock_video_feed(request: Request):
-    if not ui_face_lock_enabled():
-        raise HTTPException(status_code=404, detail="face lock disabled")
-    return StreamingResponse(
-        access_cue_service.generate_frames(),
-        media_type="multipart/x-mixed-replace; boundary=frame",
-    )
+    raise HTTPException(status_code=404, detail="face lock disabled")
 
 
 @app.get("/status")
 async def status(request: Request):
-    data = neutral_status()
-    face_status = _face_lock_status(request)
-    if face_status["enabled"] and not face_status["unlocked"]:
-        data["device_state"] = "locked"
-        data["camera_ready"] = False
-        data["object_state"] = "none"
-    return data
+    return neutral_status()
 
 
 @app.post("/face/enroll", dependencies=[Depends(require_web_token)])
 async def face_enroll(request: Request):
-    enforce_rate_limit(request)
-    require_capability(Capability.FACE_ENROLL)
-    if not ui_face_lock_enabled():
-        return {"error": "Face UI lock is disabled."}
-    if not ui_face_lock_service.is_enrolled() and not _face_enrollment_allowed():
-        return {"error": "Face enrollment is disabled for this session."}
-    if ui_face_lock_service.is_enrolled() and not _ui_unlocked(request):
-        return {"error": "UI must be unlocked before replacing the face lock."}
-    if ui_face_lock_service.is_enrolled() and not _restricted_session_valid(request):
-        return {
-            "error": "Restricted confirmation required. Please confirm local control and retry."
-        }
-    success, message = ui_face_lock_service.enroll_from_frames(_recent_camera_frames())
-    if success:
-        ui_face_lock_service.clear_enrollment_request()
-        audit_event("ui_face_lock_enrolled", source="web")
-        return {"status": message}
-    return {"error": message}
+    raise HTTPException(status_code=404, detail="face lock disabled")
 
 
 @app.post("/face/verify", dependencies=[Depends(require_web_token)])
 async def face_verify(request: Request):
-    enforce_rate_limit(request)
-    require_capability(Capability.FACE_VERIFY)
-    if not ui_face_lock_enabled():
-        return {"error": "Face UI lock is disabled."}
-    client_id = _client_id(request)
-    success, message = ui_face_lock_service.verify_from_frames(
-        _recent_camera_frames(), client_id
-    )
-    if not success:
-        audit_event("ui_face_lock_failed", source="web")
-        return {"error": message}
-
-    token = secrets.token_urlsafe(32)
-    ui_face_lock_service.create_session(client_id, token)
-    audit_event("ui_face_lock_unlocked", source="web")
-    response = JSONResponse({"status": text.UI_UNLOCKED})
-    response.set_cookie(
-        FACE_SESSION_COOKIE,
-        token,
-        max_age=int(
-            os.environ.get(
-                "PHASMID_UI_FACE_SESSION_SECONDS",
-                ui_face_lock_service.session_ttl_seconds,
-            )
-        ),
-        httponly=True,
-        samesite="strict",
-    )
-    return response
+    raise HTTPException(status_code=404, detail="face lock disabled")
 
 
 @app.post("/face/lock", dependencies=[Depends(require_web_token)])
 async def face_lock_session(request: Request):
-    ui_face_lock_service.clear_session(_face_session_token(request))
-    _restricted_sessions.pop(_restricted_session_token(request), None)
-    response = JSONResponse({"status": text.UI_LOCKED_FEEDBACK})
-    response.delete_cookie(FACE_SESSION_COOKIE)
-    response.delete_cookie(RESTRICTED_SESSION_COOKIE)
-    return response
+    raise HTTPException(status_code=404, detail="face lock disabled")
 
 
 @app.get(

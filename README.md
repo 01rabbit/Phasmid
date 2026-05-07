@@ -328,15 +328,13 @@ Clear the local access path:
 phasmid brick
 ```
 
-Reset the optional UI face lock from the CLI:
+Reset the experimental UI face-lock state from the CLI:
 
 ```bash
 phasmid reset-face-lock
 ```
 
-This operation has no WebUI route. It requires the confirmation phrase `RESET FACE LOCK AND VAULT`, clears the enrolled face-lock template, rotates the local access key, initializes `vault.bin`, and clears physical-object bindings. Use it when the local UI user changes and stored data must be treated as no longer valid.
-
-After a successful reset, Phasmid creates a short-lived local enrollment request. If the WebUI is already running, reload `/ui-lock` to register the new face lock.
+This operation has no normal WebUI route. It requires the confirmation phrase `RESET FACE LOCK AND VAULT`, clears the enrolled face-lock template, rotates the local access key, initializes `vault.bin`, and clears physical-object bindings. The current operator flow does not require face recognition for WebUI use; this command remains for experimental face-lock evaluation only.
 
 Local operations checks:
 

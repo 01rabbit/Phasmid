@@ -29,7 +29,7 @@ The architecture preserves these constraints:
 
 - `vault.bin` alone is not sufficient for normal recovery when required local state is absent
 - object cues are operational access cues, not cryptographic secrets
-- UI face lock is a local interface gate only
+- Experimental face-lock code is a local interface gate only and is not part of the current WebUI access path
 - hidden routes are UX concealment, not access control
 - restricted actions require server-side checks and explicit confirmation
 - Field Mode reduces exposure but is not a security boundary

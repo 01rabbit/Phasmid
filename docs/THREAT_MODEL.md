@@ -33,7 +33,7 @@ A structured STRIDE analysis mapping this model to the six threat categories is 
 - The device hardware (e.g., CPU serial, hardware revision) is relatively static and can be used as a source of device-binding entropy.
 - Field Mode reduces normal information exposure, but it is not a security boundary.
 - Hidden restricted routes reduce casual exposure, but they are not security boundaries.
-- Hidden routes are not access control by themselves; server-side token checks, UI unlock state, restricted confirmation, and typed confirmation remain required.
+- Hidden routes are not access control by themselves; server-side token checks, restricted confirmation, and typed confirmation remain required.
 
 ## Current Defenses
 
@@ -51,9 +51,8 @@ A structured STRIDE analysis mapping this model to the six threat categories is 
 - Web mutation endpoints require `X-Phasmid-Token`, apply a simple per-client rate limit, and enforce upload size limits.
 - Access recovery flows count repeated local failures and apply a bounded temporary lockout. WebUI limiting is process-local; CLI limiting is stored in local state.
 - Web responses include no-store cache headers, frame denial, MIME-sniffing protection, no-referrer policy, constrained browser permissions, and a local-only content security policy. These reduce browser residue and common Web embedding risks but do not make the WebUI safe for untrusted networks.
-- Sensitive Web actions require a fresh restricted confirmation session in addition to the Web token and UI unlock state. Restricted action pages and entry maintenance details are withheld until that confirmation is active.
-- Optional UI face lock (`PHASMID_UI_FACE_LOCK=1`) can gate normal WebUI routes with a short-lived local session. This is a UI access control only and is not used for vault encryption.
-- When UI face lock is enabled, the normal object-matching preview and object-match state are withheld until the UI is unlocked. The lock screen shows a separate camera preview for enrollment and verification alignment.
+- Sensitive Web actions require a fresh restricted confirmation session in addition to the Web token. Restricted action pages and entry maintenance details are withheld until that confirmation is active.
+- The current WebUI flow does not use face recognition as an access gate. Exposure is limited instead by explicit TUI start/stop control, default binding to `127.0.0.1`, and TUI-managed inactivity auto-kill.
 - The Web server binds to `127.0.0.1` by default.
 - **Inactivity Auto-Kill**: When managed via the TUI, the WebUI server is
   automatically terminated after 10 minutes of operator inactivity to minimize
@@ -83,7 +82,6 @@ These surfaces should not reveal the internal disclosure model, internal trial o
 - On flash media, recovery resistance depends primarily on key-material destruction or removal, not overwrite guarantees.
 - The v3 format avoids a plaintext format marker, but surrounding tool files can still reveal that a Phasmid-style container may be in use.
 - Dual password slots duplicate encrypted payload material within the selected internal storage span. This improves operational control but reduces maximum payload size.
-- UI face lock can be affected by lighting, camera angle, false rejects, false accepts, and presentation attacks using photos or screens.
 - Multi-object cues and visual sequence cues can increase ambiguity risk and operator retry burden if relation checks are unstable under lighting, angle, or motion changes.
 - The in-memory Web rate limiter and restricted confirmation state reset on process restart and are not substitutes for a full access-control layer.
 - Access-attempt limiting slows repeated local failures but does not stop offline guessing against copied data, compromised hosts, or deliberate state rollback.
@@ -107,10 +105,8 @@ These surfaces should not reveal the internal disclosure model, internal trial o
 - Keep the configured state directory and `vault.bin` on encrypted local storage.
 - For high-risk deployments, separate `vault.bin`, local state, memorized password, object cue, and optional external key material across different control conditions.
 - Use `PHASMID_FIELD_MODE=1` for appliance-style deployments.
-- Treat UI face lock as a convenience barrier for local interface use, not as a substitute for passwords, object cues, or external values.
-- Use `PHASMID_UI_FACE_ENROLL=1` only during controlled provisioning.
-- Reload `/ui-lock` after `phasmid reset-face-lock` to consume the short-lived enrollment request.
-- Use `phasmid reset-face-lock` when the authorized local UI user changes. This intentionally rotates the local access key, clears stored vault data, and clears object bindings as part of the reset.
+- Treat WebUI exposure control as an operational measure built from TUI-managed start/stop, default localhost binding, and inactivity auto-kill. It is not a substitute for passwords, object cues, or external values.
+- Use `phasmid reset-face-lock` only for experimental face-lock evaluation work. It rotates the local access key, clears stored vault data, and clears object bindings as part of the reset.
 - Use distinct high-entropy values for normal access and restricted recovery passwords.
 - Keep `PHASMID_PURGE_CONFIRMATION=1` unless the deployment explicitly accepts the data-loss risk of automatic local-state updates.
 - Reinitialize the container after a panic event.

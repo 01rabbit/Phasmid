@@ -133,7 +133,7 @@ This flow destroys `.state/access.bin` first, then performs a best-effort overwr
 phasmid reset-face-lock
 ```
 
-This CLI-only flow resets the optional WebUI face lock. It requires the typed confirmation phrase `RESET FACE LOCK AND VAULT`, removes the encrypted face-lock template, rotates the local access key, initializes `vault.bin`, clears physical-object bindings, clears active face-lock sessions, and creates a short-lived local enrollment request. This is a data-loss operation because changing the UI user invalidates the local trust boundary for stored entries.
+This CLI-only flow resets the experimental face-lock state. It requires the typed confirmation phrase `RESET FACE LOCK AND VAULT`, removes the encrypted face-lock template, rotates the local access key, initializes `vault.bin`, clears physical-object bindings, and clears face-lock sessions. This is a data-loss operation because changing the UI user invalidates the local trust boundary for stored entries. The current operator flow does not use face lock for WebUI access.
 
 ## 7. WebUI v2
 
@@ -165,11 +165,11 @@ Normal navigation:
 
 The restricted action view is available only by direct route and is not shown in normal navigation. A direct `GET /emergency` renders only a restricted confirmation screen until the browser has a fresh restricted confirmation session. After confirmation, the page presents a short stepwise emergency flow with exact-phrase prompts and a visible restricted-confirmation lifetime. Hidden route concealment is not a security boundary.
 
-`PHASMID_FIELD_MODE=1` reduces normal Maintenance detail for appliance use. Before restricted confirmation, Maintenance shows only general health, local-only posture, UI lock state, and a confirmation requirement for sensitive maintenance. It hides state paths, audit export, token rotation, and detailed diagnostics until a fresh restricted confirmation is active. The hidden restricted action route also uses a quieter stepwise emergency flow intended to reduce operator confusion during high-stress local actions.
+`PHASMID_FIELD_MODE=1` reduces normal Maintenance detail for appliance use. Before restricted confirmation, Maintenance shows only general health, local-only posture, and a confirmation requirement for sensitive maintenance. It hides state paths, audit export, token rotation, and detailed diagnostics until a fresh restricted confirmation is active. The hidden restricted action route also uses a quieter stepwise emergency flow intended to reduce operator confusion during high-stress local actions.
 
 Field Mode is not a security boundary. It reduces casual local exposure in the WebUI and maintenance APIs. It does not prevent forensic inspection, filesystem analysis, memory capture, host compromise, browser compromise, physical coercion, or lawful compulsory process.
 
-Hidden restricted routes are UX concealment only. They are not access control by themselves. High-risk actions are evaluated through a shared local policy layer that combines deployment-mode capability, local tokens, UI unlock state, restricted confirmation freshness, and typed confirmation where applicable.
+Hidden restricted routes are UX concealment only. They are not access control by themselves. High-risk actions are evaluated through a shared local policy layer that combines deployment-mode capability, local tokens, restricted confirmation freshness, and typed confirmation where applicable.
 
 WebUI responses include conservative browser hardening headers such as no-store cache control, frame denial, MIME-sniffing protection, a local-only content security policy, no-referrer policy, and limited browser permissions. These headers reduce browser-visible residue and common embedding or caching risks. They do not make the WebUI suitable for untrusted networks and are not a substitute for local-only binding, host integrity, or operator discipline.
 
@@ -181,13 +181,9 @@ WebUI responses include conservative browser hardening headers such as no-store 
 | `GET` | `/maintenance` | Maintenance screen |
 | `GET` | `/maintenance/entries` | Entry management screen |
 | `GET` | `/emergency` | Hidden restricted action screen |
-| `GET` | `/ui-lock` | Optional UI face-lock screen |
-| `GET` | `/video_feed` | Camera stream for unlocked UI sessions |
+| `GET` | `/video_feed` | Camera stream for the active local WebUI session |
 | `GET` | `/status` | Neutral device/object status |
 | `POST` | `/restricted/confirm` | Short-lived restricted confirmation |
-| `POST` | `/face/enroll` | Enroll or replace optional UI face lock |
-| `POST` | `/face/verify` | Unlock optional UI face session |
-| `POST` | `/face/lock` | Clear optional UI face session |
 | `POST` | `/register_key` | Bind or rebind a physical object |
 | `POST` | `/store` | Store a protected entry |
 | `POST` | `/metadata/check` | Local metadata risk check |
@@ -214,9 +210,7 @@ The normal UI must not display internal entry labels, internal retrieval order, 
 
 Detailed maintenance diagnostics may include neutral hardware-binding availability fields after restricted confirmation or when Field Mode is not suppressing detail.
 
-Optional UI face lock is enabled with `PHASMID_UI_FACE_LOCK=1`. It gates access to normal WebUI routes with a short-lived local session cookie. Face templates are encrypted in the runtime state directory. This lock is not used in Argon2id input and does not participate in vault encryption or retrieval.
-
-First-time face enrollment is disabled unless the WebUI process is started with `PHASMID_UI_FACE_ENROLL=1` or a valid `.state/face.enroll` request exists. The setup flag is intended for device provisioning only. The enrollment request is created by `phasmid reset-face-lock`, is checked when `/ui-lock` is reloaded, and is removed after successful enrollment.
+The current operator flow does not require face recognition for WebUI use. WebUI exposure is bounded instead by explicit operator start from the TUI, local-only binding to `127.0.0.1` by default, and TUI-managed auto-kill on inactivity. Experimental face-lock code may remain in the repository for evaluation work, but it is not part of the supported WebUI access path.
 
 ## 8. Capture-Visible Surface Rule
 
@@ -242,7 +236,7 @@ Restricted actions must remain separated. Field Mode should reduce diagnostic no
 
 Store provides a local-only metadata risk check. It does not call cloud services and does not send telemetry.
 
-`/metadata/check` and `/metadata/scrub` enforce the normal Web mutation token, UI unlock state, rate limiting, and upload size limit. Uploaded data is processed in memory; these routes do not require writing the uploaded file to disk, and the intended implementation property is no disk write for uploaded metadata inspection.
+`/metadata/check` and `/metadata/scrub` enforce the normal Web mutation token, rate limiting, and upload size limit. Uploaded data is processed in memory; these routes do not require writing the uploaded file to disk, and the intended implementation property is no disk write for uploaded metadata inspection.
 
 The initial checker warns about common risks:
 
@@ -336,10 +330,6 @@ An experimental policy-layer prototype can evaluate neutral frame signals (for e
 | `PHASMID_HOST` | Web bind host | `127.0.0.1` |
 | `PHASMID_PORT` | Web bind port | `8000` |
 | `PHASMID_MAX_UPLOAD_BYTES` | Web upload limit | `26214400` |
-| `PHASMID_UI_FACE_LOCK` | Require local face check before WebUI use | `0` |
-| `PHASMID_UI_FACE_ENROLL` | Permit first-time face-lock enrollment during setup | `0` |
-| `PHASMID_UI_FACE_ENROLL_SECONDS` | Face enrollment request lifetime | `600` |
-| `PHASMID_UI_FACE_SESSION_SECONDS` | Face-unlocked UI session lifetime | `300` |
 | `PHASMID_RESTRICTED_SESSION_SECONDS` | Restricted confirmation lifetime | `120` |
 | `PHASMID_FIELD_MODE` | Reduce normal WebUI operational detail | `0` |
 | `PHASMID_PROFILE` | Select local capability mode: `standard`, `field`, or `maintenance` | `standard` |

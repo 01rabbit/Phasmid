@@ -116,17 +116,12 @@
             {{ ui.status_card("Session Token", "tokenState", "Active") }}
             {{ ui.status_card("Audit Settings", "auditState", audit_enabled) }}
             {{ ui.status_card("State Directory", "statePath", state_path) }}
-            {{ ui.status_card("UI Lock", "uiLockState", "Enabled" if face_lock.enabled else "Disabled") }}
             {% endif %}
         </div>
         <div class="actions">
             {% if not field_mode or restricted_confirmed %}
             <button type="button" data-action="rotate-token">Rotate token</button>
             <button type="button" class="secondary" data-action="reset-session">Reset session</button>
-            {% endif %}
-            {% if face_lock.enabled and (not field_mode or restricted_confirmed) %}
-            <button type="button" class="secondary" data-action="lock-ui">Lock UI</button>
-            <button type="button" class="secondary" data-action="enroll-face">Enroll face lock</button>
             {% endif %}
             {% if not field_mode or restricted_confirmed %}
             <a class="button secondary" href="/maintenance/entries">Entry management</a>
@@ -218,29 +213,6 @@
         toast(data.status || data.error || 'Session reset finished.');
         setMaintenanceResult(data.status || data.error || 'Session reset finished.', data.status ? 'success' : 'error');
     });
-
-    const lockButton = document.querySelector('[data-action="lock-ui"]');
-    if (lockButton) {
-        lockButton.addEventListener('click', async () => {
-            const res = await apiFetch('/face/lock', { method: 'POST', body: new URLSearchParams() });
-            const data = await res.json();
-            toast(data.status || data.error || 'UI lock action finished.');
-            setMaintenanceResult(data.status || data.error || 'UI lock action finished.', data.status ? 'success' : 'error');
-            if (data.status) window.location.href = '/ui-lock';
-        });
-    }
-
-    const enrollButton = document.querySelector('[data-action="enroll-face"]');
-    if (enrollButton) {
-        enrollButton.addEventListener('click', async () => {
-            const confirmed = await ensureRestrictedConfirmation();
-            if (!confirmed) return;
-            const res = await apiFetch('/face/enroll', { method: 'POST', body: new URLSearchParams() });
-            const data = await res.json();
-            toast(data.status || data.error || 'Face enrollment finished.');
-            setMaintenanceResult(data.status || data.error || 'Face enrollment finished.', data.status ? 'success' : 'error');
-        });
-    }
 
     const exportLogs = document.getElementById('exportLogs');
     if (exportLogs) exportLogs.addEventListener('click', async (event) => {
