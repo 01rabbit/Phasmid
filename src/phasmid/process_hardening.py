@@ -102,7 +102,7 @@ def _clear_dumpable() -> bool:
             return False
         libc = ctypes.CDLL(libc_name, use_errno=True)
         result = libc.prctl(PR_SET_DUMPABLE, ctypes.c_ulong(0), 0, 0, 0)
-        return result == 0
+        return int(result) == 0
     except Exception:
         return False
 
@@ -129,6 +129,6 @@ def _lock_memory() -> bool:
             return False
         libc = ctypes.CDLL(libc_name, use_errno=True)
         result = libc.mlockall(MCL_CURRENT | MCL_FUTURE)
-        return result == 0
+        return int(result) == 0
     except Exception:
         return False
