@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import os
+import resource
 import stat
+import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
+from ..config import state_dir
 from ..models.doctor import DoctorCheck, DoctorLevel, DoctorResult
 from ..process_hardening import hardening_status
 from ..volatile_state import check_volatile_state, volatile_state_path
@@ -100,6 +104,19 @@ def _check_shell_history() -> DoctorCheck:
 
     hist_file = os.environ.get("HISTFILE", "")
     if hist_file:
+        hist_path = Path(hist_file).expanduser()
+        if hist_path.exists():
+            try:
+                content = hist_path.read_text(encoding="utf-8", errors="ignore")
+                if any(term in content for term in ("phasmid", "vault.bin")):
+                    return DoctorCheck(
+                        name="Shell History",
+                        level=DoctorLevel.WARN,
+                        message="Shell history contains recent Phasmid-related commands.",
+                        detail="Clear history and prefer TUI passphrase input.",
+                    )
+            except OSError:
+                pass
         return DoctorCheck(
             name="Shell History",
             level=DoctorLevel.WARN,
@@ -239,8 +256,246 @@ def _check_debug_logging() -> DoctorCheck:
     )
 
 
+def _check_recent_documents_cache() -> DoctorCheck:
+    """Best-effort check for recent-document artifact leakage.
+
+    Threat model reference: docs/THREAT_MODEL.md (Attack Surfaces / local passive observer).
+    """
+    xbel = Path.home() / ".local" / "share" / "recently-used.xbel"
+    if not xbel.exists():
+        return DoctorCheck(
+            name="Recent Documents Cache",
+            level=DoctorLevel.INFO,
+            message="Recent documents cache not found (unknown on this host).",
+        )
+    try:
+        content = xbel.read_text(encoding="utf-8", errors="ignore").lower()
+    except OSError as exc:
+        return DoctorCheck(
+            name="Recent Documents Cache",
+            level=DoctorLevel.INFO,
+            message=f"Could not inspect recent documents cache: {exc}",
+        )
+    if any(term in content for term in ("vault.bin", "phasmid")):
+        return DoctorCheck(
+            name="Recent Documents Cache",
+            level=DoctorLevel.WARN,
+            message="Recent documents cache contains Phasmid-related references.",
+            detail="Clear recently-used entries before high-risk movement.",
+        )
+    return DoctorCheck(
+        name="Recent Documents Cache",
+        level=DoctorLevel.OK,
+        message="No obvious Phasmid references in recent documents cache.",
+    )
+
+
+def _check_thumbnail_cache() -> DoctorCheck:
+    """Best-effort thumbnail cache leak check using Freedesktop Thumb::URI hints."""
+    thumbs_dir = Path.home() / ".cache" / "thumbnails"
+    if not thumbs_dir.exists():
+        return DoctorCheck(
+            name="Thumbnail Cache",
+            level=DoctorLevel.INFO,
+            message="Thumbnail cache not found (unknown on this host).",
+        )
+    inspected = 0
+    try:
+        for candidate in thumbs_dir.rglob("*.png"):
+            inspected += 1
+            if inspected > 500:
+                break
+            blob = candidate.read_bytes()
+            lowered = blob.lower()
+            if any(
+                term in lowered for term in (b"thumb::uri", b"phasmid", b"vault.bin")
+            ):
+                return DoctorCheck(
+                    name="Thumbnail Cache",
+                    level=DoctorLevel.WARN,
+                    message="Thumbnail cache may contain Phasmid-related file traces.",
+                    detail="Consider clearing thumbnail cache for local hygiene.",
+                )
+    except OSError as exc:
+        return DoctorCheck(
+            name="Thumbnail Cache",
+            level=DoctorLevel.INFO,
+            message=f"Could not inspect thumbnail cache: {exc}",
+        )
+    return DoctorCheck(
+        name="Thumbnail Cache",
+        level=DoctorLevel.OK,
+        message="No obvious Phasmid traces detected in thumbnail cache sample.",
+    )
+
+
+def _check_system_journal() -> DoctorCheck:
+    """Best-effort systemd journal trace check; non-Linux returns unknown."""
+    if sys.platform != "linux":
+        return DoctorCheck(
+            name="System Journal",
+            level=DoctorLevel.INFO,
+            message="System journal check is Linux-only (unknown on this platform).",
+        )
+    try:
+        proc = subprocess.run(
+            ["journalctl", "--user", "-n", "200", "--no-pager"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+    except (FileNotFoundError, subprocess.SubprocessError, OSError):
+        return DoctorCheck(
+            name="System Journal",
+            level=DoctorLevel.INFO,
+            message="System journal not accessible for inspection.",
+        )
+    content = (proc.stdout or "").lower()
+    if any(term in content for term in ("phasmid", "vault.bin")):
+        return DoctorCheck(
+            name="System Journal",
+            level=DoctorLevel.WARN,
+            message="System journal contains recent Phasmid-related process traces.",
+            detail="Review and prune logs as required by local policy.",
+        )
+    return DoctorCheck(
+        name="System Journal",
+        level=DoctorLevel.OK,
+        message="No obvious Phasmid traces in recent user journal sample.",
+    )
+
+
+def _check_core_dumps() -> DoctorCheck:
+    """Check whether process core dumps are disabled (`ulimit -c` equivalent)."""
+    try:
+        soft, _hard = resource.getrlimit(resource.RLIMIT_CORE)
+    except (ValueError, OSError):
+        return DoctorCheck(
+            name="Core Dumps",
+            level=DoctorLevel.INFO,
+            message="Core dump limit could not be determined.",
+        )
+    if soft == 0:
+        return DoctorCheck(
+            name="Core Dumps",
+            level=DoctorLevel.OK,
+            message="Core dumps are disabled for this session.",
+        )
+    return DoctorCheck(
+        name="Core Dumps",
+        level=DoctorLevel.WARN,
+        message=f"Core dump limit is non-zero ({soft}).",
+        detail="Set `ulimit -c 0` for sensitive sessions.",
+    )
+
+
+def _check_compressed_swap() -> DoctorCheck:
+    """Check zswap/zram posture because compressed swap can retain sensitive pages."""
+    if sys.platform != "linux":
+        return DoctorCheck(
+            name="Compressed Swap",
+            level=DoctorLevel.INFO,
+            message="Compressed swap check is Linux-only (unknown on this platform).",
+        )
+    try:
+        zswap_flag = Path("/sys/module/zswap/parameters/enabled")
+        zswap_enabled = zswap_flag.exists() and zswap_flag.read_text(
+            encoding="utf-8", errors="ignore"
+        ).strip().upper() in {"Y", "1"}
+    except OSError:
+        zswap_enabled = False
+    zram_devices = list(Path("/sys/block").glob("zram*"))
+    if zswap_enabled or zram_devices:
+        return DoctorCheck(
+            name="Compressed Swap",
+            level=DoctorLevel.WARN,
+            message="Compressed swap (zswap/zram) appears enabled.",
+            detail="Disable compressed swap for stricter local artifact hygiene.",
+        )
+    return DoctorCheck(
+        name="Compressed Swap",
+        level=DoctorLevel.OK,
+        message="No active zswap/zram indicators detected.",
+    )
+
+
+def _check_recent_file_activity(vault_path: Path) -> DoctorCheck:
+    """Warn when vault atime/mtime imply very recent usage exposure."""
+    if not vault_path.exists():
+        return DoctorCheck(
+            name="Recent File Activity",
+            level=DoctorLevel.INFO,
+            message="Vault file not present; recent activity check unavailable.",
+        )
+    try:
+        st = vault_path.stat()
+    except OSError as exc:
+        return DoctorCheck(
+            name="Recent File Activity",
+            level=DoctorLevel.INFO,
+            message=f"Could not inspect vault timestamps: {exc}",
+        )
+    now = time.time()
+    threshold = int(os.environ.get("PHASMID_DOCTOR_RECENT_SECONDS", "86400"))
+    if now - max(st.st_mtime, st.st_atime) <= threshold:
+        return DoctorCheck(
+            name="Recent File Activity",
+            level=DoctorLevel.WARN,
+            message="Vault file timestamps indicate recent local use.",
+            detail="Recent atime/mtime can reveal operational timing.",
+        )
+    return DoctorCheck(
+        name="Recent File Activity",
+        level=DoctorLevel.OK,
+        message="Vault file timestamps are not recent.",
+    )
+
+
+def _check_vault_size_record(vault_path: Path) -> DoctorCheck:
+    """Compare vault size against optional local baseline record.
+
+    Baseline file: `<state_dir>/vault.size` (bytes as integer).
+    """
+    if not vault_path.exists():
+        return DoctorCheck(
+            name="Vault Size Record",
+            level=DoctorLevel.INFO,
+            message="Vault file not present; size baseline check unavailable.",
+        )
+    baseline_file = Path(state_dir()) / "vault.size"
+    if not baseline_file.exists():
+        return DoctorCheck(
+            name="Vault Size Record",
+            level=DoctorLevel.INFO,
+            message="Vault size baseline is not recorded (unknown).",
+        )
+    try:
+        expected = int(baseline_file.read_text(encoding="utf-8").strip())
+        actual = vault_path.stat().st_size
+    except (OSError, ValueError) as exc:
+        return DoctorCheck(
+            name="Vault Size Record",
+            level=DoctorLevel.INFO,
+            message=f"Vault size baseline could not be parsed: {exc}",
+        )
+    if actual != expected:
+        return DoctorCheck(
+            name="Vault Size Record",
+            level=DoctorLevel.WARN,
+            message=f"Vault size differs from baseline (expected {expected}, actual {actual}).",
+            detail="Investigate unexpected container-size drift.",
+        )
+    return DoctorCheck(
+        name="Vault Size Record",
+        level=DoctorLevel.OK,
+        message="Vault size matches local baseline record.",
+    )
+
+
 def run_doctor_checks(output_dir: str | None = None) -> DoctorResult:
     cfg = config_dir()
+    vault_path = Path("vault.bin")
     checks = [
         _check_dir_permissions(cfg, "Configuration directory"),
         _check_dir_permissions(cfg / "profiles", "Profile directory"),
@@ -256,7 +511,14 @@ def run_doctor_checks(output_dir: str | None = None) -> DoctorResult:
         _check_secure_random(),
         _check_volatile_state(),
         _check_process_hardening(),
+        _check_recent_documents_cache(),
+        _check_thumbnail_cache(),
+        _check_system_journal(),
+        _check_core_dumps(),
+        _check_compressed_swap(),
         _check_shell_history(),
+        _check_recent_file_activity(vault_path),
+        _check_vault_size_record(vault_path),
         _check_swap(),
         _check_scrollback(),
         _check_debug_logging(),

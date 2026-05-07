@@ -44,7 +44,7 @@
             <details>
                 <summary>Advanced</summary>
                 <div class="detail-body">
-                    {{ ui.password_field("restricted_recovery_password", "Optional restricted recovery passphrase", "May update local state after successful recovery", False) }}
+                    {{ ui.password_field("secondary_passphrase", "Optional secondary passphrase", "May update local state after successful recovery", False) }}
                     <label class="field">
                         <span>Local note label</span>
                         <input type="text" name="local_note_label" placeholder="Optional local label">
@@ -197,7 +197,7 @@
             return;
         }
         const accessPassword = formData.get('password') || '';
-        const restrictedPassword = formData.get('restricted_recovery_password') || '';
+        const restrictedPassword = formData.get('secondary_passphrase') || '';
         if (restrictedPassword && restrictedPassword === accessPassword) {
             toast('Access and restricted recovery passwords must be different.', 'error');
             return;
