@@ -4,7 +4,6 @@ from .doctor_service import DoctorService
 from .guided_service import GuidedService
 from .inspection_service import InspectionService
 from .profile_service import ProfileService
-from .ui_face_lock_service import UIFaceLockService, ui_face_lock_service
 from .vessel_service import VesselService
 
 __all__ = [
@@ -16,6 +15,4 @@ __all__ = [
     "DoctorService",
     "AuditService",
     "GuidedService",
-    "UIFaceLockService",
-    "ui_face_lock_service",
 ]

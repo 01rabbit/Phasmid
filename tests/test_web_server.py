@@ -188,48 +188,6 @@ class WebServerBoundaryTests(unittest.TestCase):
         dependency_names = {item.call.__name__ for item in route.dependant.dependencies}
         self.assertIn("require_ui_unlock", dependency_names)
 
-    def test_ui_lock_video_feed_is_disabled(self):
-        async def run():
-            request = SimpleNamespace(
-                client=SimpleNamespace(host="127.0.0.1"),
-                cookies={},
-            )
-            with self.assertRaises(HTTPException) as ctx:
-                await web_server.ui_lock_video_feed(request)
-            self.assertEqual(ctx.exception.status_code, 404)
-
-        asyncio.run(run())
-
-    def test_ui_lock_page_redirects_home(self):
-        async def run():
-            request = SimpleNamespace(
-                client=SimpleNamespace(host="127.0.0.1"),
-                cookies={},
-            )
-            response = await web_server.ui_lock_page(request)
-            self.assertEqual(response.status_code, 303)
-            self.assertEqual(response.headers["location"], "/")
-
-        asyncio.run(run())
-
-    def test_face_routes_are_disabled(self):
-        async def run():
-            request = SimpleNamespace(
-                client=SimpleNamespace(host="127.0.0.1"),
-                cookies={},
-                url=SimpleNamespace(path="/face/verify"),
-            )
-            for handler in (
-                web_server.face_enroll,
-                web_server.face_verify,
-                web_server.face_lock_session,
-            ):
-                with self.assertRaises(HTTPException) as ctx:
-                    await handler(request)
-                self.assertEqual(ctx.exception.status_code, 404)
-
-        asyncio.run(run())
-
     def test_restricted_confirmation_sets_short_lived_cookie(self):
         async def run():
             request = SimpleNamespace(

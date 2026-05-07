@@ -12,7 +12,6 @@ JES is a local-only storage architecture. It is intended to support:
 - password-based recovery
 - local access-key mixing
 - object-cue guided access flows
-- experimental UI face lock code retained outside the current operator flow
 - restricted local update paths with explicit confirmation
 
 JES does not change the project's research-software boundary. It does not imply certified classified-data handling, covert communication, deniability guarantees, remote control, or protection against compromised hosts.

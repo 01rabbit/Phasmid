@@ -36,7 +36,6 @@ DUAL_APPROVAL_ACTIONS: frozenset[str] = frozenset(
     {
         "clear_local_access_path",
         "initialize_container",
-        "reset_face_lock",
     }
 )
 

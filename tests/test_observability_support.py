@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 from phasmid import config
 from phasmid.attempt_limiter import FileAttemptLimiter
 from phasmid.capabilities import Capability
-from phasmid.face_session_store import FaceSessionStore
 from phasmid.models.profile import Profile
 from phasmid.restricted_actions import (
     RestrictedActionPolicy,
@@ -21,53 +20,6 @@ from phasmid.state_store import LocalStateStore, StateRecord, StateStoreError
 
 
 class ObservabilitySupportTests(unittest.TestCase):
-    def test_face_session_rejects_empty_token(self):
-        store = FaceSessionStore(ttl_seconds=30, verify_max_failures=2)
-        self.assertFalse(store.session_valid("client-a", ""))
-
-    def test_face_session_rejects_missing_session(self):
-        store = FaceSessionStore(ttl_seconds=30, verify_max_failures=2)
-        self.assertFalse(store.session_valid("client-a", "missing"))
-
-    def test_face_session_rejects_client_mismatch(self):
-        store = FaceSessionStore(ttl_seconds=30, verify_max_failures=2)
-        store.create_session("client-a", "token-a")
-        self.assertFalse(store.session_valid("client-b", "token-a"))
-
-    def test_face_session_expires_and_is_removed(self):
-        store = FaceSessionStore(ttl_seconds=30, verify_max_failures=2)
-        store.sessions["token-a"] = {"client_id": "client-a", "expires_at": 1.0}
-        with mock.patch("phasmid.face_session_store.time.time", return_value=2.0):
-            self.assertFalse(store.session_valid("client-a", "token-a"))
-        self.assertNotIn("token-a", store.sessions)
-
-    def test_clear_session_removes_token(self):
-        store = FaceSessionStore(ttl_seconds=30, verify_max_failures=2)
-        store.create_session("client-a", "token-a")
-        store.clear_session("token-a")
-        self.assertNotIn("token-a", store.sessions)
-
-    def test_clear_failures_can_clear_all_clients(self):
-        store = FaceSessionStore(ttl_seconds=30, verify_max_failures=2)
-        store.record_failure("client-a")
-        store.record_failure("client-b")
-        store.clear_failures()
-        self.assertEqual(store.failures, {})
-
-    def test_clear_failures_can_clear_one_client(self):
-        store = FaceSessionStore(ttl_seconds=30, verify_max_failures=2)
-        store.record_failure("client-a")
-        store.record_failure("client-b")
-        store.clear_failures("client-a")
-        self.assertEqual(store.failure_count("client-a"), 0)
-        self.assertEqual(store.failure_count("client-b"), 1)
-
-    def test_locked_out_uses_failure_threshold(self):
-        store = FaceSessionStore(ttl_seconds=30, verify_max_failures=2)
-        store.record_failure("client-a")
-        store.record_failure("client-a")
-        self.assertTrue(store.locked_out("client-a"))
-
     def test_invalid_access_limit_environment_values_use_defaults(self):
         with mock.patch.dict(
             os.environ,

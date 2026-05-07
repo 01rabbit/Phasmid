@@ -41,7 +41,6 @@ UI_UNLOCKED = "UI unlocked."
 UI_LOCKED_FEEDBACK = "UI locked."
 UI_FACE_LOCK_DISABLED = "Face UI lock is disabled."
 UI_FACE_ENROLLMENT_DISABLED = "Face enrollment is disabled for this session."
-UI_UNLOCK_REQUIRED = "UI must be unlocked before replacing the face lock."
 RESTRICTED_CONFIRMATION_REQUIRED_UI = (
     "Restricted confirmation required. Please confirm local control and retry."
 )
@@ -58,9 +57,6 @@ CLI_ERROR_NO_INPUT = "[!] Error: No input file specified."
 CLI_ERROR_OUTPUT_REQUIRED = "[!] Error: Output path required."
 CLI_ERROR_CAMERA_UNAVAILABLE = "[!] Error: Camera feed did not become available."
 CLI_INIT_SUCCESS = "[+] Local container initialized. Ready for protected entries."
-CLI_RESET_COMPLETE = (
-    "[+] Reset complete. Reload /ui-lock in the WebUI to register a new face lock."
-)
 
 # AI Gate Neutral Wording
 AI_GATE_ACTIVE = "PHANTASM: ACTIVE"

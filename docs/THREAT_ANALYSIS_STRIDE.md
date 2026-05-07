@@ -19,7 +19,7 @@ system description, and `docs/SEIZURE_REVIEW_CHECKLIST.md` for the pre-field rev
 
 | Category | Key Risks | Primary Controls |
 |---|---|---|
-| Spoofing | Web token replay, restricted session fixation, face lock bypass | Per-session token, session TTL, client binding |
+| Spoofing | Web token replay, restricted session fixation | Per-session token, session TTL, client binding |
 | Tampering | Vault ciphertext modification, state directory manipulation | AES-GCM authentication, key-material separation |
 | Repudiation | Missing audit trail | Optional HMAC-chained audit log |
 | Information Disclosure | Response headers, download filename, CLI output, browser cache | Neutral filenames, security headers, Field Mode |
@@ -34,7 +34,6 @@ system description, and `docs/SEIZURE_REVIEW_CHECKLIST.md` for the pre-field rev
 
 - WebUI mutation token (`X-Phasmid-Token`)
 - Restricted confirmation session cookie
-- UI face lock session
 - Object cue match state
 
 ### Attack Vectors and Controls
@@ -53,7 +52,6 @@ network access and knowledge of the cookie value could attempt replay.
 *Controls*: Cookie is `HttpOnly`, short TTL (120 s default), bound to client IP.
 Field Mode limits restricted action pages until a fresh restricted session is active.
 
-**UI face lock bypass**: An attacker can attempt to spoof the enrolled face by
 presenting a photo or screen.
 
 *Controls*: Face lock is a UI gate only, not vault encryption.  A compromised face
@@ -100,7 +98,7 @@ allow an attacker to attempt brute-force derivation without the original key.
 the original key, the derived AES-GCM key differs; decryption fails.  The state
 directory should be mode 0700 and on encrypted storage.
 
-**State blob manipulation**: The ORB reference template and face lock template are
+**State blob manipulation**: The ORB reference template is
 both AES-GCM encrypted in the state directory.
 
 *Controls*: Corruption or replacement produces decryption failure at load time.

@@ -3,7 +3,7 @@
 ## Purpose
 
 Evaluate whether Phasmid should integrate separate lightweight local models for
-face recognition and object recognition after the AI gate decoupling work (#27).
+object recognition after the AI gate decoupling work (#27).
 
 The evaluation goal is not a real-time inference pipeline.  It is an on-demand,
 single-attempt check that can run within the CPU, memory, and thermal budget of a
@@ -27,10 +27,8 @@ comparison (MSE, Pearson correlation, histogram similarity).  This evaluation
 examines whether adding an LBP histogram matching step provides a measurable
 reliability gain within the Pi Zero 2 W budget.
 
-**Candidate**: `LightweightFaceRecognizer` (`src/phasmid/lightweight_face_recognizer.py`)
 
 - Detection: Haar Cascade (`haarcascade_frontalface_default.xml`), identical to
-  the existing face lock.  No additional model file required.
 - Recognition: 8-neighbour Local Binary Pattern (LBP) histogram, computed with
   base NumPy and OpenCV.  No `opencv-contrib` dependency.
 - Matching: normalised chi-square distance between a 256-bin LBP histogram of the
@@ -167,7 +165,6 @@ If any acceptance gate fails, the feature must remain off by default.
 
 | Component | Status |
 |---|---|
-| `LightweightFaceRecognizer` | Implemented, unit-tested, mypy clean |
 | `LightweightObjectMatcher` (ORB + AKAZE) | Implemented, unit-tested, mypy clean |
 | `RecognitionBenchmark` harness | Implemented, unit-tested |
 | Pi Zero 2 W face gate measurements | Not yet recorded |
@@ -181,7 +178,6 @@ If any acceptance gate fails, the feature must remain off by default.
 1. Run the measurement plan on Pi Zero 2 W and record results in the review
    validation record.
 2. If acceptance gates pass, add optional operator configuration to route
-   face-lock verification through `LightweightFaceRecognizer`.
 3. If AKAZE acceptance gate passes and ORB does not, revisit the object gate
    backend choice.
 4. Do not promote either recogniser to default-on until both acceptance gates

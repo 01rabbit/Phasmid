@@ -10,6 +10,8 @@ All `PHASMID_*` reads are centralized in `src/phasmid/config.py`.
 | `PHASMID_STATE_DIR` | path | `.state` | CLI/WebUI/TUI | Base local state directory when tmpfs override is not set | `config.state_dir()` |
 | `PHASMID_TMPFS_STATE` | path | unset | CLI/WebUI/TUI | Overrides state directory with volatile path (intended tmpfs) | `config.tmpfs_state_dir()` |
 | `PHASMID_FIELD_MODE` | bool | `false` | WebUI/TUI/CLI messaging | Reduces capture-visible detail in standard surfaces | `config.field_mode_enabled()` |
+| `PHASMID_EXPERIMENTAL_OBJECT_MODEL` | bool | `false` | Object cue gate | Enables experimental local object-model support layer | `config.experimental_object_model_enabled()` |
+| `PHASMID_OBJECT_MODEL_PATH` | path | unset | Object cue gate | Path to explicitly provisioned local model file | `config.object_model_path()` |
 | `PHASMID_PURGE_CONFIRMATION` | bool | `true` | Restricted actions | Requires explicit typed confirmation for destructive flow | `config.purge_confirmation_required()` |
 | `PHASMID_DURESS_MODE` | bool | `false` | WebUI behavior | Enables restricted-recovery related behavior gates | `config.duress_mode_enabled()` |
 | `PHASMID_DUAL_APPROVAL` | bool | `false` | Restricted actions | Enables dual-passphrase approval workflow | `config.dual_approval_enabled()` |
@@ -28,10 +30,6 @@ All `PHASMID_*` reads are centralized in `src/phasmid/config.py`.
 | `PHASMID_HARDWARE_SECRET` | string | unset | KDF external factor | Adds env-supplied secret material to KDF secret set | `config.hardware_secret_value()` |
 | `PHASMID_HARDWARE_SECRET_PROMPT` | bool-like (`1` enabled) | unset | KDF external factor | Prompts operator for extra key material | `config.hardware_secret_prompt_enabled()` |
 | `PHASMID_STATE_SECRET` | string | unset | Local state encryption | Overrides local state key with environment-derived secret | `config.state_secret()` |
-| `PHASMID_UI_FACE_LOCK` | bool | `false` | UI lock | Enables face-lock gate in supported flows | `config.ui_face_lock_enabled()` |
-| `PHASMID_UI_FACE_ENROLL` | bool | `false` | UI lock | Enables face enrollment flow | `config.ui_face_enrollment_enabled()` |
-| `PHASMID_UI_FACE_SESSION_SECONDS` | int (>=1) | component default | UI lock session store | Session TTL override for in-memory face sessions | `config.ui_face_session_seconds(default)` |
-| `PHASMID_UI_FACE_ENROLL_SECONDS` | int (>=1) | component default | UI lock enrollment | Enrollment request TTL override | `config.ui_face_enroll_seconds(default)` |
 | `PHASMID_DEBUG` | bool | `false` | Diagnostics | Enables debug-mode warning in doctor output | `config.debug_enabled()` |
 | `PHASMID_DOCTOR_RECENT_SECONDS` | int (>=1) | `86400` | Doctor | Window for “recent vault activity” warning | `config.doctor_recent_seconds()` |
 | `PHASMID_ENABLE_DISPLAY` | bool | `false` | Bridge UI simulator | Enables OpenCV preview window for display simulator | `config.display_enabled()` |

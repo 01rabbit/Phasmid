@@ -60,8 +60,6 @@ def _base_context(*, field_mode: bool, restricted_confirmed: bool, state_path: s
         "deployment_mode": "standard",
         "restricted_confirmed": restricted_confirmed,
         "restricted_session_seconds_remaining": 0,
-        "face_enrollment_enabled": False,
-        "face_lock": {"enrolled": False, "locked": False},
         "destructive_clear_phrase": "CLEAR LOCAL ENTRY",
         "initialize_container_phrase": "INITIALIZE LOCAL CONTAINER",
         "emergency_brick_phrase": "CLEAR LOCAL ACCESS PATH",

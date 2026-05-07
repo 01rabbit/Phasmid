@@ -26,9 +26,8 @@ A claim is listed with its source, verification method, and scope limitations.
 | CLM-19 | TUI reads passphrases interactively; they are not passed as CLI arguments. | docs/THREAT_MODEL.md TS-10 | tests: `tests/test_cli.py` | TUI/CLI operator flow |
 | CLM-20 | Store flow warns on metadata risk detection; best-effort scrubbing is available for supported file types. | docs/THREAT_MODEL.md TS-11 | tests: `tests/test_metadata.py`, `tests/test_web_server.py` | Metadata routes |
 | CLM-21 | WebUI rate limiter (`enforce_rate_limit()`) limits 20 requests/60 s per client; exceeded rate returns HTTP 429. | docs/THREAT_MODEL.md TS-12 | tests: `tests/test_web_server.py` | Web request rate limiting |
-| CLM-22 | UI face lock is a local interface gate only and must not be treated as vault encryption. | AGENTS.md §Core Invariants | tests: `tests/test_face_lock.py` | UI lock feature boundary |
 | CLM-23 | Object matching is an operational access cue, not cryptographic key material. | AGENTS.md §Core Invariants | tests: `tests/test_ai_gate.py` | Access cue behavior |
-| CLM-24 | ORB descriptors, image coordinates, face templates, and camera frames must not be described as high-entropy secrets. | AGENTS.md §Core Invariants | manual | Documentation language |
+| CLM-24 | ORB descriptors, image coordinates, and camera frames must not be described as high-entropy secrets. | AGENTS.md §Core Invariants | manual | Documentation language |
 | CLM-25 | `vault.bin` alone should not be enough for normal recovery when required local state is absent. | AGENTS.md §Core Invariants | tests: `tests/test_vault_core.py` | Local state absent scenario |
 | CLM-26 | The local access key remains part of the recovery path unless a documented migration changes the container format. | AGENTS.md §Core Invariants | tests: `tests/test_kdf_engine.py` | Current format generation |
 | CLM-27 | The safest sensitive data is data not carried. | docs/SPECIFICATION.md §Retention principle | manual | Operational practice |

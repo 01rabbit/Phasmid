@@ -143,7 +143,7 @@ phasmid doctor --no-tui    Print doctor output without opening the TUI
 phasmid about              Open the About screen
 ```
 
-Legacy commands (`init`, `store`, `retrieve`, `brick`, `reset-face-lock`,
+Legacy commands (`init`, `store`, `retrieve`, `brick`,
 `verify-state`, `verify-audit-log`, `export-redacted-log`) remain available for
 automation and advanced use.
 

@@ -6,7 +6,6 @@ import os
 import sys
 import time
 
-from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -22,13 +21,11 @@ from .capabilities import capability_enabled
 from .config import duress_mode_enabled, purge_confirmation_required
 from .crypto_boundary import CryptoSelfTestError, ensure_crypto_self_tests
 from .emergency_daemon import EmergencyDaemon
-from .face_lock import face_lock
 from .operations import export_redacted_log, verify_audit_log, verify_state
 from .passphrase_policy import check_store_passphrases
 from .process_hardening import apply_process_hardening
 from .restricted_actions import (
     DESTRUCTIVE_CLEAR_PHRASE,
-    FACE_RESET_PHRASE,
     RESTRICTED_ACTION_POLICIES,
     RestrictedActionRejected,
     evaluate_restricted_action,
@@ -40,7 +37,6 @@ console = Console()
 
 CAMERA_WARMUP_TIMEOUT = 10
 REFERENCE_MATCH_TIMEOUT = 10
-FACE_RESET_CONFIRMATION = FACE_RESET_PHRASE
 MODE_LABELS = {
     gate.MODES[0]: "selected local entry",
     gate.MODES[1]: "selected local entry",
@@ -208,48 +204,6 @@ def require_restricted_action(action_id, confirmation=""):
         raise ValueError(exc.message) from exc
 
 
-def _confirm_face_lock_reset(input_func=input):
-    console.print()
-    console.print(
-        Panel(
-            Text.from_markup(
-                "[bold red]CAUTION: FACE UI LOCK RESET[/bold red]\n\n"
-                "This clears the enrolled face lock and initializes all stored vault data.\n"
-                "Physical object bindings are also cleared."
-            ),
-            border_style="red",
-            box=box.HEAVY,
-        )
-    )
-    answer = input_func(f'  Type "{FACE_RESET_CONFIRMATION}" to continue: ').strip()
-    return answer == FACE_RESET_CONFIRMATION
-
-
-def _reset_face_lock_and_container(vault):
-    vault.format_container(rotate_access_key=True)
-    object_success, object_message = gate.clear_references()
-    face_success, face_message = face_lock.reset()
-    enroll_success, enroll_message = (
-        face_lock.arm_enrollment()
-        if face_success
-        else (False, "Face enrollment was not armed.")
-    )
-    audit_event("container_reinitialized", source="cli_face_reset")
-    audit_event(
-        "object_bindings_cleared", source="cli_face_reset", success=object_success
-    )
-    audit_event("ui_face_lock_cleared", source="cli_face_reset", success=face_success)
-    audit_event(
-        "ui_face_enrollment_armed", source="cli_face_reset", success=enroll_success
-    )
-    return (
-        object_success and face_success and enroll_success,
-        object_message,
-        face_message,
-        enroll_message,
-    )
-
-
 def _print_operation_report(report):
     ok_statuses = ("ok", "pass", "valid", "verified", "ready")
     status_style = (
@@ -377,7 +331,6 @@ def _add_legacy_subparser(subparsers) -> None:
         "store",
         "retrieve",
         "brick",
-        "reset-face-lock",
         "verify-state",
         "verify-audit-log",
         "export-redacted-log",
@@ -734,23 +687,6 @@ def _run_legacy_command(args) -> None:
             except ValueError as exc:
                 info(f"Aborted: {exc}")
                 return
-
-        elif args.command == "reset-face-lock":
-            if not _confirm_face_lock_reset():
-                info("Face UI lock reset cancelled.")
-                return
-            reset_success, object_message, face_message, enroll_message = (
-                _reset_face_lock_and_container(vault)
-            )
-            console.print()
-            success("Container initialized: vault.bin is empty.")
-            success(f"Object bindings: {object_message}")
-            success(f"Face UI lock: {face_message}")
-            success(f"Face enrollment: {enroll_message}")
-            if reset_success:
-                info(text.CLI_RESET_COMPLETE)
-            else:
-                warn("Reset completed with warnings. Review the messages above.")
 
     finally:
         panic_monitor.stop()
