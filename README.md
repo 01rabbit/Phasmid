@@ -1,6 +1,6 @@
 # Phasmid
 
-![Phasmid logo](images/Phasmid_logo.png)
+![Phasmid logo](images/Phasmid_banner.jpg)
 
 Phasmid is a field-evaluation prototype for local-only coercion-aware storage.
 
