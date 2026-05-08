@@ -122,6 +122,8 @@ class TerminologyAuditTests(unittest.TestCase):
             "src/phasmid/object_model_gate.py",
             "src/phasmid/recognition_benchmark.py",
             "src/phasmid/crypto_params.py",
+            "src/phasmid/luks_layer.py",
+            "src/phasmid/luks_key_store.py",
         }
         self.assertEqual(all_modules, scanned | internal_allowlist)
 
