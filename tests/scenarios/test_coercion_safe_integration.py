@@ -21,7 +21,11 @@ from phasmid.context_profile import (
     validate_against_profile,
 )
 from phasmid.dummy_generator import DummyGeneratorConfig, generate_dummy_dataset
-from phasmid.standby_state import StandbyState, StandbyStateMachine
+from phasmid.standby_state import (
+    InvalidTransitionError,
+    StandbyState,
+    StandbyStateMachine,
+)
 
 HARDWARE_AVAILABLE = os.environ.get("RUN_HARDWARE_TESTS", "0") == "1"
 hardware_only = unittest.skipUnless(HARDWARE_AVAILABLE, "requires RUN_HARDWARE_TESTS=1")
@@ -67,8 +71,10 @@ class TestContextProfileToDatasetPipeline(unittest.TestCase):
             self.assertIsNotNone(result)
 
     def test_dataset_uses_no_weak_randomness(self):
-        import phasmid.dummy_generator as mod
         import inspect
+
+        import phasmid.dummy_generator as mod
+
         source = inspect.getsource(mod)
         self.assertNotIn("import random", source)
         self.assertNotIn("random.random(", source)
@@ -105,13 +111,13 @@ class TestStandbyStateMachineIntegration(unittest.TestCase):
     def test_trigger_standby_is_idempotent_when_already_sealed(self):
         sm = StandbyStateMachine()
         sm.trigger_standby()
-        with self.assertRaises(Exception):
+        with self.assertRaises(InvalidTransitionError):
             sm.trigger_standby()
         self.assertEqual(sm.state, StandbyState.SEALED)
 
     def test_recover_requires_sealed_state(self):
         sm = StandbyStateMachine()
-        with self.assertRaises(Exception):
+        with self.assertRaises(InvalidTransitionError):
             sm.recover()
         self.assertEqual(sm.state, StandbyState.ACTIVE)
 
