@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import hashlib
 import json
 import os
 import statistics
@@ -259,6 +260,8 @@ def measure_vault_operations() -> dict:
         t0 = time.perf_counter()
         result, _ = vault.retrieve("bench-passphrase", sequence, mode="dummy")
         retrieve_s = time.perf_counter() - t0
+        retrieved_sha256 = hashlib.sha256(result or b"").hexdigest()
+        expected_sha256 = hashlib.sha256(payload).hexdigest()
 
         return {
             "vault_operations": {
@@ -267,6 +270,8 @@ def measure_vault_operations() -> dict:
                 "retrieve_s":   round(retrieve_s, 4),
                 "roundtrip_ok": result == payload,
                 "payload_bytes": len(payload),
+                "verify_sha256_match": retrieved_sha256 == expected_sha256,
+                "output_size_bytes": len(result or b""),
             }
         }
 
@@ -345,6 +350,97 @@ def measure_object_gate() -> dict:
         }
     except Exception as exc:
         return {"object_gate": {"status": "failed", "error": str(exc)}}
+
+
+def measure_tui_viability() -> dict:
+    """Conservative non-interactive TUI viability check."""
+    checks: list[dict[str, object]] = []
+    modules = [
+        "textual",
+        "phasmid.tui.app",
+        "phasmid.tui.screens.home",
+        "phasmid.tui.screens.doctor",
+    ]
+    for name in modules:
+        t0 = time.perf_counter()
+        try:
+            __import__(name)
+            checks.append(
+                {
+                    "check": f"import:{name}",
+                    "status": "ok",
+                    "elapsed_s": round(time.perf_counter() - t0, 4),
+                }
+            )
+        except Exception as exc:
+            checks.append(
+                {
+                    "check": f"import:{name}",
+                    "status": "failed",
+                    "elapsed_s": round(time.perf_counter() - t0, 4),
+                    "error": str(exc),
+                }
+            )
+    return {
+        "tui_viability": {
+            "status": "ok" if all(c["status"] == "ok" for c in checks) else "partial",
+            "checks": checks,
+            "note": "Import-only probe; full interactive TUI automation is out of scope.",
+        }
+    }
+
+
+def measure_field_workflow_smoke(state_dir: str) -> dict:
+    """Bounded non-destructive command workflow under dedicated test state."""
+    env = {
+        **os.environ,
+        "PHASMID_AUDIT": "0",
+        "PHASMID_DEBUG": "0",
+        "PHASMID_STATE_DIR": state_dir,
+    }
+    env.pop("PHASMID_TMPFS_STATE", None)
+    steps = [
+        ("help", [_VENV_PHASMID, "--help"]),
+        ("doctor_no_tui", [_VENV_PHASMID, "doctor", "--no-tui"]),
+        ("verify_state", [_VENV_PHASMID, "verify-state"]),
+    ]
+    result_steps: list[dict[str, object]] = []
+    for name, cmd in steps:
+        t0 = time.perf_counter()
+        try:
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                timeout=90,
+                cwd=str(_REPO_ROOT),
+                env=env,
+            )
+            result_steps.append(
+                {
+                    "step": name,
+                    "status": "ok" if proc.returncode == 0 else "nonzero",
+                    "returncode": proc.returncode,
+                    "elapsed_s": round(time.perf_counter() - t0, 4),
+                }
+            )
+        except Exception as exc:
+            result_steps.append(
+                {
+                    "step": name,
+                    "status": "failed",
+                    "elapsed_s": round(time.perf_counter() - t0, 4),
+                    "error": str(exc),
+                }
+            )
+    return {
+        "field_workflow_smoke": {
+            "status": "ok"
+            if all(s["status"] in {"ok", "nonzero"} for s in result_steps)
+            else "failed",
+            "steps": result_steps,
+            "note": "Non-destructive CLI-only smoke path under _pi_field_test state.",
+        }
+    }
 
 
 # ── Phase N: Coercion-path timing consistency ──────────────────────────────────
@@ -449,6 +545,8 @@ def main() -> None:
         ("vault_operations",     measure_vault_operations),
         ("kdf_timing",           lambda: measure_kdf(args.kdf_rounds)),
         ("object_gate",          measure_object_gate),
+        ("tui_viability",        measure_tui_viability),
+        ("field_workflow_smoke", lambda: measure_field_workflow_smoke(state_dir)),
         ("coercion_path_timing", lambda: measure_coercion_path_timing(args.probe_rounds)),
     ]
 
