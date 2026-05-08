@@ -175,6 +175,39 @@ def dummy_container_path() -> str:
     return env_text("PHASMID_DUMMY_CONTAINER_PATH", "vault.bin")
 
 
+def recognition_mode() -> str:
+    mode = env_text("PHASMID_RECOGNITION_MODE", "strict").strip().lower()
+    if mode in {"strict", "coercion_safe", "demo"}:
+        return mode
+    return "strict"
+
+
+def true_unlock_threshold() -> float:
+    raw = env_text("PHASMID_TRUE_UNLOCK_THRESHOLD", "0.85")
+    try:
+        value = float(raw)
+    except ValueError:
+        value = 0.85
+    if value < 0.0:
+        return 0.0
+    if value > 1.0:
+        return 1.0
+    return value
+
+
+def dummy_fallback_threshold() -> float:
+    raw = env_text("PHASMID_DUMMY_FALLBACK_THRESHOLD", "0.40")
+    try:
+        value = float(raw)
+    except ValueError:
+        value = 0.40
+    if value < 0.0:
+        return 0.0
+    if value > 1.0:
+        return 1.0
+    return value
+
+
 def display_enabled() -> bool:
     return env_flag("PHASMID_ENABLE_DISPLAY", default=False)
 

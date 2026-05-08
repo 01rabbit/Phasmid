@@ -179,6 +179,42 @@ class WebServerBoundaryTests(unittest.TestCase):
 
         asyncio.run(run())
 
+    def test_retrieve_does_not_return_ambiguous_error_in_coercion_safe(self):
+        async def run():
+            request = SimpleNamespace(
+                client=SimpleNamespace(host="127.0.0.1"),
+                url=SimpleNamespace(path="/retrieve"),
+            )
+            with (
+                mock.patch.object(
+                    web_server.access_cue_service,
+                    "current_match_mode",
+                    return_value=web_server.access_cue_service.match_ambiguous(),
+                ),
+                mock.patch.object(
+                    web_server.access_cue_service,
+                    "auth_sequence",
+                    return_value=["reference_dummy_matched"],
+                ),
+                mock.patch.object(
+                    web_server.access_cue_service,
+                    "modes",
+                    return_value=("dummy",),
+                ),
+                mock.patch.object(
+                    web_server.vault,
+                    "retrieve_with_policy",
+                    return_value=(None, None, "open"),
+                ),
+            ):
+                response = await web_server.retrieve(request, password="pw")
+            self.assertEqual(response["error"], web_server.text.NO_VALID_ENTRY_FOUND)
+            self.assertNotEqual(
+                response.get("error"), web_server.text.AMBIGUOUS_OBJECT_MATCH
+            )
+
+        asyncio.run(run())
+
     def test_video_feed_requires_unlocked_ui(self):
         route = next(
             route

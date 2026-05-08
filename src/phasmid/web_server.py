@@ -716,9 +716,6 @@ async def retrieve(request: Request, password: str = Form(...)):
     if not _access_attempts.check(attempt_scope).allowed:
         return {"error": text.ACCESS_TEMPORARILY_UNAVAILABLE}
     auth_sequence = access_cue_service.auth_sequence(length=1)
-    if access_cue_service.current_match_mode() == access_cue_service.match_ambiguous():
-        _access_attempts.record_failure(attempt_scope)
-        return {"error": text.AMBIGUOUS_OBJECT_MATCH}
     if auth_sequence[0] == access_cue_service.match_none():
         _access_attempts.record_failure(attempt_scope)
         return {"error": text.NO_VALID_ENTRY_FOUND}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ..ai_gate import gate
+from ..config import recognition_mode
 
 
 class AccessCueService:
@@ -37,6 +38,9 @@ class AccessCueService:
 
     def auth_sequence(self, length=1):
         return self.gate.get_auth_sequence(length=length)
+
+    def recognition_mode(self):
+        return recognition_mode()
 
     def sequence_for_mode(self, mode, length=1):
         return self.gate.sequence_for_mode(mode, length=length)

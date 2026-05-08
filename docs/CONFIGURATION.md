@@ -37,6 +37,9 @@ All `PHASMID_*` reads are centralized in `src/phasmid/config.py`.
 | `PHASMID_DUMMY_OCCUPANCY_WARN` | float (>=0) | `0.10` | Doctor plausibility advisory | Warn when disclosure-face size ratio falls below threshold | `config.dummy_occupancy_warn()` |
 | `PHASMID_DUMMY_PROFILE_DIR` | path | `.state/dummy_profile` | Doctor plausibility advisory | Local path scanned for disclosure-face plausibility baseline | `config.dummy_profile_dir()` |
 | `PHASMID_DUMMY_CONTAINER_PATH` | path | `vault.bin` | Doctor plausibility advisory | Local container path used for occupancy ratio baseline | `config.dummy_container_path()` |
+| `PHASMID_RECOGNITION_MODE` | enum (`strict`, `coercion_safe`, `demo`) | `strict` | Object cue routing | Selects ambiguity/failure handling policy for object-cue unlock routing | `config.recognition_mode()` |
+| `PHASMID_TRUE_UNLOCK_THRESHOLD` | float (`0.0`-`1.0`) | `0.85` | Object cue routing | Confidence threshold for direct unlock path | `config.true_unlock_threshold()` |
+| `PHASMID_DUMMY_FALLBACK_THRESHOLD` | float (`0.0`-`1.0`) | `0.40` | Object cue routing | Confidence floor used by demo fallback routing policy | `config.dummy_fallback_threshold()` |
 | `PHASMID_ENABLE_DISPLAY` | bool | `false` | Bridge UI simulator | Enables OpenCV preview window for display simulator | `config.display_enabled()` |
 | `PHASMID_DARK` | bool | `false` | TUI theming | Optional dark theme selection flag | `config.tui_dark_enabled()` |
 | `PHASMID_LIGHT` | bool | `false` | TUI theming | Optional light theme selection flag | `config.tui_light_enabled()` |

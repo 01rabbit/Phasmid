@@ -10,8 +10,12 @@ from .camera_frame_source import CameraFrameSource
 from .config import (
     STATE_BLOB_NAME,
     STATE_KEY_NAME,
+    debug_enabled,
+    dummy_fallback_threshold,
     experimental_object_model_enabled,
+    recognition_mode,
     state_dir,
+    true_unlock_threshold,
 )
 from .local_state_crypto import LocalStateCipher
 from .object_cue_matcher import ObjectCueMatcher
@@ -39,6 +43,9 @@ class AIGate:
     MATCH_HISTORY_REQUIRED = 3
     REFERENCE_CAPTURE_SAMPLES = 3
     TARGET_FPS = 5
+    MODE_STRICT = "strict"
+    MODE_COERCION_SAFE = "coercion_safe"
+    MODE_DEMO = "demo"
 
     def __init__(self, reference_dir=None):
         self._stop_event = threading.Event()
@@ -260,9 +267,35 @@ class AIGate:
         return [self.AUTH_TOKENS[mode]] * length
 
     def get_auth_sequence(self, length=1):
-        if self.last_match_mode in self.AUTH_TOKENS:
+        current_mode = recognition_mode()
+        confidence = self._recognition_confidence()
+        true_threshold = true_unlock_threshold()
+        fallback_threshold = dummy_fallback_threshold()
+
+        if self.last_match_mode in self.AUTH_TOKENS and confidence >= true_threshold:
             return self.sequence_for_mode(self.last_match_mode, length=length)
+
+        if current_mode == self.MODE_COERCION_SAFE:
+            return self.sequence_for_mode(self.MODES[0], length=length)
+
+        if current_mode == self.MODE_DEMO and confidence >= fallback_threshold:
+            return self.sequence_for_mode(self.MODES[0], length=length)
+
         return [self.MATCH_NONE] * length
+
+    def _recognition_confidence(self):
+        if self.last_match_mode in self.AUTH_TOKENS:
+            if self.experimental_object_model_enabled:
+                result = self.latest_gate_results.get(self.last_match_mode)
+                if result is not None and result.quality_score is not None:
+                    score = float(result.quality_score)
+                    if score < 0.0:
+                        return 0.0
+                    if score > 1.0:
+                        return 1.0
+                    return score
+            return 1.0
+        return 0.0
 
     def capture_reference(self, mode):
         self._validate_mode(mode)
@@ -328,6 +361,13 @@ class AIGate:
                     "reason_code": result.reason_code,
                 }
                 for mode, result in self.latest_gate_results.items()
+            }
+        if recognition_mode() == self.MODE_DEMO and debug_enabled():
+            status["recognition_debug"] = {
+                "mode": recognition_mode(),
+                "confidence": self._recognition_confidence(),
+                "true_unlock_threshold": true_unlock_threshold(),
+                "dummy_fallback_threshold": dummy_fallback_threshold(),
             }
         return status
 
