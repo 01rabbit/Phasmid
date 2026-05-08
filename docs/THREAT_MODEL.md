@@ -423,6 +423,71 @@ Phasmid explicitly does not aim to provide:
 
 ---
 
+## Coercion-Safe Delaying Architecture
+
+Phasmid implements a coercion-safe delaying architecture to increase uncertainty,
+delay confident conclusions, and provide plausible controlled disclosure.
+
+### Security Claims
+
+- Separates coerced disclosure path from true disclosure path using pre-configured
+  controlled-disclosure datasets.
+- Avoids immediate proof by ensuring no single observation confirms or denies
+  the existence of protected content.
+- Increases adversarial analysis cost through context-consistent pre-configured content.
+- Silent Standby removes sensitive UI state on a configurable hotkey trigger.
+- Coercion-safe recognition mode routes low-confidence recognition to the
+  controlled-disclosure path rather than an obvious access-denied response.
+
+### Non-Claims
+
+- Phasmid does not guarantee permanent secrecy against unlimited forensic analysis.
+- Phasmid does not forge or tamper with filesystem metadata, kernel logs, or timestamps.
+- Phasmid does not conceal the existence of the software itself.
+- Silent Standby does not erase key material from process memory.
+- Pre-configured disclosure content is not guaranteed to be indistinguishable under
+  expert forensic analysis.
+
+### Assumptions
+
+- The operator has pre-populated a plausible controlled-disclosure dataset before
+  any coercive event.
+- The controlled-disclosure dataset is internally consistent with the declared
+  operational context template.
+- The operator activates standby before a coercive party reaches the active UI state.
+- The host operating system is not compromised at the time of standby activation.
+
+### Known Limitations
+
+- Standby is a UI-layer operation; it does not erase in-memory key material.
+- Controlled-disclosure content plausibility depends entirely on operator preparation.
+- Recognition confidence routing does not verify physical coercion context.
+- Plausibility warnings are advisory; they do not verify adversarial perception.
+
+### Allowed Behaviors
+
+- Plausible controlled disclosure using pre-configured content.
+- Privacy-preserving standby transitions that remove sensitive UI state.
+- Ambiguity-preserving workflows.
+- Configurable hotkey-triggered standby.
+- Operational context template-guided content structure.
+- Local plausibility reports.
+
+### Disallowed Behaviors
+
+- Rootkits or kernel-level hiding.
+- Hidden process persistence.
+- Anti-forensic data destruction.
+- Forensic tool bypass or interference.
+- Malware-like concealment.
+- False system event fabrication.
+- Timestamp forgery.
+- Anti-forensic metadata tampering.
+
+For full architectural documentation see `docs/COERCION_SAFE_DELAYING.md`.
+
+---
+
 ## Operational Guidance
 
 - Keep `PHASMID_HOST` at the default `127.0.0.1` unless the host is otherwise protected.
