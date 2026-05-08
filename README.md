@@ -137,6 +137,18 @@ Phasmid is not approved classified-data handling infrastructure. It does not rep
 
 Use of Phasmid in government or organizational environments must follow applicable law, policy, records-retention requirements, and classification rules. Phasmid is intended for local field-evaluation and harm-reduction workflows, not as a substitute for approved systems of record.
 
+## Storage Encryption (LUKS Layer)
+
+Phasmid supports an optional LUKS2 storage layer for local container and state paths.
+This layer can reduce offline filesystem exposure by encrypting the underlying block
+storage until mapped and mounted. It does not replace Phasmid's local-only posture,
+and it does not provide protection against compromised hosts, live memory capture,
+or keylogging. Erase-related actions in this layer remain best-effort.
+
+See [`docs/LUKS_LAYER.md`](docs/LUKS_LAYER.md) for threat-model limits, operating
+procedure, and deployment notes. This layer is not a replacement for full-disk
+encryption on a trusted platform.
+
 ## Reviewer Notes and Known Limits
 
 Phasmid is intentionally narrow.
