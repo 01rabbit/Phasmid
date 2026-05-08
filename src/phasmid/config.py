@@ -218,3 +218,8 @@ def tui_dark_enabled() -> bool:
 
 def tui_light_enabled() -> bool:
     return env_flag("PHASMID_LIGHT", default=False)
+
+
+def context_profile_name() -> str:
+    name = env_text("PHASMID_CONTEXT_PROFILE", "travel").strip().lower()
+    return name or "travel"
