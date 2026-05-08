@@ -84,6 +84,81 @@ def _git_commit() -> str:
         return "unknown"
 
 
+def _read_os_release() -> str | None:
+    path = Path("/etc/os-release")
+    if not path.exists():
+        return None
+    try:
+        values: dict[str, str] = {}
+        for line in path.read_text().splitlines():
+            if "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            values[k.strip()] = v.strip().strip('"')
+        return values.get("PRETTY_NAME")
+    except OSError:
+        return None
+
+
+def collect_system_inventory() -> dict:
+    inventory: dict[str, object] = {
+        "hostname": None,
+        "arch": None,
+        "kernel": None,
+        "os": _read_os_release(),
+        "python_version": sys.version.split()[0],
+        "disk_free_kb": None,
+        "mem_total_kb": None,
+        "mem_available_kb": _mem_available_kb(),
+        "swap_total_kb": None,
+        "cpu_temp_c": _temp_c(),
+        "throttled": "unavailable",
+    }
+    try:
+        inventory["hostname"] = subprocess.run(
+            ["hostname"], capture_output=True, text=True, check=False
+        ).stdout.strip() or None
+        inventory["arch"] = subprocess.run(
+            ["uname", "-m"], capture_output=True, text=True, check=False
+        ).stdout.strip() or None
+        inventory["kernel"] = subprocess.run(
+            ["uname", "-r"], capture_output=True, text=True, check=False
+        ).stdout.strip() or None
+    except Exception:
+        pass
+
+    try:
+        out = subprocess.run(
+            ["df", "-Pk", str(_REPO_ROOT)],
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout.splitlines()
+        if len(out) >= 2:
+            inventory["disk_free_kb"] = int(out[1].split()[3])
+    except Exception:
+        pass
+
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            if line.startswith("MemTotal:"):
+                inventory["mem_total_kb"] = int(line.split()[1])
+            if line.startswith("SwapTotal:"):
+                inventory["swap_total_kb"] = int(line.split()[1])
+    except (OSError, ValueError):
+        pass
+
+    try:
+        probe = subprocess.run(
+            ["vcgencmd", "get_throttled"], capture_output=True, text=True, check=False
+        )
+        if probe.returncode == 0:
+            inventory["throttled"] = probe.stdout.strip()
+    except Exception:
+        pass
+    return inventory
+
+
 # ── Phase D: Import-time baseline ─────────────────────────────────────────────
 
 def measure_imports() -> dict:
@@ -129,6 +204,7 @@ def measure_cli_baseline(state_dir: str) -> dict:
         "help":         [_VENV_PHASMID, "--help"],
         "doctor":       [_VENV_PHASMID, "doctor", "--no-tui"],
         "verify_state": [_VENV_PHASMID, "verify-state"],
+        "verify_audit_log": [_VENV_PHASMID, "verify-audit-log"],
     }
     results = {}
     for name, cmd in commands.items():
@@ -349,6 +425,7 @@ def main() -> None:
     output: dict = {
         "timestamp":               _utc_now(),
         "git_commit":              _git_commit(),
+        "target_info":             collect_system_inventory(),
         "swap_enabled":            _swap_enabled(),
         "temperature_before_c":    _temp_c(),
         "mem_available_before_kb": _mem_available_kb(),
