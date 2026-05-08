@@ -179,3 +179,19 @@ class LuksLayer:
         if config.env_text("PHASMID_STATE_DIR", "") == self.cfg.mount_point:
             os.environ.pop("PHASMID_STATE_DIR", None)
         return True
+
+    def restricted_clear(self) -> bool:
+        key_cleared = self.key_store.destroy()
+        proc = subprocess.run(
+            [
+                "sudo",
+                self.WRAPPER_PATH,
+                "brick",
+                self.cfg.container_path,
+                self.cfg.mount_point,
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return key_cleared and proc.returncode == 0

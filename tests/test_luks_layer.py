@@ -129,6 +129,20 @@ class LuksLayerTests(unittest.TestCase):
         self.assertFalse(layer.unmount())
 
     @mock.patch("phasmid.luks_layer.subprocess.run")
+    @mock.patch("phasmid.luks_layer.LuksKeyStore.destroy", return_value=True)
+    def test_restricted_clear_success(self, _destroy_mock, run_mock):
+        run_mock.return_value = mock.Mock(returncode=0)
+        layer = LuksLayer(LuksConfig(mode=LuksMode.FILE_CONTAINER))
+        self.assertTrue(layer.restricted_clear())
+
+    @mock.patch("phasmid.luks_layer.subprocess.run")
+    @mock.patch("phasmid.luks_layer.LuksKeyStore.destroy", return_value=False)
+    def test_restricted_clear_failure(self, _destroy_mock, run_mock):
+        run_mock.return_value = mock.Mock(returncode=0)
+        layer = LuksLayer(LuksConfig(mode=LuksMode.FILE_CONTAINER))
+        self.assertFalse(layer.restricted_clear())
+
+    @mock.patch("phasmid.luks_layer.subprocess.run")
     def test_status_disabled(self, run_mock):
         layer = LuksLayer(LuksConfig(mode=LuksMode.DISABLED))
         status = layer.status()

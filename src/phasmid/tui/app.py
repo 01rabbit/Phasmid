@@ -54,6 +54,7 @@ class PhasmidApp(App):
             "inspect": self._push_inspect,
             "create": self._push_create,
             "open": self._push_open,
+            "luks": self._push_luks,
             "about": self._push_about,
         }
         action = screen_map.get(self._initial_screen, self._push_home)
@@ -162,6 +163,12 @@ class PhasmidApp(App):
 
         self.push_screen(HomeScreen())
         self.push_screen(AboutScreen())
+
+    def _push_luks(self) -> None:
+        from .screens.luks_screen import LuksScreen
+
+        self.push_screen(HomeScreen())
+        self.push_screen(LuksScreen())
 
 
 def run_tui(

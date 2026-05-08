@@ -7,6 +7,7 @@ from textual.binding import Binding
 from textual.css.query import NoMatches
 from textual.widgets import DataTable, Footer, Static
 
+from ...config import PHASMID_LUKS_MODE
 from ...models.vessel import VesselMeta
 from ...services.profile_service import load_profile
 from ...services.vessel_service import VesselService
@@ -31,6 +32,7 @@ class HomeScreen(OperatorScreen):
         Binding("a", "audit", "Audit"),
         Binding("d", "doctor", "Doctor"),
         Binding("s", "settings", "Settings"),
+        Binding("l", "luks_panel", "LUKS"),
         Binding("question_mark", "help", "Help"),
         Binding("q", "quit", "Quit"),
         Binding("r", "refresh_vessels", "Refresh", show=False),
@@ -221,6 +223,14 @@ class HomeScreen(OperatorScreen):
         self._refresh_vessels()
         self._run_startup_checks()
         self._log("Vessel list refreshed.")
+
+    def action_luks_panel(self) -> None:
+        if PHASMID_LUKS_MODE.strip().lower() == "disabled":
+            self.app.notify("LUKS layer is disabled.", severity="warning")
+            return
+        from .luks_screen import LuksScreen
+
+        self.app.push_screen(LuksScreen())
 
     def action_open_vessel(self) -> None:
         from .confirm_modal import ConfirmModal
