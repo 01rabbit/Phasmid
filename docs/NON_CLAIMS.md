@@ -46,3 +46,23 @@ Each item includes a brief rationale to keep review and deployment decisions exp
 
 - Phasmid does not promise a single maintainer (bus factor 1) sustainability guarantee.  
   Rationale: long-term response capacity and maintenance continuity can be constrained by single-maintainer limits.
+
+## Coercion-Safe Delaying Non-Claims
+
+- Phasmid does not guarantee permanent secrecy against unlimited forensic analysis.  
+  Rationale: the coercion-safe architecture increases uncertainty and investigation cost; it does not eliminate the adversary's eventual ability to distinguish dummy from protected content.
+
+- Phasmid does not claim that dummy content is indistinguishable under expert forensic analysis.  
+  Rationale: an expert forensic examiner with sufficient time may identify structural differences between dummy and true content.
+
+- Phasmid does not forge or tamper with filesystem metadata, kernel logs, or timestamps.  
+  Rationale: anti-forensic tampering is an explicitly disallowed behavior.
+
+- Silent Standby does not erase key material from process memory.  
+  Rationale: standby is a UI-layer operation; live memory capture after standby may still expose in-memory key material.
+
+- Phasmid does not detect or verify physical coercion context.  
+  Rationale: coercion-safe recognition mode routes based on recognition confidence, not on verified coercion state.
+
+- Dummy plausibility is entirely dependent on operator preparation.  
+  Rationale: the plausibility report is advisory; a trivially empty or inconsistent dummy profile reduces survivability.

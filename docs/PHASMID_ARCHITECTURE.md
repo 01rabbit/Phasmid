@@ -34,6 +34,33 @@ The architecture preserves these constraints:
 - restricted actions require server-side checks and explicit confirmation
 - Field Mode reduces exposure but is not a security boundary
 
+## Coercion-Safe Delaying Architecture
+
+Phasmid implements a three-component coercion-safe delaying architecture:
+
+1. **Silent Standby** — Transitions from sensitive UI state to non-sensitive standby
+   on a configurable hotkey. States: `active`, `standby`, `sealed`, `dummy_disclosure`.
+   Recovery requires re-authentication. Standby does not erase key material from memory.
+
+2. **Plausible Dummy Dataset** — Pre-configured context-consistent content for
+   controlled disclosure. Generated before any coercive event. Guided by context
+   profiles. Evaluated by the plausibility report.
+
+3. **Context Profile Templates** — Schemas that define expected content for a given
+   operational context (`travel`, `field_engineer`, `researcher`, `maintenance`,
+   `archive`). Guide dummy generation and plausibility validation.
+
+Recognition modes control response to low-confidence recognition:
+
+- `strict` — mismatch is a failure
+- `coercion_safe` — low confidence routes to dummy disclosure path
+- `demo` — safe debug visibility
+
+This architecture does not claim forensic invisibility. It increases uncertainty,
+delays confident conclusions, and avoids obvious failure states under coercion.
+
+See `docs/COERCION_SAFE_DELAYING.md` for full design documentation.
+
 ## Current Documentation Map
 
 - [docs/SPECIFICATION.md](docs/SPECIFICATION.md) defines implementation behavior and configuration.
