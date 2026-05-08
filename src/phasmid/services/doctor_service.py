@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import resource
+import shutil
 import stat
 import subprocess
 import sys
@@ -10,6 +11,7 @@ import time
 from pathlib import Path
 
 from ..config import debug_enabled, doctor_recent_seconds, state_dir
+from ..luks_layer import LuksConfig, LuksLayer, LuksMode
 from ..models.doctor import DoctorCheck, DoctorLevel, DoctorResult
 from ..process_hardening import hardening_status
 from ..volatile_state import check_volatile_state, volatile_state_path
@@ -492,6 +494,149 @@ def _check_vault_size_record(vault_path: Path) -> DoctorCheck:
     )
 
 
+def _check_luks_statuses() -> list[DoctorCheck]:
+    cfg = LuksConfig.from_env()
+    mode_value = cfg.mode.value
+    checks: list[DoctorCheck] = []
+    if cfg.mode == LuksMode.DISABLED:
+        checks.append(
+            DoctorCheck(
+                name="LUKS Mode",
+                level=DoctorLevel.INFO,
+                message="[DISABLED] LUKS mode is disabled",
+            )
+        )
+        checks.append(
+            DoctorCheck(
+                name="LUKS cryptsetup",
+                level=DoctorLevel.INFO,
+                message="[DISABLED] skipped because LUKS mode is disabled",
+            )
+        )
+        checks.append(
+            DoctorCheck(
+                name="Local container path",
+                level=DoctorLevel.INFO,
+                message="[DISABLED] skipped because LUKS mode is disabled",
+            )
+        )
+        checks.append(
+            DoctorCheck(
+                name="Local container mount state",
+                level=DoctorLevel.INFO,
+                message="[DISABLED] skipped because LUKS mode is disabled",
+            )
+        )
+        checks.append(
+            DoctorCheck(
+                name="LUKS key-store tmpfs",
+                level=DoctorLevel.INFO,
+                message="[DISABLED] skipped because LUKS mode is disabled",
+            )
+        )
+        return checks
+
+    if mode_value in {LuksMode.FILE_CONTAINER.value, LuksMode.PARTITION.value}:
+        checks.append(
+            DoctorCheck(
+                name="LUKS Mode",
+                level=DoctorLevel.OK,
+                message=f"LUKS mode configured: {mode_value}",
+            )
+        )
+    else:
+        checks.append(
+            DoctorCheck(
+                name="LUKS Mode",
+                level=DoctorLevel.FAIL,
+                message=f"Invalid LUKS mode value: {mode_value}",
+            )
+        )
+
+    if shutil.which("cryptsetup"):
+        checks.append(
+            DoctorCheck(
+                name="LUKS cryptsetup",
+                level=DoctorLevel.OK,
+                message="cryptsetup is available",
+            )
+        )
+    else:
+        checks.append(
+            DoctorCheck(
+                name="LUKS cryptsetup",
+                level=DoctorLevel.WARN,
+                message="cryptsetup is not available",
+            )
+        )
+
+    if cfg.mode == LuksMode.FILE_CONTAINER:
+        exists = Path(cfg.container_path).exists()
+        checks.append(
+            DoctorCheck(
+                name="Local container path",
+                level=DoctorLevel.OK if exists else DoctorLevel.WARN,
+                message=(
+                    "local container file is reachable"
+                    if exists
+                    else "local container file is not reachable"
+                ),
+            )
+        )
+    else:
+        exists = Path(cfg.container_path).exists()
+        checks.append(
+            DoctorCheck(
+                name="Local container path",
+                level=DoctorLevel.OK if exists else DoctorLevel.WARN,
+                message=(
+                    "local container partition path is reachable"
+                    if exists
+                    else "local container partition path is not reachable"
+                ),
+            )
+        )
+
+    status = LuksLayer(cfg).status()
+    checks.append(
+        DoctorCheck(
+            name="Local container mount state",
+            level=DoctorLevel.OK,
+            message=(
+                "local container is mounted"
+                if status.mounted
+                else "local container is unmounted"
+            ),
+        )
+    )
+
+    tmpfs_ok = False
+    if sys.platform == "linux":
+        try:
+            probe = subprocess.run(
+                ["findmnt", "-n", "-o", "FSTYPE", "/run/phasmid"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=2,
+            )
+            tmpfs_ok = probe.returncode == 0 and probe.stdout.strip() == "tmpfs"
+        except Exception:
+            tmpfs_ok = False
+    checks.append(
+        DoctorCheck(
+            name="LUKS key-store tmpfs",
+            level=DoctorLevel.OK if tmpfs_ok else DoctorLevel.WARN,
+            message=(
+                "LUKS key-store path is tmpfs-backed"
+                if tmpfs_ok
+                else "LUKS key-store path is not confirmed as tmpfs-backed"
+            ),
+        )
+    )
+    return checks
+
+
 def run_doctor_checks(output_dir: str | None = None) -> DoctorResult:
     cfg = config_dir()
     vault_path = Path("vault.bin")
@@ -509,6 +654,11 @@ def run_doctor_checks(output_dir: str | None = None) -> DoctorResult:
     checks += [
         _check_secure_random(),
         _check_volatile_state(),
+    ]
+
+    checks += _check_luks_statuses()
+
+    checks += [
         _check_process_hardening(),
         _check_recent_documents_cache(),
         _check_thumbnail_cache(),
