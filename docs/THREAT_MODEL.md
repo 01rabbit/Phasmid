@@ -11,6 +11,30 @@ A structured STRIDE analysis mapping this model to the six threat categories is 
 
 ---
 
+## Security Claims and Non-Claims
+
+Phasmid does not claim to conceal the existence of encryption or coercion-aware storage software from a capable examiner. If the project files, binaries, or deployment traces are discovered, software existence is observable.
+
+The project distinguishes:
+
+- Software existence concealment: out of scope.
+- Data-existence deniability: partial and adversary-dependent.
+- Controlled disclosure: in scope and central to the design.
+- Coercion-aware fallback behavior: in scope as an operational objective.
+
+Discovery of Phasmid can weaken operational deniability, but software discovery alone does not prove the existence of additional undisclosed protected data.
+
+Non-claims are explicit:
+
+- no perfect deniability;
+- no guaranteed secure deletion on flash media;
+- no protection against compromised hosts, keyloggers, or live memory capture;
+- no forensic immunity.
+
+For the full non-claim inventory and rationale, see `docs/NON_CLAIMS.md`.
+
+---
+
 ## In-Scope Adversaries
 
 | Adversary | Capability | Goal |

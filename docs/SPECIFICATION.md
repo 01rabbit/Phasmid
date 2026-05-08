@@ -431,3 +431,11 @@ This build reads and writes JES v3 records only. Earlier development containers 
 ## 19. Limits
 
 Phasmid does not guarantee protection against a compromised OS, live memory capture, keylogging, camera observation, forced disclosure, complete secure deletion, deniability, or unsafe network exposure.
+
+Phasmid does not claim software existence concealment. Discovery of project files, binaries, logs, or deployment traces can reveal that coercion-aware storage software is present.
+
+The intended claim boundary is:
+
+- controlled disclosure is in scope;
+- data-existence deniability is partial and scenario-dependent;
+- software existence concealment is out of scope.

@@ -24,6 +24,32 @@ Phasmid is research software. It is not a replacement for full-disk encryption, 
 
 Phasmid does not promise perfect deniability. It reduces operational damage in some compelled-access scenarios by separating access conditions, local state, physical-object cues, and restricted recovery behavior.
 
+## Security Claims and Non-Claims
+
+Phasmid separates four concepts that are often conflated:
+
+- Software existence concealment: Phasmid does not claim this.
+- Data-existence deniability: partial and scenario-dependent.
+- Controlled disclosure: primary project claim.
+- Coercion-aware fallback behavior: operational goal.
+
+Phasmid claims:
+
+- separation of protected local state from coerced-disclosure output paths;
+- passphrase-based controlled disclosure of a specified local entry;
+- local-only operation by default, with WebUI bound to `127.0.0.1` unless explicitly changed;
+- reduced dependence on `vault.bin` alone through mixed local key material.
+
+Phasmid does not claim:
+
+- hiding the existence of the software from a capable forensic examiner;
+- perfect deniability under all adversary models;
+- guaranteed secure deletion on flash media;
+- protection against live memory capture, compromised hosts, or keyloggers;
+- forensic immunity of any kind.
+
+Tool discovery, repository discovery, process logs, shell history, and host artifacts can weaken operational deniability. Discovery of Phasmid does not by itself prove the existence of additional undisclosed data, but it does narrow ambiguity and should be treated as an operational risk.
+
 ## Philosophy
 
 Phasmid follows a simple rule: no lies, no unnecessary truth.
