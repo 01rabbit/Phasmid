@@ -8,6 +8,7 @@ import subprocess
 from dataclasses import dataclass
 from enum import Enum
 
+
 class LuksMode(str, Enum):
     FILE_CONTAINER = "file"
     PARTITION = "partition"
