@@ -59,9 +59,9 @@ Tracking note:
 
 ```text
 The Raspberry Pi Zero 2 W remote field-test harness and reporting workflow are
-tracked in GitHub issues #89 through #94. Those issues are planning and
-implementation work only; they do not satisfy target-hardware validation by
-themselves.
+tracked in GitHub issues #89 through #94, with runnable scripts under
+`scripts/pi_zero2w/`. Harness implementation and workflow automation do not
+by themselves satisfy target-hardware validation.
 ```
 
 ## Observability Measurements
