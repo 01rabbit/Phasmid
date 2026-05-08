@@ -32,6 +32,11 @@ All `PHASMID_*` reads are centralized in `src/phasmid/config.py`.
 | `PHASMID_STATE_SECRET` | string | unset | Local state encryption | Overrides local state key with environment-derived secret | `config.state_secret()` |
 | `PHASMID_DEBUG` | bool | `false` | Diagnostics | Enables debug-mode warning in doctor output | `config.debug_enabled()` |
 | `PHASMID_DOCTOR_RECENT_SECONDS` | int (>=1) | `86400` | Doctor | Window for “recent vault activity” warning | `config.doctor_recent_seconds()` |
+| `PHASMID_DUMMY_MIN_SIZE_MB` | int (>=0) | `50` | Doctor plausibility advisory | Minimum baseline size for local disclosure-face dataset | `config.dummy_min_size_mb()` |
+| `PHASMID_DUMMY_MIN_FILE_COUNT` | int (>=0) | `20` | Doctor plausibility advisory | Minimum baseline file count for local disclosure-face dataset | `config.dummy_min_file_count()` |
+| `PHASMID_DUMMY_OCCUPANCY_WARN` | float (>=0) | `0.10` | Doctor plausibility advisory | Warn when disclosure-face size ratio falls below threshold | `config.dummy_occupancy_warn()` |
+| `PHASMID_DUMMY_PROFILE_DIR` | path | `.state/dummy_profile` | Doctor plausibility advisory | Local path scanned for disclosure-face plausibility baseline | `config.dummy_profile_dir()` |
+| `PHASMID_DUMMY_CONTAINER_PATH` | path | `vault.bin` | Doctor plausibility advisory | Local container path used for occupancy ratio baseline | `config.dummy_container_path()` |
 | `PHASMID_ENABLE_DISPLAY` | bool | `false` | Bridge UI simulator | Enables OpenCV preview window for display simulator | `config.display_enabled()` |
 | `PHASMID_DARK` | bool | `false` | TUI theming | Optional dark theme selection flag | `config.tui_dark_enabled()` |
 | `PHASMID_LIGHT` | bool | `false` | TUI theming | Optional light theme selection flag | `config.tui_light_enabled()` |

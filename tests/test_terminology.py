@@ -124,6 +124,7 @@ class TerminologyAuditTests(unittest.TestCase):
             "src/phasmid/crypto_params.py",
             "src/phasmid/luks_layer.py",
             "src/phasmid/luks_key_store.py",
+            "src/phasmid/dummy_profile_eval.py",
         }
         self.assertEqual(all_modules, scanned | internal_allowlist)
 

@@ -148,6 +148,33 @@ def doctor_recent_seconds() -> int:
     return env_int("PHASMID_DOCTOR_RECENT_SECONDS", 86400, minimum=1)
 
 
+def dummy_min_size_mb() -> int:
+    return env_int("PHASMID_DUMMY_MIN_SIZE_MB", 50, minimum=0)
+
+
+def dummy_min_file_count() -> int:
+    return env_int("PHASMID_DUMMY_MIN_FILE_COUNT", 20, minimum=0)
+
+
+def dummy_occupancy_warn() -> float:
+    raw = env_text("PHASMID_DUMMY_OCCUPANCY_WARN", "0.10")
+    try:
+        value = float(raw)
+    except ValueError:
+        value = 0.10
+    if value < 0.0:
+        return 0.0
+    return value
+
+
+def dummy_profile_dir() -> str:
+    return env_text("PHASMID_DUMMY_PROFILE_DIR", ".state/dummy_profile")
+
+
+def dummy_container_path() -> str:
+    return env_text("PHASMID_DUMMY_CONTAINER_PATH", "vault.bin")
+
+
 def display_enabled() -> bool:
     return env_flag("PHASMID_ENABLE_DISPLAY", default=False)
 
