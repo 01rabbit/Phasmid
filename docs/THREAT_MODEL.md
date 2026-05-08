@@ -11,6 +11,30 @@ A structured STRIDE analysis mapping this model to the six threat categories is 
 
 ---
 
+## Security Claims and Non-Claims
+
+Phasmid does not claim to conceal the existence of encryption or coercion-aware storage software from a capable examiner. If the project files, binaries, or deployment traces are discovered, software existence is observable.
+
+The project distinguishes:
+
+- Software existence concealment: out of scope.
+- Data-existence deniability: partial and adversary-dependent.
+- Controlled disclosure: in scope and central to the design.
+- Coercion-aware fallback behavior: in scope as an operational objective.
+
+Discovery of Phasmid can weaken operational deniability, but software discovery alone does not prove the existence of additional undisclosed protected data.
+
+Non-claims are explicit:
+
+- no perfect deniability;
+- no guaranteed secure deletion on flash media;
+- no protection against compromised hosts, keyloggers, or live memory capture;
+- no forensic immunity.
+
+For the full non-claim inventory and rationale, see `docs/NON_CLAIMS.md`.
+
+---
+
 ## In-Scope Adversaries
 
 | Adversary | Capability | Goal |
@@ -50,6 +74,16 @@ A structured STRIDE analysis mapping this model to the six threat categories is 
 - Field Mode reduces normal information exposure, but it is not a security boundary.
 - Hidden restricted routes reduce casual exposure, but they are not security boundaries.
 - Hidden routes are not access control by themselves; server-side token checks, restricted confirmation, and typed confirmation remain required.
+
+---
+
+## Hardware Form Factor Considerations
+
+Phasmid currently targets a transparent evaluation prototype form factor (for example, Raspberry Pi Zero 2 W with visible camera hardware) to support reproducible testing and operator evaluation.
+
+This prototype form factor is not designed to appear benign under hostile physical inspection. Hardware recognition by technically informed examiners, visible camera modules, and conspicuous enclosure/wiring choices are operational threat vectors separate from software security properties.
+
+The current codebase does not claim to solve possession plausibility or hostile-inspection-safe industrial design. Those are separate engineering and deployment problems.
 
 ---
 
@@ -264,6 +298,8 @@ Each scenario is tagged with applicable [STRIDE](https://learn.microsoft.com/en-
 **Scenario:** Deleted or overwritten payload bytes are retained in flash media wear-leveling sectors, SSD remapped blocks, backups, or filesystem journals, and recovered after device seizure.
 
 **Mitigation (unmitigated):** Secure deletion of flash media is not reliably achievable through software alone. Key-material destruction (wiping `access.bin` or the LUKS container) renders retained ciphertext unrecoverable without the key. The seizure review checklist covers this risk.
+
+**Claim boundary:** Brick and restricted-clear paths are logical access-destruction mechanisms. They are not physical media sanitization and must not be described as guaranteed secure deletion.
 
 **Residual risk:** Physical recovery of flash chips may yield retained data. This threat is in-scope for awareness but not mitigated by Phasmid software controls alone.
 

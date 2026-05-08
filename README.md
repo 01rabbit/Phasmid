@@ -24,6 +24,32 @@ Phasmid is research software. It is not a replacement for full-disk encryption, 
 
 Phasmid does not promise perfect deniability. It reduces operational damage in some compelled-access scenarios by separating access conditions, local state, physical-object cues, and restricted recovery behavior.
 
+## Security Claims and Non-Claims
+
+Phasmid separates four concepts that are often conflated:
+
+- Software existence concealment: Phasmid does not claim this.
+- Data-existence deniability: partial and scenario-dependent.
+- Controlled disclosure: primary project claim.
+- Coercion-aware fallback behavior: operational goal.
+
+Phasmid claims:
+
+- separation of protected local state from coerced-disclosure output paths;
+- passphrase-based controlled disclosure of a specified local entry;
+- local-only operation by default, with WebUI bound to `127.0.0.1` unless explicitly changed;
+- reduced dependence on `vault.bin` alone through mixed local key material.
+
+Phasmid does not claim:
+
+- hiding the existence of the software from a capable forensic examiner;
+- perfect deniability under all adversary models;
+- guaranteed secure deletion on flash media;
+- protection against live memory capture, compromised hosts, or keyloggers;
+- forensic immunity of any kind.
+
+Tool discovery, repository discovery, process logs, shell history, and host artifacts can weaken operational deniability. Discovery of Phasmid does not by itself prove the existence of additional undisclosed data, but it does narrow ambiguity and should be treated as an operational risk.
+
 ## Philosophy
 
 Phasmid follows a simple rule: no lies, no unnecessary truth.
@@ -61,6 +87,24 @@ Run the WebUI in Field Mode by setting `PHASMID_FIELD_MODE=1`. Field Mode reduce
 Until those validation gates are completed on target hardware, Phasmid should be described as a field-evaluation prototype. After those gates are completed and recorded, it can be described as a local coercion-aware storage appliance for the validated deployment conditions.
 
 The Raspberry Pi Zero 2 W remote SSH field-test harness work is tracked in GitHub issues `#89` through `#94`. Those issues define the planned validation workflow; they are not themselves evidence that target-hardware validation has been completed.
+
+## Hardware Form Factor Boundary
+
+Current Phasmid hardware is an evaluation prototype, not a hostile-inspection-ready field form factor.
+
+Evaluation prototype (current):
+
+- Raspberry Pi Zero 2 W-based build;
+- visible camera module and development-oriented wiring may be present;
+- intended for development, benchmarking, protocol validation, and controlled operator training.
+
+Future field form factor (not solved in current codebase):
+
+- benign external appearance appropriate to operating context;
+- no visually obvious camera/security-hardware signal;
+- possession plausibility and interaction pattern that do not attract unnecessary inspection.
+
+This distinction is operational, not cosmetic. Validation on Raspberry Pi Zero 2 W does not by itself solve physical plausibility under hostile inspection.
 
 ## Safe Use Boundary
 
@@ -118,6 +162,7 @@ Threat model and security review documents:
 - `docs/THREAT_ANALYSIS_STRIDE.md` — full STRIDE analysis cross-referencing the threat model
 - [`docs/CLAIMS.md`](docs/CLAIMS.md) — inventory of project claims with verification status
 - [`docs/NON_CLAIMS.md`](docs/NON_CLAIMS.md) — explicit non-claims and rationale
+- [`docs/KEY_LIFECYCLE.md`](docs/KEY_LIFECYCLE.md) — key-material lifecycle audit summary and persistence boundaries
 - [`SECURITY.md`](SECURITY.md) — vulnerability disclosure policy
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution scope, claim, and review discipline
 - [`docs/BUS_FACTOR.md`](docs/BUS_FACTOR.md) — maintainer continuity note
@@ -325,6 +370,8 @@ Phasmid is a **research-grade prototype**. It does not claim:
 - operation that is guaranteed safe
 
 Deniability is procedural and depends on operational context. Host compromise may defeat confidentiality. OS artifacts may reveal usage. Coercion resistance is not absolute.
+
+Brick and restricted-clear actions are logical access-destruction mechanisms (key-path invalidation plus best-effort overwrite). They are not physical media sanitization guarantees on flash storage.
 
 ---
 

@@ -84,6 +84,43 @@ def _git_commit() -> str:
         return "unknown"
 
 
+def _host_info() -> dict[str, object]:
+    return {
+        "controller": "macos-remote-harness",
+        "script": "scripts/pi_zero2w/run_local_perf.py",
+    }
+
+
+def _target_info() -> dict[str, object]:
+    out: dict[str, object] = {
+        "hostname": None,
+        "os": None,
+        "kernel": None,
+        "arch": None,
+        "python_version": sys.version.split()[0],
+    }
+    try:
+        out["hostname"] = subprocess.run(
+            ["hostname"], capture_output=True, text=True, check=False
+        ).stdout.strip() or None
+        out["kernel"] = subprocess.run(
+            ["uname", "-r"], capture_output=True, text=True, check=False
+        ).stdout.strip() or None
+        out["arch"] = subprocess.run(
+            ["uname", "-m"], capture_output=True, text=True, check=False
+        ).stdout.strip() or None
+    except Exception:
+        pass
+    try:
+        for line in Path("/etc/os-release").read_text().splitlines():
+            if line.startswith("PRETTY_NAME="):
+                out["os"] = line.split("=", 1)[1].strip().strip('"')
+                break
+    except OSError:
+        pass
+    return out
+
+
 # ── Phase D: Import-time baseline ─────────────────────────────────────────────
 
 def measure_imports() -> dict:
@@ -235,6 +272,7 @@ def measure_kdf(rounds: int = 3) -> dict:
 def measure_object_gate() -> dict:
     try:
         import numpy as np
+
         from phasmid.recognition_benchmark import RecognitionBenchmark
 
         rng = np.random.default_rng(42)
@@ -281,6 +319,7 @@ def measure_object_gate() -> dict:
 def measure_coercion_path_timing(n: int = 5) -> dict:
     try:
         import argon2
+
         from phasmid.observability_probe import ObservabilityProbe
 
         def _real_kdf(password: bytes, salt: bytes) -> bytes:
@@ -348,7 +387,12 @@ def main() -> None:
 
     output: dict = {
         "timestamp":               _utc_now(),
+        "host_info":               _host_info(),
+        "target_info":             _target_info(),
         "git_commit":              _git_commit(),
+        "timings":                 {},
+        "memory":                  {},
+        "temperature":             {},
         "swap_enabled":            _swap_enabled(),
         "temperature_before_c":    _temp_c(),
         "mem_available_before_kb": _mem_available_kb(),
@@ -376,19 +420,30 @@ def main() -> None:
     for phase_name, fn in phases:
         print(f"[run_local_perf] phase={phase_name} ...", flush=True)
         temp_before = _temp_c()
+        mem_before = _mem_available_kb()
+        phase_t0 = time.perf_counter()
         try:
             result = fn()
             output["test_phase_results"][phase_name] = "ok"
             output.update(result)
             temp_after = _temp_c()
+            mem_after = _mem_available_kb()
             if temp_before is not None:
-                output.setdefault("temperature", {})[f"{phase_name}_before_c"] = temp_before
+                output["temperature"][f"{phase_name}_before_c"] = temp_before
             if temp_after is not None:
-                output.setdefault("temperature", {})[f"{phase_name}_after_c"] = temp_after
+                output["temperature"][f"{phase_name}_after_c"] = temp_after
+            if mem_before is not None:
+                output["memory"][f"{phase_name}_before_kb"] = mem_before
+            if mem_after is not None:
+                output["memory"][f"{phase_name}_after_kb"] = mem_after
+            output["timings"][phase_name] = round(time.perf_counter() - phase_t0, 4)
             print(f"[run_local_perf] phase={phase_name} ok", flush=True)
         except Exception as exc:
             output["test_phase_results"][phase_name] = "fail"
             output["failures"].append({"phase": phase_name, "error": str(exc)})
+            output["timings"][phase_name] = round(time.perf_counter() - phase_t0, 4)
+            output["memory"][f"{phase_name}_before_kb"] = mem_before
+            output["temperature"][f"{phase_name}_before_c"] = temp_before
             print(f"[run_local_perf] phase={phase_name} FAILED: {exc}", file=sys.stderr, flush=True)
             traceback.print_exc(file=sys.stderr)
 
