@@ -10,7 +10,17 @@ import tempfile
 import time
 from pathlib import Path
 
-from ..config import debug_enabled, doctor_recent_seconds, state_dir
+from ..config import (
+    debug_enabled,
+    doctor_recent_seconds,
+    dummy_container_path,
+    dummy_min_file_count,
+    dummy_min_size_mb,
+    dummy_occupancy_warn,
+    dummy_profile_dir,
+    state_dir,
+)
+from ..dummy_profile_eval import evaluate_dummy_profile, human_bytes
 from ..luks_layer import LuksConfig, LuksLayer, LuksMode
 from ..models.doctor import DoctorCheck, DoctorLevel, DoctorResult
 from ..process_hardening import hardening_status
@@ -637,6 +647,68 @@ def _check_luks_statuses() -> list[DoctorCheck]:
     return checks
 
 
+def _check_dummy_profile_plausibility() -> list[DoctorCheck]:
+    evaluation = evaluate_dummy_profile(
+        dummy_profile_dir=dummy_profile_dir(),
+        container_path=dummy_container_path(),
+        min_size_mb=dummy_min_size_mb(),
+        min_file_count=dummy_min_file_count(),
+        occupancy_warn_threshold=dummy_occupancy_warn(),
+    )
+    warning_level = DoctorLevel.WARN if evaluation.warnings else DoctorLevel.OK
+    ratio_pct = evaluation.occupancy_ratio * 100.0
+
+    checks = [
+        DoctorCheck(
+            name="Dummy Profile Size",
+            level=warning_level,
+            message=(
+                f"dummy profile size: {human_bytes(evaluation.dummy_size_bytes)}; "
+                f"container size: {human_bytes(evaluation.container_size_bytes)}"
+            ),
+        ),
+        DoctorCheck(
+            name="Dummy Profile File Count",
+            level=warning_level,
+            message=f"dummy profile file count: {evaluation.file_count}",
+        ),
+        DoctorCheck(
+            name="Dummy Profile Occupancy Ratio",
+            level=warning_level,
+            message=f"occupancy ratio: {ratio_pct:.2f}%",
+        ),
+        DoctorCheck(
+            name="Dummy Profile Size Distribution",
+            level=DoctorLevel.INFO,
+            message=(
+                "file size distribution: "
+                f"min={human_bytes(evaluation.min_file_size)}, "
+                f"p50={human_bytes(evaluation.p50_file_size)}, "
+                f"max={human_bytes(evaluation.max_file_size)}"
+            ),
+        ),
+    ]
+    if evaluation.warnings:
+        checks.append(
+            DoctorCheck(
+                name="Dummy Profile Plausibility",
+                level=DoctorLevel.WARN,
+                message="Dummy profile plausibility assessment: LOW",
+                detail="; ".join(evaluation.warnings),
+            )
+        )
+    else:
+        checks.append(
+            DoctorCheck(
+                name="Dummy Profile Plausibility",
+                level=DoctorLevel.OK,
+                message="Dummy profile plausibility assessment: baseline thresholds met",
+                detail="Operational plausibility is advisory, not a technical guarantee.",
+            )
+        )
+    return checks
+
+
 def run_doctor_checks(output_dir: str | None = None) -> DoctorResult:
     cfg = config_dir()
     vault_path = Path("vault.bin")
@@ -657,6 +729,7 @@ def run_doctor_checks(output_dir: str | None = None) -> DoctorResult:
     ]
 
     checks += _check_luks_statuses()
+    checks += _check_dummy_profile_plausibility()
 
     checks += [
         _check_process_hardening(),

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -29,8 +30,38 @@ class DoctorM4Checks(unittest.TestCase):
             "Local container path",
             "Local container mount state",
             "LUKS key-store tmpfs",
+            "Dummy Profile Size",
+            "Dummy Profile File Count",
+            "Dummy Profile Occupancy Ratio",
+            "Dummy Profile Size Distribution",
+            "Dummy Profile Plausibility",
         }
         self.assertTrue(expected.issubset(names))
+
+    def test_dummy_profile_plausibility_warns_for_small_ratio(self):
+        with tempfile.TemporaryDirectory() as td:
+            dummy_dir = os.path.join(td, "dummy")
+            os.makedirs(dummy_dir, exist_ok=True)
+            with open(os.path.join(dummy_dir, "a.bin"), "wb") as handle:
+                handle.write(b"a" * 64)
+            container = os.path.join(td, "vault.bin")
+            with open(container, "wb") as handle:
+                handle.write(b"b" * (10 * 1024 * 1024))
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "PHASMID_DUMMY_PROFILE_DIR": dummy_dir,
+                    "PHASMID_DUMMY_CONTAINER_PATH": container,
+                    "PHASMID_DUMMY_MIN_SIZE_MB": "1",
+                    "PHASMID_DUMMY_MIN_FILE_COUNT": "2",
+                    "PHASMID_DUMMY_OCCUPANCY_WARN": "0.10",
+                },
+                clear=False,
+            ):
+                result = run_doctor_checks()
+
+        check = next(c for c in result.checks if c.name == "Dummy Profile Plausibility")
+        self.assertEqual("WARN", check.level.value)
 
     def test_luks_checks_show_disabled_state(self):
         with mock.patch.dict(os.environ, {"PHASMID_LUKS_MODE": "disabled"}, clear=False):
