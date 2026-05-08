@@ -19,7 +19,7 @@ import os
 import string
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Sequence
+from typing import Sequence, TypeVar
 
 from .context_profile import (
     ContextProfile,
@@ -83,7 +83,10 @@ _LOG_LINE_FRAGMENTS = [
 ]
 
 
-def _urandom_choice(items: Sequence) -> object:
+T = TypeVar("T")
+
+
+def _urandom_choice(items: Sequence[T]) -> T:
     """Pick a uniformly random item using os.urandom."""
     if not items:
         raise ValueError("cannot choose from empty sequence")
