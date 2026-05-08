@@ -14,7 +14,6 @@ protected entries, recognition mode, or restricted recovery state.
 from __future__ import annotations
 
 import platform
-import time
 from datetime import datetime
 
 from textual.app import ComposeResult
@@ -22,7 +21,6 @@ from textual.binding import Binding
 from textual.widgets import Button, Footer, Static
 
 from .base import OperatorScreen
-
 
 _STANDBY_MESSAGE = """\
 STANDBY MODE
