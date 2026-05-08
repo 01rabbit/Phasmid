@@ -152,6 +152,16 @@ Results are written to `release/pi-zero2w/` on the Mac after the run.
 Key fields to review:
 
 ```
+timestamp
+host_info
+target_info
+git_commit
+test_phase_results
+timings
+memory
+temperature
+failures
+warnings
 overall_status              "pass" or "fail"
 swap_enabled                true = warn; KDF measurements may be affected
 coercion_path_timing
@@ -162,6 +172,17 @@ vault_operations.roundtrip_ok  true = store → retrieve produced identical byte
 failures[]                  list of phases that failed with error messages
 warnings[]                  non-fatal issues (swap, temperature, etc.)
 ```
+
+### `perf-report.md`
+
+Human-readable summary generated automatically by the harness. It includes:
+
+- executive technical summary;
+- target hardware summary;
+- dependency installation references (`install.log`, `run.log`);
+- performance/viability phase table;
+- warnings and failures;
+- recommended next actions.
 
 ### Coercion-Path Timing Acceptance Gate
 
