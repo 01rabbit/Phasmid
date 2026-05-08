@@ -79,6 +79,56 @@ class LuksLayerTests(unittest.TestCase):
         self.assertFalse(status.mounted)
 
     @mock.patch("phasmid.luks_layer.subprocess.run")
+    @mock.patch("phasmid.luks_layer.shutil.which", return_value="/usr/sbin/cryptsetup")
+    @mock.patch("phasmid.luks_layer.open", new_callable=mock.mock_open)
+    @mock.patch("phasmid.luks_layer.os.makedirs")
+    def test_mount_success_sets_state_dir(
+        self, _makedirs, _open_mock, _which_mock, run_mock
+    ):
+        run_mock.return_value = mock.Mock(returncode=0)
+        layer = LuksLayer(
+            LuksConfig(
+                mode=LuksMode.FILE_CONTAINER,
+                container_path="/opt/phasmid/luks.img",
+                mount_point="/mnt/phasmid-vault",
+            )
+        )
+        with mock.patch.dict(os.environ, {}, clear=True):
+            result = layer.mount("passphrase")
+            self.assertTrue(result.success)
+            self.assertTrue(result.mounted)
+            self.assertEqual(os.environ.get("PHASMID_STATE_DIR"), "/mnt/phasmid-vault")
+
+    @mock.patch("phasmid.luks_layer.subprocess.run")
+    @mock.patch("phasmid.luks_layer.shutil.which", return_value="/usr/sbin/cryptsetup")
+    @mock.patch("phasmid.luks_layer.open", new_callable=mock.mock_open)
+    @mock.patch("phasmid.luks_layer.os.makedirs")
+    def test_mount_failure(self, _makedirs, _open_mock, _which_mock, run_mock):
+        run_mock.return_value = mock.Mock(returncode=1)
+        layer = LuksLayer(LuksConfig(mode=LuksMode.FILE_CONTAINER))
+        result = layer.mount("passphrase")
+        self.assertFalse(result.success)
+        self.assertIn("failed", result.error_message)
+
+    @mock.patch("phasmid.luks_layer.subprocess.run")
+    def test_unmount_success_unsets_state_dir(self, run_mock):
+        run_mock.return_value = mock.Mock(returncode=0)
+        layer = LuksLayer(
+            LuksConfig(mode=LuksMode.FILE_CONTAINER, mount_point="/mnt/phasmid-vault")
+        )
+        with mock.patch.dict(
+            os.environ, {"PHASMID_STATE_DIR": "/mnt/phasmid-vault"}, clear=True
+        ):
+            self.assertTrue(layer.unmount())
+            self.assertNotIn("PHASMID_STATE_DIR", os.environ)
+
+    @mock.patch("phasmid.luks_layer.subprocess.run")
+    def test_unmount_failure(self, run_mock):
+        run_mock.return_value = mock.Mock(returncode=1)
+        layer = LuksLayer(LuksConfig(mode=LuksMode.FILE_CONTAINER))
+        self.assertFalse(layer.unmount())
+
+    @mock.patch("phasmid.luks_layer.subprocess.run")
     def test_status_disabled(self, run_mock):
         layer = LuksLayer(LuksConfig(mode=LuksMode.DISABLED))
         status = layer.status()
