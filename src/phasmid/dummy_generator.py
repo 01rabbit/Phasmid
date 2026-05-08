@@ -21,7 +21,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Sequence
 
-from .context_profile import ContextProfile, ProfileValidationResult, validate_against_profile
+from .context_profile import (
+    ContextProfile,
+    ProfileValidationResult,
+    validate_against_profile,
+)
 
 
 @dataclass

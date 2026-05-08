@@ -31,7 +31,7 @@ class TestGenerateDummyDataset(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = os.path.join(tmp, "dummy_out")
             config = self._make_config(out)
-            report = generate_dummy_dataset(config)
+            generate_dummy_dataset(config)
             self.assertTrue(os.path.isdir(out))
 
     def test_generate_creates_files(self):
@@ -93,7 +93,7 @@ class TestGenerateDummyDataset(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             config = self._make_config(tmp, target_mb=5)
             generate_dummy_dataset(config)
-            for dirpath, dirnames, filenames in os.walk(tmp):
+            for _dirpath, _dirnames, filenames in os.walk(tmp):
                 for fname in filenames:
                     lower = fname.lower()
                     self.assertNotIn("kern", lower, f"Suspicious filename: {fname}")
