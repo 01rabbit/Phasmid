@@ -240,6 +240,7 @@ def measure_kdf(rounds: int = 3) -> dict:
 def measure_object_gate() -> dict:
     try:
         import numpy as np
+
         from phasmid.recognition_benchmark import RecognitionBenchmark
 
         rng = np.random.default_rng(42)
@@ -377,6 +378,7 @@ def measure_field_workflow_smoke(state_dir: str) -> dict:
 def measure_coercion_path_timing(n: int = 5) -> dict:
     try:
         import argon2
+
         from phasmid.observability_probe import ObservabilityProbe
 
         def _real_kdf(password: bytes, salt: bytes) -> bytes:
