@@ -23,6 +23,14 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+RESULTS_DIR="$REPO_ROOT/release/pi-zero2w"
+TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+RUN_LOG="$RESULTS_DIR/run.log"
+STATUS_JSON="$RESULTS_DIR/phase-status.json"
+
+# Ensure artifacts exist even when validation fails early.
+mkdir -p "$RESULTS_DIR"
+: > "$RUN_LOG"
 
 # ── Environment validation ─────────────────────────────────────────────────────
 
@@ -30,17 +38,6 @@ MISSING=()
 for var in PHASMID_PI_HOST PHASMID_PI_USER PHASMID_PI_REMOTE_DIR PHASMID_PI_SSH_PORT; do
     [[ -z "${!var:-}" ]] && MISSING+=("$var")
 done
-
-if [[ ${#MISSING[@]} -gt 0 ]]; then
-    printf 'ERROR: Missing required environment variables:\n' >&2
-    for v in "${MISSING[@]}"; do printf '  %s\n' "$v" >&2; done
-    printf '\nSet them before running, for example:\n' >&2
-    printf '  export PHASMID_PI_HOST=phasmid-pi.local\n' >&2
-    printf '  export PHASMID_PI_USER=pi\n' >&2
-    printf '  export PHASMID_PI_REMOTE_DIR=/home/pi/Phasmid\n' >&2
-    printf '  export PHASMID_PI_SSH_PORT=22\n' >&2
-    exit 1
-fi
 
 # Guard against PHASMID_TMPFS_STATE leaking into the test environment.
 # If this variable is set but the path does not exist on the Pi, both the CLI
@@ -52,6 +49,84 @@ if [[ -n "${PHASMID_TMPFS_STATE:-}" ]]; then
     printf '         Unset it before running: unset PHASMID_TMPFS_STATE\n' >&2
     printf '         Continuing anyway — remote commands will NOT inherit this variable.\n' >&2
 fi
+
+log()  { printf '[%s] %s\n' "$(date -u +%H:%M:%SZ)" "$*" | tee -a "$RUN_LOG"; }
+warn() { log "WARNING: $*"; }
+fail() { log "ERROR: $*"; exit 1; }
+
+# Track phase results for summary (bash 3.2 compatible)
+PHASE_SSH_SANITY="not_run"
+PHASE_SYSTEM_INFO="not_run"
+PHASE_PREPARE_ENV="not_run"
+PHASE_PERF_TIMING="not_run"
+PHASE_WEBUI="not_run"
+
+set_phase_status() {
+    local phase="$1"
+    local value="$2"
+    case "$phase" in
+        ssh_sanity) PHASE_SSH_SANITY="$value" ;;
+        system_info) PHASE_SYSTEM_INFO="$value" ;;
+        prepare_env) PHASE_PREPARE_ENV="$value" ;;
+        perf_timing) PHASE_PERF_TIMING="$value" ;;
+        webui) PHASE_WEBUI="$value" ;;
+        *) return 1 ;;
+    esac
+}
+
+phase_status() {
+    local phase="$1"
+    case "$phase" in
+        ssh_sanity) printf '%s' "$PHASE_SSH_SANITY" ;;
+        system_info) printf '%s' "$PHASE_SYSTEM_INFO" ;;
+        prepare_env) printf '%s' "$PHASE_PREPARE_ENV" ;;
+        perf_timing) printf '%s' "$PHASE_PERF_TIMING" ;;
+        webui) printf '%s' "$PHASE_WEBUI" ;;
+        *) printf '%s' "unknown" ;;
+    esac
+}
+
+phase_ok()   { set_phase_status "$1" "ok";   log "  phase $1: ok"; }
+phase_fail() { set_phase_status "$1" "fail"; warn "phase $1: failed"; }
+phase_skip() { set_phase_status "$1" "skip"; log "  phase $1: skipped"; }
+
+write_status_json() {
+    cat > "$STATUS_JSON" <<EOF
+{
+  "timestamp": "$TIMESTAMP",
+  "overall_status": "${1:-unknown}",
+  "phases": {
+    "ssh_sanity": "$PHASE_SSH_SANITY",
+    "system_info": "$PHASE_SYSTEM_INFO",
+    "prepare_env": "$PHASE_PREPARE_ENV",
+    "perf_timing": "$PHASE_PERF_TIMING",
+    "webui": "$PHASE_WEBUI"
+  }
+}
+EOF
+}
+
+if [[ ${#MISSING[@]} -gt 0 ]]; then
+    log "ERROR: Missing required environment variables:"
+    for v in "${MISSING[@]}"; do log "  $v"; done
+    log "Set required variables before running this harness."
+    write_status_json "failed"
+    exit 2
+fi
+
+if [[ "${PHASMID_PI_REMOTE_DIR}" != /* ]] || [[ "${PHASMID_PI_REMOTE_DIR}" == "/" ]]; then
+    log "ERROR: PHASMID_PI_REMOTE_DIR must be an absolute path below '/' and must not be '/'."
+    write_status_json "failed"
+    exit 2
+fi
+
+for helper in "$SCRIPT_DIR/collect_system_info.sh" "$SCRIPT_DIR/prepare_remote_env.sh"; do
+    if [[ ! -f "$helper" ]]; then
+        log "ERROR: Required helper script is missing: $helper"
+        write_status_json "failed"
+        exit 2
+    fi
+done
 
 # ── SSH helpers ────────────────────────────────────────────────────────────────
 
@@ -74,26 +149,6 @@ pi_rsync() {
         -e "ssh $(printf '%q ' "${SSH_OPTS[@]}")" \
         "$@"
 }
-
-# ── Output setup ──────────────────────────────────────────────────────────────
-
-RESULTS_DIR="$REPO_ROOT/release/pi-zero2w"
-mkdir -p "$RESULTS_DIR"
-
-TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-RUN_LOG="$RESULTS_DIR/run.log"
-: > "$RUN_LOG"
-
-log()  { printf '[%s] %s\n' "$(date -u +%H:%M:%SZ)" "$*" | tee -a "$RUN_LOG"; }
-warn() { log "WARNING: $*"; }
-fail() { log "ERROR: $*"; exit 1; }
-
-# Track phase results for summary
-declare -A PHASE_RESULTS
-
-phase_ok()   { PHASE_RESULTS["$1"]="ok";   log "  phase $1: ok"; }
-phase_fail() { PHASE_RESULTS["$1"]="fail"; warn "phase $1: failed"; }
-phase_skip() { PHASE_RESULTS["$1"]="skip"; log "  phase $1: skipped"; }
 
 # ── Phase A: SSH sanity and architecture check ─────────────────────────────────
 
@@ -149,7 +204,7 @@ fi
 
 # ── Phase D–N: Performance and timing measurements ────────────────────────────
 
-if [[ "${PHASE_RESULTS[prepare_env]:-}" != "fail" ]]; then
+if [[ "$PHASE_PREPARE_ENV" != "fail" ]]; then
     log ""
     log "--- Phase D–N: Performance and timing measurements ---"
 
@@ -177,7 +232,7 @@ fi
 
 # ── Phase I: WebUI viability ─────────────────────────────────────────────────
 
-if [[ "${PHASE_RESULTS[prepare_env]:-}" != "fail" ]]; then
+if [[ "$PHASE_PREPARE_ENV" != "fail" ]]; then
     log ""
     log "--- Phase I: WebUI viability ---"
 
@@ -224,7 +279,7 @@ log ""
 log "=== Phase summary ==="
 OVERALL="ok"
 for phase in ssh_sanity system_info prepare_env perf_timing webui; do
-    status="${PHASE_RESULTS[$phase]:-unknown}"
+    status="$(phase_status "$phase")"
     log "  $phase: $status"
     [[ "$status" == "fail" ]] && OVERALL="fail"
 done
@@ -233,6 +288,7 @@ log ""
 log "Overall status : $OVERALL"
 log "Timestamp      : $TIMESTAMP"
 log "Results dir    : $RESULTS_DIR"
+write_status_json "$OVERALL"
 
 if [[ "$OVERALL" == "fail" ]]; then
     log "One or more phases failed. Review $RUN_LOG and partial results in $RESULTS_DIR."
