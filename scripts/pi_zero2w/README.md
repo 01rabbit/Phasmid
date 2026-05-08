@@ -58,6 +58,7 @@ The script will:
 | `release/pi-zero2w/install.log` | pip install output |
 | `release/pi-zero2w/sysinfo.txt` | Target hardware summary |
 | `release/pi-zero2w/perf-results.json` | Structured JSON results |
+| `release/pi-zero2w/perf-report.md` | Human-readable summary report |
 | `release/pi-zero2w/webui-probe.json` | WebUI timing results |
 
 ## Key result fields

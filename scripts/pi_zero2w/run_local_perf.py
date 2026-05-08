@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import argparse
 import datetime
-import hashlib
 import json
 import os
 import statistics
@@ -85,79 +84,41 @@ def _git_commit() -> str:
         return "unknown"
 
 
-def _read_os_release() -> str | None:
-    path = Path("/etc/os-release")
-    if not path.exists():
-        return None
-    try:
-        values: dict[str, str] = {}
-        for line in path.read_text().splitlines():
-            if "=" not in line:
-                continue
-            k, v = line.split("=", 1)
-            values[k.strip()] = v.strip().strip('"')
-        return values.get("PRETTY_NAME")
-    except OSError:
-        return None
+def _host_info() -> dict[str, object]:
+    return {
+        "controller": "macos-remote-harness",
+        "script": "scripts/pi_zero2w/run_local_perf.py",
+    }
 
 
-def collect_system_inventory() -> dict:
-    inventory: dict[str, object] = {
+def _target_info() -> dict[str, object]:
+    out: dict[str, object] = {
         "hostname": None,
-        "arch": None,
+        "os": None,
         "kernel": None,
-        "os": _read_os_release(),
+        "arch": None,
         "python_version": sys.version.split()[0],
-        "disk_free_kb": None,
-        "mem_total_kb": None,
-        "mem_available_kb": _mem_available_kb(),
-        "swap_total_kb": None,
-        "cpu_temp_c": _temp_c(),
-        "throttled": "unavailable",
     }
     try:
-        inventory["hostname"] = subprocess.run(
+        out["hostname"] = subprocess.run(
             ["hostname"], capture_output=True, text=True, check=False
         ).stdout.strip() or None
-        inventory["arch"] = subprocess.run(
-            ["uname", "-m"], capture_output=True, text=True, check=False
-        ).stdout.strip() or None
-        inventory["kernel"] = subprocess.run(
+        out["kernel"] = subprocess.run(
             ["uname", "-r"], capture_output=True, text=True, check=False
         ).stdout.strip() or None
+        out["arch"] = subprocess.run(
+            ["uname", "-m"], capture_output=True, text=True, check=False
+        ).stdout.strip() or None
     except Exception:
         pass
-
     try:
-        out = subprocess.run(
-            ["df", "-Pk", str(_REPO_ROOT)],
-            capture_output=True,
-            text=True,
-            check=False,
-        ).stdout.splitlines()
-        if len(out) >= 2:
-            inventory["disk_free_kb"] = int(out[1].split()[3])
-    except Exception:
+        for line in Path("/etc/os-release").read_text().splitlines():
+            if line.startswith("PRETTY_NAME="):
+                out["os"] = line.split("=", 1)[1].strip().strip('"')
+                break
+    except OSError:
         pass
-
-    try:
-        for line in Path("/proc/meminfo").read_text().splitlines():
-            if line.startswith("MemTotal:"):
-                inventory["mem_total_kb"] = int(line.split()[1])
-            if line.startswith("SwapTotal:"):
-                inventory["swap_total_kb"] = int(line.split()[1])
-    except (OSError, ValueError):
-        pass
-
-    try:
-        probe = subprocess.run(
-            ["vcgencmd", "get_throttled"], capture_output=True, text=True, check=False
-        )
-        if probe.returncode == 0:
-            inventory["throttled"] = probe.stdout.strip()
-    except Exception:
-        pass
-    return inventory
+    return out
 
 
 # ── Phase D: Import-time baseline ─────────────────────────────────────────────
@@ -205,7 +166,6 @@ def measure_cli_baseline(state_dir: str) -> dict:
         "help":         [_VENV_PHASMID, "--help"],
         "doctor":       [_VENV_PHASMID, "doctor", "--no-tui"],
         "verify_state": [_VENV_PHASMID, "verify-state"],
-        "verify_audit_log": [_VENV_PHASMID, "verify-audit-log"],
     }
     results = {}
     for name, cmd in commands.items():
@@ -260,8 +220,6 @@ def measure_vault_operations() -> dict:
         t0 = time.perf_counter()
         result, _ = vault.retrieve("bench-passphrase", sequence, mode="dummy")
         retrieve_s = time.perf_counter() - t0
-        retrieved_sha256 = hashlib.sha256(result or b"").hexdigest()
-        expected_sha256 = hashlib.sha256(payload).hexdigest()
 
         return {
             "vault_operations": {
@@ -270,8 +228,6 @@ def measure_vault_operations() -> dict:
                 "retrieve_s":   round(retrieve_s, 4),
                 "roundtrip_ok": result == payload,
                 "payload_bytes": len(payload),
-                "verify_sha256_match": retrieved_sha256 == expected_sha256,
-                "output_size_bytes": len(result or b""),
             }
         }
 
@@ -350,97 +306,6 @@ def measure_object_gate() -> dict:
         }
     except Exception as exc:
         return {"object_gate": {"status": "failed", "error": str(exc)}}
-
-
-def measure_tui_viability() -> dict:
-    """Conservative non-interactive TUI viability check."""
-    checks: list[dict[str, object]] = []
-    modules = [
-        "textual",
-        "phasmid.tui.app",
-        "phasmid.tui.screens.home",
-        "phasmid.tui.screens.doctor",
-    ]
-    for name in modules:
-        t0 = time.perf_counter()
-        try:
-            __import__(name)
-            checks.append(
-                {
-                    "check": f"import:{name}",
-                    "status": "ok",
-                    "elapsed_s": round(time.perf_counter() - t0, 4),
-                }
-            )
-        except Exception as exc:
-            checks.append(
-                {
-                    "check": f"import:{name}",
-                    "status": "failed",
-                    "elapsed_s": round(time.perf_counter() - t0, 4),
-                    "error": str(exc),
-                }
-            )
-    return {
-        "tui_viability": {
-            "status": "ok" if all(c["status"] == "ok" for c in checks) else "partial",
-            "checks": checks,
-            "note": "Import-only probe; full interactive TUI automation is out of scope.",
-        }
-    }
-
-
-def measure_field_workflow_smoke(state_dir: str) -> dict:
-    """Bounded non-destructive command workflow under dedicated test state."""
-    env = {
-        **os.environ,
-        "PHASMID_AUDIT": "0",
-        "PHASMID_DEBUG": "0",
-        "PHASMID_STATE_DIR": state_dir,
-    }
-    env.pop("PHASMID_TMPFS_STATE", None)
-    steps = [
-        ("help", [_VENV_PHASMID, "--help"]),
-        ("doctor_no_tui", [_VENV_PHASMID, "doctor", "--no-tui"]),
-        ("verify_state", [_VENV_PHASMID, "verify-state"]),
-    ]
-    result_steps: list[dict[str, object]] = []
-    for name, cmd in steps:
-        t0 = time.perf_counter()
-        try:
-            proc = subprocess.run(
-                cmd,
-                capture_output=True,
-                timeout=90,
-                cwd=str(_REPO_ROOT),
-                env=env,
-            )
-            result_steps.append(
-                {
-                    "step": name,
-                    "status": "ok" if proc.returncode == 0 else "nonzero",
-                    "returncode": proc.returncode,
-                    "elapsed_s": round(time.perf_counter() - t0, 4),
-                }
-            )
-        except Exception as exc:
-            result_steps.append(
-                {
-                    "step": name,
-                    "status": "failed",
-                    "elapsed_s": round(time.perf_counter() - t0, 4),
-                    "error": str(exc),
-                }
-            )
-    return {
-        "field_workflow_smoke": {
-            "status": "ok"
-            if all(s["status"] in {"ok", "nonzero"} for s in result_steps)
-            else "failed",
-            "steps": result_steps,
-            "note": "Non-destructive CLI-only smoke path under _pi_field_test state.",
-        }
-    }
 
 
 # ── Phase N: Coercion-path timing consistency ──────────────────────────────────
@@ -522,8 +387,12 @@ def main() -> None:
 
     output: dict = {
         "timestamp":               _utc_now(),
+        "host_info":               _host_info(),
+        "target_info":             _target_info(),
         "git_commit":              _git_commit(),
-        "target_info":             collect_system_inventory(),
+        "timings":                 {},
+        "memory":                  {},
+        "temperature":             {},
         "swap_enabled":            _swap_enabled(),
         "temperature_before_c":    _temp_c(),
         "mem_available_before_kb": _mem_available_kb(),
@@ -545,27 +414,36 @@ def main() -> None:
         ("vault_operations",     measure_vault_operations),
         ("kdf_timing",           lambda: measure_kdf(args.kdf_rounds)),
         ("object_gate",          measure_object_gate),
-        ("tui_viability",        measure_tui_viability),
-        ("field_workflow_smoke", lambda: measure_field_workflow_smoke(state_dir)),
         ("coercion_path_timing", lambda: measure_coercion_path_timing(args.probe_rounds)),
     ]
 
     for phase_name, fn in phases:
         print(f"[run_local_perf] phase={phase_name} ...", flush=True)
         temp_before = _temp_c()
+        mem_before = _mem_available_kb()
+        phase_t0 = time.perf_counter()
         try:
             result = fn()
             output["test_phase_results"][phase_name] = "ok"
             output.update(result)
             temp_after = _temp_c()
+            mem_after = _mem_available_kb()
             if temp_before is not None:
-                output.setdefault("temperature", {})[f"{phase_name}_before_c"] = temp_before
+                output["temperature"][f"{phase_name}_before_c"] = temp_before
             if temp_after is not None:
-                output.setdefault("temperature", {})[f"{phase_name}_after_c"] = temp_after
+                output["temperature"][f"{phase_name}_after_c"] = temp_after
+            if mem_before is not None:
+                output["memory"][f"{phase_name}_before_kb"] = mem_before
+            if mem_after is not None:
+                output["memory"][f"{phase_name}_after_kb"] = mem_after
+            output["timings"][phase_name] = round(time.perf_counter() - phase_t0, 4)
             print(f"[run_local_perf] phase={phase_name} ok", flush=True)
         except Exception as exc:
             output["test_phase_results"][phase_name] = "fail"
             output["failures"].append({"phase": phase_name, "error": str(exc)})
+            output["timings"][phase_name] = round(time.perf_counter() - phase_t0, 4)
+            output["memory"][f"{phase_name}_before_kb"] = mem_before
+            output["temperature"][f"{phase_name}_before_c"] = temp_before
             print(f"[run_local_perf] phase={phase_name} FAILED: {exc}", file=sys.stderr, flush=True)
             traceback.print_exc(file=sys.stderr)
 

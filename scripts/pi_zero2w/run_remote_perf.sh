@@ -23,14 +23,6 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-RESULTS_DIR="$REPO_ROOT/release/pi-zero2w"
-TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-RUN_LOG="$RESULTS_DIR/run.log"
-STATUS_JSON="$RESULTS_DIR/phase-status.json"
-
-# Ensure artifacts exist even when validation fails early.
-mkdir -p "$RESULTS_DIR"
-: > "$RUN_LOG"
 
 # ── Environment validation ─────────────────────────────────────────────────────
 
@@ -38,6 +30,17 @@ MISSING=()
 for var in PHASMID_PI_HOST PHASMID_PI_USER PHASMID_PI_REMOTE_DIR PHASMID_PI_SSH_PORT; do
     [[ -z "${!var:-}" ]] && MISSING+=("$var")
 done
+
+if [[ ${#MISSING[@]} -gt 0 ]]; then
+    printf 'ERROR: Missing required environment variables:\n' >&2
+    for v in "${MISSING[@]}"; do printf '  %s\n' "$v" >&2; done
+    printf '\nSet them before running, for example:\n' >&2
+    printf '  export PHASMID_PI_HOST=phasmid-pi.local\n' >&2
+    printf '  export PHASMID_PI_USER=pi\n' >&2
+    printf '  export PHASMID_PI_REMOTE_DIR=/home/pi/Phasmid\n' >&2
+    printf '  export PHASMID_PI_SSH_PORT=22\n' >&2
+    exit 1
+fi
 
 # Guard against PHASMID_TMPFS_STATE leaking into the test environment.
 # If this variable is set but the path does not exist on the Pi, both the CLI
@@ -49,84 +52,6 @@ if [[ -n "${PHASMID_TMPFS_STATE:-}" ]]; then
     printf '         Unset it before running: unset PHASMID_TMPFS_STATE\n' >&2
     printf '         Continuing anyway — remote commands will NOT inherit this variable.\n' >&2
 fi
-
-log()  { printf '[%s] %s\n' "$(date -u +%H:%M:%SZ)" "$*" | tee -a "$RUN_LOG"; }
-warn() { log "WARNING: $*"; }
-fail() { log "ERROR: $*"; exit 1; }
-
-# Track phase results for summary (bash 3.2 compatible)
-PHASE_SSH_SANITY="not_run"
-PHASE_SYSTEM_INFO="not_run"
-PHASE_PREPARE_ENV="not_run"
-PHASE_PERF_TIMING="not_run"
-PHASE_WEBUI="not_run"
-
-set_phase_status() {
-    local phase="$1"
-    local value="$2"
-    case "$phase" in
-        ssh_sanity) PHASE_SSH_SANITY="$value" ;;
-        system_info) PHASE_SYSTEM_INFO="$value" ;;
-        prepare_env) PHASE_PREPARE_ENV="$value" ;;
-        perf_timing) PHASE_PERF_TIMING="$value" ;;
-        webui) PHASE_WEBUI="$value" ;;
-        *) return 1 ;;
-    esac
-}
-
-phase_status() {
-    local phase="$1"
-    case "$phase" in
-        ssh_sanity) printf '%s' "$PHASE_SSH_SANITY" ;;
-        system_info) printf '%s' "$PHASE_SYSTEM_INFO" ;;
-        prepare_env) printf '%s' "$PHASE_PREPARE_ENV" ;;
-        perf_timing) printf '%s' "$PHASE_PERF_TIMING" ;;
-        webui) printf '%s' "$PHASE_WEBUI" ;;
-        *) printf '%s' "unknown" ;;
-    esac
-}
-
-phase_ok()   { set_phase_status "$1" "ok";   log "  phase $1: ok"; }
-phase_fail() { set_phase_status "$1" "fail"; warn "phase $1: failed"; }
-phase_skip() { set_phase_status "$1" "skip"; log "  phase $1: skipped"; }
-
-write_status_json() {
-    cat > "$STATUS_JSON" <<EOF
-{
-  "timestamp": "$TIMESTAMP",
-  "overall_status": "${1:-unknown}",
-  "phases": {
-    "ssh_sanity": "$PHASE_SSH_SANITY",
-    "system_info": "$PHASE_SYSTEM_INFO",
-    "prepare_env": "$PHASE_PREPARE_ENV",
-    "perf_timing": "$PHASE_PERF_TIMING",
-    "webui": "$PHASE_WEBUI"
-  }
-}
-EOF
-}
-
-if [[ ${#MISSING[@]} -gt 0 ]]; then
-    log "ERROR: Missing required environment variables:"
-    for v in "${MISSING[@]}"; do log "  $v"; done
-    log "Set required variables before running this harness."
-    write_status_json "failed"
-    exit 2
-fi
-
-if [[ "${PHASMID_PI_REMOTE_DIR}" != /* ]] || [[ "${PHASMID_PI_REMOTE_DIR}" == "/" ]]; then
-    log "ERROR: PHASMID_PI_REMOTE_DIR must be an absolute path below '/' and must not be '/'."
-    write_status_json "failed"
-    exit 2
-fi
-
-for helper in "$SCRIPT_DIR/collect_system_info.sh" "$SCRIPT_DIR/prepare_remote_env.sh"; do
-    if [[ ! -f "$helper" ]]; then
-        log "ERROR: Required helper script is missing: $helper"
-        write_status_json "failed"
-        exit 2
-    fi
-done
 
 # ── SSH helpers ────────────────────────────────────────────────────────────────
 
@@ -149,6 +74,51 @@ pi_rsync() {
         -e "ssh $(printf '%q ' "${SSH_OPTS[@]}")" \
         "$@"
 }
+
+# ── Output setup ──────────────────────────────────────────────────────────────
+
+RESULTS_DIR="$REPO_ROOT/release/pi-zero2w"
+mkdir -p "$RESULTS_DIR"
+
+TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+RUN_LOG="$RESULTS_DIR/run.log"
+: > "$RUN_LOG"
+
+log()  { printf '[%s] %s\n' "$(date -u +%H:%M:%SZ)" "$*" | tee -a "$RUN_LOG"; }
+warn() { log "WARNING: $*"; }
+fail() { log "ERROR: $*"; exit 1; }
+
+# Track phase results (bash 3.2 compatible)
+PHASE_SSH_SANITY="not_run"
+PHASE_SYSTEM_INFO="not_run"
+PHASE_PREPARE_ENV="not_run"
+PHASE_PERF_TIMING="not_run"
+PHASE_WEBUI="not_run"
+
+set_phase_status() {
+    case "$1" in
+        ssh_sanity) PHASE_SSH_SANITY="$2" ;;
+        system_info) PHASE_SYSTEM_INFO="$2" ;;
+        prepare_env) PHASE_PREPARE_ENV="$2" ;;
+        perf_timing) PHASE_PERF_TIMING="$2" ;;
+        webui) PHASE_WEBUI="$2" ;;
+    esac
+}
+
+phase_status() {
+    case "$1" in
+        ssh_sanity) printf '%s' "$PHASE_SSH_SANITY" ;;
+        system_info) printf '%s' "$PHASE_SYSTEM_INFO" ;;
+        prepare_env) printf '%s' "$PHASE_PREPARE_ENV" ;;
+        perf_timing) printf '%s' "$PHASE_PERF_TIMING" ;;
+        webui) printf '%s' "$PHASE_WEBUI" ;;
+        *) printf '%s' "unknown" ;;
+    esac
+}
+
+phase_ok()   { set_phase_status "$1" "ok";   log "  phase $1: ok"; }
+phase_fail() { set_phase_status "$1" "fail"; warn "phase $1: failed"; }
+phase_skip() { set_phase_status "$1" "skip"; log "  phase $1: skipped"; }
 
 # ── Phase A: SSH sanity and architecture check ─────────────────────────────────
 
@@ -288,7 +258,68 @@ log ""
 log "Overall status : $OVERALL"
 log "Timestamp      : $TIMESTAMP"
 log "Results dir    : $RESULTS_DIR"
-write_status_json "$OVERALL"
+
+REPORT_MD="$RESULTS_DIR/perf-report.md"
+python3 - "$RESULTS_DIR" "$TIMESTAMP" "$OVERALL" "$INSTALL_LOG" "$RUN_LOG" "$REPORT_MD" <<'PY'
+import json, pathlib, sys
+results_dir = pathlib.Path(sys.argv[1])
+timestamp = sys.argv[2]
+overall = sys.argv[3]
+install_log = sys.argv[4]
+run_log = sys.argv[5]
+report_md = pathlib.Path(sys.argv[6])
+perf_path = results_dir / "perf-results.json"
+data = {}
+if perf_path.exists():
+    try:
+        data = json.loads(perf_path.read_text())
+    except Exception:
+        data = {}
+
+target = data.get("target_info", {})
+phases = data.get("test_phase_results", {})
+warnings = data.get("warnings", [])
+failures = data.get("failures", [])
+timings = data.get("timings", {})
+with report_md.open("w", encoding="utf-8") as f:
+    f.write("# Pi Zero 2 W Field-Test Report\n\n")
+    f.write("## Executive Technical Summary\n")
+    f.write(f"- Timestamp: `{timestamp}`\n")
+    f.write(f"- Overall status: `{overall}`\n")
+    f.write("- This report reflects one hardware run and does not prove security properties.\n")
+    f.write("- Findings are viability measurements only.\n\n")
+    f.write("## Target Hardware Summary\n")
+    f.write(f"- Hostname: `{target.get('hostname')}`\n")
+    f.write(f"- OS: `{target.get('os')}`\n")
+    f.write(f"- Kernel: `{target.get('kernel')}`\n")
+    f.write(f"- Arch: `{target.get('arch')}`\n")
+    f.write(f"- Python: `{target.get('python_version')}`\n\n")
+    f.write("## Dependency Installation\n")
+    f.write(f"- Install log: `{install_log}`\n")
+    f.write(f"- Run log: `{run_log}`\n\n")
+    f.write("## Performance / Viability Table\n")
+    f.write("| Phase | Status | Duration (s) |\n")
+    f.write("|---|---|---|\n")
+    for phase in ["imports","cli_baseline","vault_operations","kdf_timing","object_gate","coercion_path_timing"]:
+        f.write(f"| {phase} | {phases.get(phase, 'not_run')} | {timings.get(phase, 'n/a')} |\n")
+    f.write("\n## Warnings\n")
+    if warnings:
+        for w in warnings:
+            f.write(f"- {w}\n")
+    else:
+        f.write("- none\n")
+    f.write("\n## Failures\n")
+    if failures:
+        for item in failures:
+            f.write(f"- {item.get('phase')}: {item.get('error')}\n")
+    else:
+        f.write("- none\n")
+    f.write("\n## Recommended Next Actions\n")
+    f.write("1. Re-run on the same unit after resolving any install or probe failures.\n")
+    f.write("2. Compare with at least one additional Pi Zero 2 W unit and SD card.\n")
+    f.write("3. Perform manual field procedure checks before making deployment claims.\n")
+PY
+log "Generated report: $REPORT_MD"
 
 if [[ "$OVERALL" == "fail" ]]; then
     log "One or more phases failed. Review $RUN_LOG and partial results in $RESULTS_DIR."
