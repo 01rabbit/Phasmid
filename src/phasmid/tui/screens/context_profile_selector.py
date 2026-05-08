@@ -11,7 +11,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.widgets import Button, Footer, Label, ListItem, ListView, Static
 
-from ...context_profile import BUILT_IN_PROFILES, ContextProfile, list_profiles
+from ...context_profile import BUILT_IN_PROFILES, list_profiles
 from .base import OperatorScreen
 
 
