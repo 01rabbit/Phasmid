@@ -19,6 +19,82 @@ from phasmid.object_gate_policy import ObjectGateResult
 
 
 class AIGateTemplateTests(unittest.TestCase):
+    def test_strict_mode_returns_no_match_when_unmatched(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            gate.last_match_mode = gate.MATCH_NONE
+            with mock.patch.dict(
+                os.environ,
+                {"PHASMID_RECOGNITION_MODE": "strict"},
+                clear=False,
+            ):
+                seq = gate.get_auth_sequence(length=2)
+            self.assertEqual(seq, [gate.MATCH_NONE, gate.MATCH_NONE])
+
+    def test_coercion_safe_routes_unmatched_to_fallback_entry(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            gate.last_match_mode = gate.MATCH_NONE
+            with mock.patch.dict(
+                os.environ,
+                {"PHASMID_RECOGNITION_MODE": "coercion_safe"},
+                clear=False,
+            ):
+                seq = gate.get_auth_sequence(length=2)
+            self.assertEqual(seq, ["reference_dummy_matched", "reference_dummy_matched"])
+
+    def test_strict_mode_rejects_low_confidence_match(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            gate.experimental_object_model_enabled = True
+            gate.last_match_mode = "secret"
+            gate.latest_gate_results["secret"] = ObjectGateResult(
+                state="accepted",
+                orb_score=30.0,
+                model_score=0.9,
+                quality_score=0.2,
+                stable_frames=3,
+                attempted_frames=3,
+                elapsed_ms=1,
+                reason_code="combined_match",
+            )
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "PHASMID_RECOGNITION_MODE": "strict",
+                    "PHASMID_TRUE_UNLOCK_THRESHOLD": "0.85",
+                },
+                clear=False,
+            ):
+                seq = gate.get_auth_sequence(length=1)
+            self.assertEqual(seq, [gate.MATCH_NONE])
+
+    def test_coercion_safe_routes_low_confidence_match_to_fallback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gate = AIGate(reference_dir=tmp)
+            gate.experimental_object_model_enabled = True
+            gate.last_match_mode = "secret"
+            gate.latest_gate_results["secret"] = ObjectGateResult(
+                state="accepted",
+                orb_score=30.0,
+                model_score=0.9,
+                quality_score=0.2,
+                stable_frames=3,
+                attempted_frames=3,
+                elapsed_ms=1,
+                reason_code="combined_match",
+            )
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "PHASMID_RECOGNITION_MODE": "coercion_safe",
+                    "PHASMID_TRUE_UNLOCK_THRESHOLD": "0.85",
+                },
+                clear=False,
+            ):
+                seq = gate.get_auth_sequence(length=1)
+            self.assertEqual(seq, ["reference_dummy_matched"])
+
     def test_feature_flag_off_preserves_legacy_match_update(self):
         with tempfile.TemporaryDirectory() as tmp:
             gate = AIGate(reference_dir=tmp)

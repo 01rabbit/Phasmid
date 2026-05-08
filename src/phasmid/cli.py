@@ -30,6 +30,7 @@ from .restricted_actions import (
     RestrictedActionRejected,
     evaluate_restricted_action,
 )
+from .services.access_cue_service import access_cue_service
 from .vault_core import PhasmidVault
 from .volatile_state import require_volatile_state
 
@@ -144,10 +145,13 @@ def _collect_auth_sequence():
         console.print(
             f"  [bold green]✓[/bold green]  [green]{text.CLI_OBJECT_MATCHED.removeprefix(_prefix)}[/green]"
         )
-    elif gate.last_match_mode == gate.MATCH_AMBIGUOUS:
-        warn(text.CLI_AMBIGUOUS_MATCH.removeprefix("[LOCAL] "))
     else:
-        warn(text.CLI_NO_MATCH_TIMEOUT.removeprefix("[LOCAL] "))
+        if access_cue_service.recognition_mode() == "coercion_safe":
+            warn(text.CLI_NO_MATCH_TIMEOUT.removeprefix("[LOCAL] "))
+        elif gate.last_match_mode == gate.MATCH_AMBIGUOUS:
+            warn(text.CLI_AMBIGUOUS_MATCH.removeprefix("[LOCAL] "))
+        else:
+            warn(text.CLI_NO_MATCH_TIMEOUT.removeprefix("[LOCAL] "))
 
     return get_gesture_sequence(length=1)
 
@@ -559,11 +563,6 @@ def _run_legacy_command(args) -> None:
             console.print(Rule("Object Verification", style="dim cyan"))
             user_gesture_seq = _collect_auth_sequence()
 
-            if gate.last_match_mode == gate.MATCH_AMBIGUOUS:
-                ui.show_alert("ACCESS ERROR\nAMBIGUOUS OBJECT")
-                attempt_limiter.record_failure(attempt_scope)
-                error("Access rejected: ambiguous object match.")
-                return
             if not user_gesture_seq or user_gesture_seq[0] == gate.MATCH_NONE:
                 ui.show_alert("ACCESS ERROR\nOBJECT NOT FOUND")
                 attempt_limiter.record_failure(attempt_scope)
