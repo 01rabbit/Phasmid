@@ -77,6 +77,16 @@ For the full non-claim inventory and rationale, see `docs/NON_CLAIMS.md`.
 
 ---
 
+## Hardware Form Factor Considerations
+
+Phasmid currently targets a transparent evaluation prototype form factor (for example, Raspberry Pi Zero 2 W with visible camera hardware) to support reproducible testing and operator evaluation.
+
+This prototype form factor is not designed to appear benign under hostile physical inspection. Hardware recognition by technically informed examiners, visible camera modules, and conspicuous enclosure/wiring choices are operational threat vectors separate from software security properties.
+
+The current codebase does not claim to solve possession plausibility or hostile-inspection-safe industrial design. Those are separate engineering and deployment problems.
+
+---
+
 ## Assets
 
 - Payload bytes and encrypted payload metadata.
