@@ -265,6 +265,8 @@ Each scenario is tagged with applicable [STRIDE](https://learn.microsoft.com/en-
 
 **Mitigation (unmitigated):** Secure deletion of flash media is not reliably achievable through software alone. Key-material destruction (wiping `access.bin` or the LUKS container) renders retained ciphertext unrecoverable without the key. The seizure review checklist covers this risk.
 
+**Claim boundary:** Brick and restricted-clear paths are logical access-destruction mechanisms. They are not physical media sanitization and must not be described as guaranteed secure deletion.
+
 **Residual risk:** Physical recovery of flash chips may yield retained data. This threat is in-scope for awareness but not mitigated by Phasmid software controls alone.
 
 ---

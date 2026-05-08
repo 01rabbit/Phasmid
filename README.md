@@ -118,6 +118,7 @@ Threat model and security review documents:
 - `docs/THREAT_ANALYSIS_STRIDE.md` — full STRIDE analysis cross-referencing the threat model
 - [`docs/CLAIMS.md`](docs/CLAIMS.md) — inventory of project claims with verification status
 - [`docs/NON_CLAIMS.md`](docs/NON_CLAIMS.md) — explicit non-claims and rationale
+- [`docs/KEY_LIFECYCLE.md`](docs/KEY_LIFECYCLE.md) — key-material lifecycle audit summary and persistence boundaries
 - [`SECURITY.md`](SECURITY.md) — vulnerability disclosure policy
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution scope, claim, and review discipline
 - [`docs/BUS_FACTOR.md`](docs/BUS_FACTOR.md) — maintainer continuity note
@@ -325,6 +326,8 @@ Phasmid is a **research-grade prototype**. It does not claim:
 - operation that is guaranteed safe
 
 Deniability is procedural and depends on operational context. Host compromise may defeat confidentiality. OS artifacts may reveal usage. Coercion resistance is not absolute.
+
+Brick and restricted-clear actions are logical access-destruction mechanisms (key-path invalidation plus best-effort overwrite). They are not physical media sanitization guarantees on flash storage.
 
 ---
 
