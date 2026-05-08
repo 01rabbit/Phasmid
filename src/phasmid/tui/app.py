@@ -4,7 +4,9 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.events import Key
 
+from ..config import standby_hotkey
 from ..services.webui_service import WebUIService
+from ..standby_state import StandbyStateMachine
 from .screens.home import HomeScreen
 from .theme import PHASMID_DARK, PHASMID_LIGHT
 
@@ -18,6 +20,7 @@ class PhasmidApp(App):
     BINDINGS = [
         Binding("ctrl+c", "quit", "Quit", show=False),
         Binding("w", "toggle_webui", "WebUI"),
+        Binding(standby_hotkey(), "trigger_standby", "Standby", show=False),
     ]
 
     CSS = """
@@ -37,6 +40,7 @@ class PhasmidApp(App):
         self._vessel_path = vessel_path
         self.webui_svc = WebUIService()
         self.webui_svc.set_timeout_callback(self._on_webui_timeout)
+        self.standby = StandbyStateMachine()
 
     def on_mount(self) -> None:
         try:
@@ -169,6 +173,27 @@ class PhasmidApp(App):
 
         self.push_screen(HomeScreen())
         self.push_screen(LuksScreen())
+
+    def action_trigger_standby(self) -> None:
+        """Hotkey-triggered standby: clear sensitive UI and enter sealed state."""
+        if not self.standby.is_active():
+            return
+
+        from .screens.standby import StandbyScreen
+
+        try:
+            self.standby.trigger_standby()
+        except Exception:
+            return
+
+        def _on_standby_dismissed(result: bool | None) -> None:
+            if result:
+                try:
+                    self.standby.recover()
+                except Exception:
+                    pass
+
+        self.push_screen(StandbyScreen(), _on_standby_dismissed)
 
 
 def run_tui(
