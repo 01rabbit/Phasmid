@@ -62,6 +62,24 @@ Until those validation gates are completed on target hardware, Phasmid should be
 
 The Raspberry Pi Zero 2 W remote SSH field-test harness work is tracked in GitHub issues `#89` through `#94`. Those issues define the planned validation workflow; they are not themselves evidence that target-hardware validation has been completed.
 
+## Hardware Form Factor Boundary
+
+Current Phasmid hardware is an evaluation prototype, not a hostile-inspection-ready field form factor.
+
+Evaluation prototype (current):
+
+- Raspberry Pi Zero 2 W-based build;
+- visible camera module and development-oriented wiring may be present;
+- intended for development, benchmarking, protocol validation, and controlled operator training.
+
+Future field form factor (not solved in current codebase):
+
+- benign external appearance appropriate to operating context;
+- no visually obvious camera/security-hardware signal;
+- possession plausibility and interaction pattern that do not attract unnecessary inspection.
+
+This distinction is operational, not cosmetic. Validation on Raspberry Pi Zero 2 W does not by itself solve physical plausibility under hostile inspection.
+
 ## Safe Use Boundary
 
 Phasmid is intended for lawful local protection of sensitive material where device seizure, compelled access, or over-disclosure are realistic risks.
