@@ -7,7 +7,7 @@ Run from macOS. All test phases execute on the Raspberry Pi via SSH.
 **On macOS (host):**
 
 - Git repository checked out
-- `ssh` and `rsync` available
+- `ssh` available (`rsync` is preferred; fallback exists if missing)
 - SSH key configured for the Pi (or ssh-agent running)
 
 **On the Raspberry Pi:**
@@ -58,6 +58,7 @@ The script will:
 | `release/pi-zero2w/install.log` | pip install output |
 | `release/pi-zero2w/sysinfo.txt` | Target hardware summary |
 | `release/pi-zero2w/perf-results.json` | Structured JSON results |
+| `release/pi-zero2w/perf-report.md` | Human-readable summary report |
 | `release/pi-zero2w/webui-probe.json` | WebUI timing results |
 
 ## Key result fields
@@ -83,6 +84,12 @@ The script will:
 If `coercion_path_timing.gate_passed` is `false`, the timing delta between
 the FAILED and RESTRICTED code paths exceeds 5% of Argon2id wall time.
 This is a significant finding that must be documented before field use.
+
+## Sync Fallback
+
+If `rsync` is unavailable on the macOS host, the harness falls back to a
+bounded `tar` stream over SSH with the same exclude rules (`.git`, `.venv`,
+`.state`, `vault.bin`, `release/`, caches, and `_pi_field_test/`).
 
 ## Cleanup (remote test artifacts only)
 
