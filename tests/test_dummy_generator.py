@@ -1,0 +1,155 @@
+import os
+import sys
+import tempfile
+import unittest
+
+ROOT = os.path.dirname(os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(ROOT, "src"))
+
+from phasmid.context_profile import get_profile
+from phasmid.dummy_generator import (
+    DummyGeneratorConfig,
+    GeneratedDummyReport,
+    generate_dummy_dataset,
+    import_sample_directory,
+)
+
+
+class TestGenerateDummyDataset(unittest.TestCase):
+    def setUp(self):
+        self.profile = get_profile("travel")
+
+    def _make_config(self, output_dir, target_mb=10, occupancy=0.5):
+        return DummyGeneratorConfig(
+            target_size_bytes=target_mb * 1024 * 1024,
+            occupancy_ratio=occupancy,
+            profile=self.profile,
+            output_dir=output_dir,
+        )
+
+    def test_generate_creates_output_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "dummy_out")
+            config = self._make_config(out)
+            generate_dummy_dataset(config)
+            self.assertTrue(os.path.isdir(out))
+
+    def test_generate_creates_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config = self._make_config(tmp)
+            report = generate_dummy_dataset(config)
+            self.assertGreater(report.files_created, 0)
+
+    def test_generate_returns_report(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config = self._make_config(tmp)
+            report = generate_dummy_dataset(config)
+            self.assertIsInstance(report, GeneratedDummyReport)
+            self.assertEqual(report.profile_name, "travel")
+
+    def test_generate_creates_profile_directories(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config = self._make_config(tmp)
+            report = generate_dummy_dataset(config)
+            self.assertGreater(report.directory_count, 1)
+
+    def test_generate_extension_distribution_populated(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config = self._make_config(tmp, target_mb=5)
+            report = generate_dummy_dataset(config)
+            self.assertTrue(len(report.extension_distribution) > 0)
+
+    def test_generate_files_have_correct_extensions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config = self._make_config(tmp, target_mb=5)
+            report = generate_dummy_dataset(config)
+            expected = set(self.profile.dummy_content_types)
+            actual = set(report.extension_distribution.keys())
+            self.assertTrue(
+                actual.issubset(expected),
+                f"Unexpected extensions: {actual - expected}",
+            )
+
+    def test_generate_zero_occupancy_produces_no_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            profile = get_profile("maintenance")
+            config = DummyGeneratorConfig(
+                target_size_bytes=10 * 1024 * 1024,
+                occupancy_ratio=0.0,
+                profile=profile,
+                output_dir=tmp,
+            )
+            report = generate_dummy_dataset(config)
+            self.assertGreater(len(report.warnings), 0)
+
+    def test_generate_produces_plausibility_report(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config = self._make_config(tmp, target_mb=20)
+            report = generate_dummy_dataset(config)
+            self.assertIsNotNone(report.plausibility)
+
+    def test_generate_does_not_produce_disallowed_content(self):
+        """Verify no forged system files, kernel logs, or forensic artifacts."""
+        with tempfile.TemporaryDirectory() as tmp:
+            config = self._make_config(tmp, target_mb=5)
+            generate_dummy_dataset(config)
+            for _dirpath, _dirnames, filenames in os.walk(tmp):
+                for fname in filenames:
+                    lower = fname.lower()
+                    self.assertNotIn("kern", lower, f"Suspicious filename: {fname}")
+                    self.assertNotIn("syslog", lower, f"Suspicious filename: {fname}")
+                    self.assertNotIn("wtmp", lower, f"Suspicious filename: {fname}")
+                    self.assertNotIn("utmp", lower, f"Suspicious filename: {fname}")
+
+    def test_effective_dummy_size_bytes(self):
+        config = DummyGeneratorConfig(
+            target_size_bytes=100 * 1024 * 1024,
+            occupancy_ratio=0.25,
+            profile=self.profile,
+            output_dir="/tmp",
+        )
+        self.assertEqual(config.effective_dummy_size_bytes(), 25 * 1024 * 1024)
+
+
+class TestImportSampleDirectory(unittest.TestCase):
+    def test_import_copies_files(self):
+        with tempfile.TemporaryDirectory() as src, tempfile.TemporaryDirectory() as dst:
+            (os.path.join(src, "notes.txt")), "w"
+            with open(os.path.join(src, "notes.txt"), "w") as f:
+                f.write("sample content\n")
+            files, total, warnings = import_sample_directory(src, dst)
+            self.assertEqual(files, 1)
+            self.assertEqual(len(warnings), 0)
+
+    def test_import_missing_source_returns_warning(self):
+        files, total, warnings = import_sample_directory(
+            "/nonexistent/path/xyz", "/tmp"
+        )
+        self.assertEqual(files, 0)
+        self.assertTrue(len(warnings) > 0)
+
+    def test_import_respects_allowed_extensions(self):
+        with tempfile.TemporaryDirectory() as src, tempfile.TemporaryDirectory() as dst:
+            with open(os.path.join(src, "keep.txt"), "w") as f:
+                f.write("keep")
+            with open(os.path.join(src, "skip.bin"), "wb") as f:
+                f.write(b"\x00" * 100)
+            files, total, warnings = import_sample_directory(
+                src, dst, allowed_extensions=["txt"]
+            )
+            self.assertEqual(files, 1)
+            self.assertTrue(os.path.exists(os.path.join(dst, "keep.txt")))
+            self.assertFalse(os.path.exists(os.path.join(dst, "skip.bin")))
+
+    def test_import_respects_max_bytes(self):
+        with tempfile.TemporaryDirectory() as src, tempfile.TemporaryDirectory() as dst:
+            for i in range(5):
+                with open(os.path.join(src, f"file{i}.txt"), "w") as f:
+                    f.write("x" * 1000)
+            files, total, warnings = import_sample_directory(src, dst, max_bytes=2500)
+            self.assertLessEqual(total, 2500 + 1000)
+            self.assertTrue(len(warnings) > 0)
+
+
+if __name__ == "__main__":
+    unittest.main()

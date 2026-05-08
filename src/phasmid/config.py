@@ -223,3 +223,8 @@ def tui_light_enabled() -> bool:
 def context_profile_name() -> str:
     name = env_text("PHASMID_CONTEXT_PROFILE", "travel").strip().lower()
     return name or "travel"
+
+
+def standby_hotkey() -> str:
+    key = env_text("PHASMID_STANDBY_HOTKEY", "ctrl+s").strip().lower()
+    return key or "ctrl+s"
