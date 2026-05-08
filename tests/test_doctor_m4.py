@@ -24,8 +24,23 @@ class DoctorM4Checks(unittest.TestCase):
             "Core Dumps",
             "Compressed Swap",
             "Shell History",
+            "LUKS Mode",
+            "LUKS cryptsetup",
+            "Local container path",
+            "Local container mount state",
+            "LUKS key-store tmpfs",
         }
         self.assertTrue(expected.issubset(names))
+
+    def test_luks_checks_show_disabled_state(self):
+        with mock.patch.dict(os.environ, {"PHASMID_LUKS_MODE": "disabled"}, clear=False):
+            result = run_doctor_checks()
+        checks = {c.name: c for c in result.checks}
+        self.assertIn("[DISABLED]", checks["LUKS Mode"].message)
+        self.assertIn("[DISABLED]", checks["LUKS cryptsetup"].message)
+        self.assertIn("[DISABLED]", checks["Local container path"].message)
+        self.assertIn("[DISABLED]", checks["Local container mount state"].message)
+        self.assertIn("[DISABLED]", checks["LUKS key-store tmpfs"].message)
 
     def test_shell_history_warns_when_histfile_contains_phasmid_usage(self):
         with mock.patch.dict(
