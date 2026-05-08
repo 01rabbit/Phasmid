@@ -26,6 +26,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=False):
             os.environ.pop("PHASMID_RECOGNITION_MODE", None)
             from importlib import reload
+
             import phasmid.config as cfg
             reload(cfg)
             self.assertEqual(cfg.recognition_mode(), "strict")
@@ -33,6 +34,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
     def test_coercion_safe_mode_accepted(self):
         with mock.patch.dict(os.environ, {"PHASMID_RECOGNITION_MODE": "coercion_safe"}):
             from importlib import reload
+
             import phasmid.config as cfg
             reload(cfg)
             self.assertEqual(cfg.recognition_mode(), "coercion_safe")
@@ -40,6 +42,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
     def test_demo_mode_accepted(self):
         with mock.patch.dict(os.environ, {"PHASMID_RECOGNITION_MODE": "demo"}):
             from importlib import reload
+
             import phasmid.config as cfg
             reload(cfg)
             self.assertEqual(cfg.recognition_mode(), "demo")
@@ -47,6 +50,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
     def test_invalid_mode_falls_back_to_strict(self):
         with mock.patch.dict(os.environ, {"PHASMID_RECOGNITION_MODE": "evil_mode"}):
             from importlib import reload
+
             import phasmid.config as cfg
             reload(cfg)
             self.assertEqual(cfg.recognition_mode(), "strict")
@@ -55,6 +59,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=False):
             os.environ.pop("PHASMID_TRUE_UNLOCK_THRESHOLD", None)
             from importlib import reload
+
             import phasmid.config as cfg
             reload(cfg)
             self.assertAlmostEqual(cfg.true_unlock_threshold(), 0.85)
@@ -63,6 +68,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=False):
             os.environ.pop("PHASMID_DUMMY_FALLBACK_THRESHOLD", None)
             from importlib import reload
+
             import phasmid.config as cfg
             reload(cfg)
             self.assertAlmostEqual(cfg.dummy_fallback_threshold(), 0.40)
@@ -70,6 +76,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
     def test_true_unlock_threshold_clamped_to_zero(self):
         with mock.patch.dict(os.environ, {"PHASMID_TRUE_UNLOCK_THRESHOLD": "-0.5"}):
             from importlib import reload
+
             import phasmid.config as cfg
             reload(cfg)
             self.assertEqual(cfg.true_unlock_threshold(), 0.0)
@@ -77,6 +84,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
     def test_true_unlock_threshold_clamped_to_one(self):
         with mock.patch.dict(os.environ, {"PHASMID_TRUE_UNLOCK_THRESHOLD": "2.0"}):
             from importlib import reload
+
             import phasmid.config as cfg
             reload(cfg)
             self.assertEqual(cfg.true_unlock_threshold(), 1.0)
@@ -84,6 +92,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
     def test_dummy_fallback_threshold_clamped_to_zero(self):
         with mock.patch.dict(os.environ, {"PHASMID_DUMMY_FALLBACK_THRESHOLD": "-1.0"}):
             from importlib import reload
+
             import phasmid.config as cfg
             reload(cfg)
             self.assertEqual(cfg.dummy_fallback_threshold(), 0.0)
@@ -94,6 +103,7 @@ class TestStandbyHotkeyConfig(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=False):
             os.environ.pop("PHASMID_STANDBY_HOTKEY", None)
             from importlib import reload
+
             import phasmid.config as cfg
             reload(cfg)
             self.assertEqual(cfg.standby_hotkey(), "ctrl+s")
@@ -101,6 +111,7 @@ class TestStandbyHotkeyConfig(unittest.TestCase):
     def test_custom_standby_hotkey(self):
         with mock.patch.dict(os.environ, {"PHASMID_STANDBY_HOTKEY": "f12"}):
             from importlib import reload
+
             import phasmid.config as cfg
             reload(cfg)
             self.assertEqual(cfg.standby_hotkey(), "f12")
@@ -108,6 +119,7 @@ class TestStandbyHotkeyConfig(unittest.TestCase):
     def test_empty_standby_hotkey_returns_default(self):
         with mock.patch.dict(os.environ, {"PHASMID_STANDBY_HOTKEY": ""}):
             from importlib import reload
+
             import phasmid.config as cfg
             reload(cfg)
             self.assertEqual(cfg.standby_hotkey(), "ctrl+s")
@@ -118,6 +130,7 @@ class TestContextProfileConfig(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=False):
             os.environ.pop("PHASMID_CONTEXT_PROFILE", None)
             from importlib import reload
+
             import phasmid.config as cfg
             reload(cfg)
             self.assertEqual(cfg.context_profile_name(), "travel")
@@ -125,6 +138,7 @@ class TestContextProfileConfig(unittest.TestCase):
     def test_custom_context_profile(self):
         with mock.patch.dict(os.environ, {"PHASMID_CONTEXT_PROFILE": "researcher"}):
             from importlib import reload
+
             import phasmid.config as cfg
             reload(cfg)
             self.assertEqual(cfg.context_profile_name(), "researcher")
