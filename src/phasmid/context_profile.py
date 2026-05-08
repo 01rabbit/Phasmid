@@ -13,7 +13,6 @@ or perform any anti-forensic tampering.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Sequence
 
 
 @dataclass(frozen=True)
