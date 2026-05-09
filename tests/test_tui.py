@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+import signal
 import sys
 import time
 from pathlib import Path
@@ -64,13 +65,24 @@ def test_webui_service_stop_uses_pid_file(tmp_path, monkeypatch):
     svc.pid_file.write_text("12345\n", encoding="utf-8")
 
     killed: list[int] = []
+    waits: list[float] = []
 
     monkeypatch.setattr(svc, "_cancel_timer", lambda: None)
-    monkeypatch.setattr(svc, "_terminate_pid", lambda pid: killed.append(pid))
+    monkeypatch.setattr(
+        svc,
+        "_terminate_pid",
+        lambda pid, sig=None: killed.append(pid),
+    )
+    monkeypatch.setattr(
+        svc,
+        "_wait_for_shutdown",
+        lambda pid, timeout=2.0: (waits.append(timeout) or True),
+    )
 
     svc.stop()
 
     assert killed == [12345]
+    assert waits
     assert not svc.pid_file.exists()
 
 
@@ -169,11 +181,68 @@ def test_webui_service_start_failure_cleans_pid_and_preserves_log(tmp_path, monk
 
     monkeypatch.setattr("subprocess.Popen", lambda *args, **kwargs: FakeProcess())
     monkeypatch.setattr(svc, "_wait_for_startup", lambda timeout=10.0: False)
-    monkeypatch.setattr(svc, "_terminate_pid", lambda pid: None)
+    monkeypatch.setattr(svc, "_terminate_pid", lambda pid, sig=None: None)
 
     assert svc.start() is False
     assert not svc.pid_file.exists()
     assert svc.log_file.exists()
+
+
+def test_webui_service_stop_escalates_to_sigkill_when_sigterm_times_out(
+    tmp_path, monkeypatch
+):
+    from phasmid import config
+    from phasmid.services.webui_service import WebUIService
+
+    monkeypatch.setattr(config, "DEFAULT_STATE_DIR", str(tmp_path))
+    WebUIService._instance = None
+    svc = WebUIService()
+    svc.pid_file.parent.mkdir(parents=True, exist_ok=True)
+    svc.pid_file.write_text("45678\n", encoding="utf-8")
+
+    calls: list[tuple[int, int | None]] = []
+    waits = {"n": 0}
+
+    monkeypatch.setattr(svc, "_cancel_timer", lambda: None)
+
+    def fake_terminate(pid, sig=None):
+        calls.append((pid, sig))
+
+    def fake_wait(pid, timeout=2.0):
+        waits["n"] += 1
+        return waits["n"] > 1
+
+    monkeypatch.setattr(svc, "_terminate_pid", fake_terminate)
+    monkeypatch.setattr(svc, "_wait_for_shutdown", fake_wait)
+
+    svc.stop()
+
+    assert len(calls) == 2
+    assert calls[0][0] == 45678
+    assert calls[0][1] == signal.SIGTERM
+    assert calls[1][0] == 45678
+    assert calls[1][1] == signal.SIGKILL
+    assert not svc.pid_file.exists()
+    assert svc._process is None
+    assert svc.uptime_seconds == 0.0
+
+
+def test_webui_service_stop_is_idempotent(tmp_path, monkeypatch):
+    from phasmid import config
+    from phasmid.services.webui_service import WebUIService
+
+    monkeypatch.setattr(config, "DEFAULT_STATE_DIR", str(tmp_path))
+    WebUIService._instance = None
+    svc = WebUIService()
+    monkeypatch.setattr(svc, "_cancel_timer", lambda: None)
+    monkeypatch.setattr(svc, "_wait_for_shutdown", lambda pid, timeout=2.0: True)
+    monkeypatch.setattr(svc, "_terminate_pid", lambda pid, sig=None: None)
+
+    svc.stop()
+    svc.stop()
+
+    assert svc._process is None
+    assert not svc.pid_file.exists()
 
 
 def test_webui_service_startup_wait_default_is_hardware_safe():

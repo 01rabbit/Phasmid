@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import pathlib
 import re
@@ -12,6 +13,8 @@ import time
 from typing import Callable
 
 from ..config import state_dir
+
+LOG = logging.getLogger(__name__)
 
 
 class WebUIService:
@@ -137,8 +140,14 @@ class WebUIService:
                 pid = self._find_listener_pid(self._port)
 
         if pid is not None:
-            self._terminate_pid(pid)
-            self._wait_for_shutdown(pid)
+            self._terminate_pid(pid, sig=signal.SIGTERM)
+            if not self._wait_for_shutdown(pid, timeout=4.0):
+                LOG.warning(
+                    "WebUI process did not stop after SIGTERM; forcing SIGKILL (pid=%s)",
+                    pid,
+                )
+                self._terminate_pid(pid, sig=signal.SIGKILL)
+                self._wait_for_shutdown(pid, timeout=1.5)
 
         self._process = None
         self._start_time = None
@@ -206,26 +215,30 @@ class WebUIService:
 
     def _cleanup_failed_process(self) -> None:
         if self._process and self._process.poll() is None:
-            self._terminate_pid(self._process.pid)
+            self._terminate_pid(self._process.pid, sig=signal.SIGTERM)
+            if not self._wait_for_shutdown(self._process.pid, timeout=2.0):
+                self._terminate_pid(self._process.pid, sig=signal.SIGKILL)
+                self._wait_for_shutdown(self._process.pid, timeout=1.0)
         self._process = None
         self._start_time = None
         self._clear_pid_file()
 
-    def _wait_for_shutdown(self, pid: int, timeout: float = 2.0) -> None:
+    def _wait_for_shutdown(self, pid: int, timeout: float = 2.0) -> bool:
         deadline = time.time() + timeout
         while time.time() < deadline:
             if not self._pid_is_alive(pid) and not self._port_is_open(
                 self._host, self._port
             ):
-                return
+                return True
             time.sleep(0.1)
+        return False
 
-    def _terminate_pid(self, pid: int) -> None:
+    def _terminate_pid(self, pid: int, sig: int = signal.SIGTERM) -> None:
         try:
-            os.killpg(os.getpgid(pid), signal.SIGTERM)
+            os.killpg(os.getpgid(pid), sig)
         except Exception:
             try:
-                os.kill(pid, signal.SIGTERM)
+                os.kill(pid, sig)
             except Exception:
                 pass
 
@@ -258,6 +271,15 @@ class WebUIService:
             pass
 
     def _pid_is_alive(self, pid: int) -> bool:
+        status_path = pathlib.Path(f"/proc/{pid}/stat")
+        if status_path.exists():
+            try:
+                stat_text = status_path.read_text(encoding="utf-8")
+                parts = stat_text.split()
+                if len(parts) >= 3 and parts[2] == "Z":
+                    return False
+            except Exception:
+                pass
         try:
             os.kill(pid, 0)
         except OSError:
