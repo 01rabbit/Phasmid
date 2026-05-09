@@ -349,6 +349,7 @@ class AIGate:
     def get_status(self):
         camera_status = self.camera.status()
         status = {
+            "camera_ready": bool(camera_status["ready"]),
             "object_detected": self.object_detected,
             "matched_mode": self.last_match_mode,
             "match_states": dict(self.match_states),
@@ -358,8 +359,11 @@ class AIGate:
             },
             "camera_backend": camera_status["backend"],
             "last_camera_error": camera_status["last_error"],
+            "camera_backend_warnings": camera_status.get("backend_warnings", []),
             "stream_resolution": camera_status["resolution"],
             "fps_target": camera_status["fps_target"],
+            "last_frame_at": camera_status.get("last_frame_at"),
+            "frames_yielded": camera_status.get("frames_yielded", 0),
         }
         if self.experimental_object_model_enabled:
             status["object_gate"] = {
@@ -519,6 +523,7 @@ class AIGate:
                         + buffer.tobytes()
                         + b"\r\n"
                     )
+                    self.camera.mark_frame_yielded()
                 time.sleep(frame_delay)
                 continue
             empty_reads = 0
@@ -555,6 +560,7 @@ class AIGate:
                 b"--frame\r\n"
                 b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
             )
+            self.camera.mark_frame_yielded()
 
             elapsed = time.time() - loop_start
             if elapsed < frame_delay:

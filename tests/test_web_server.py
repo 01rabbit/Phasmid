@@ -112,6 +112,29 @@ class WebServerBoundaryTests(unittest.TestCase):
             )
         )
 
+    def test_status_uses_active_camera_backend_from_gate_status(self):
+        with mock.patch.object(
+            web_server.access_cue_service,
+            "status",
+            return_value={
+                "camera_ready": True,
+                "object_detected": False,
+                "matched_mode": "none",
+                "match_states": {"dummy": False, "secret": False},
+                "registered_modes": {"dummy": False, "secret": False},
+                "camera_backend": "picamera2",
+                "last_camera_error": None,
+                "camera_backend_warnings": ["OpenCV VideoCapture(0) open failed"],
+                "stream_resolution": {"width": 320, "height": 240},
+                "fps_target": 4,
+            },
+        ):
+            status = web_server.neutral_status()
+
+        self.assertTrue(status["camera_ready"])
+        self.assertEqual(status["camera_backend"], "picamera2")
+        self.assertIsNone(status["last_camera_error"])
+
     def test_require_ui_unlock_allows_webui_without_face_gate(self):
         request = SimpleNamespace(
             client=SimpleNamespace(host="127.0.0.1"),

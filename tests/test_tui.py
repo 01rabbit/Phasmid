@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 import sys
+import time
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -307,6 +308,39 @@ def test_camera_frame_source_falls_back_to_opencv(monkeypatch):
     assert source.backend == "opencv"
 
 
+def test_camera_frame_source_clears_stale_error_after_backend_recovers():
+    from phasmid.camera_frame_source import CameraFrameSource
+
+    source = CameraFrameSource(frame_size=(320, 240))
+    source.state.last_error = "OpenCV VideoCapture(0) open failed"
+    source.state.active_backend = "unavailable"
+    source.backend = "unavailable"
+    source.state.ready = False
+
+    source.state.active_backend = "picamera2"
+    source.state.last_error = None
+    source.state.last_frame_at = time.time()
+    source.state.ready = True
+    status = source.status()
+
+    assert status["ready"] is True
+    assert status["backend"] == "picamera2"
+    assert status["last_error"] is None
+
+
+def test_camera_frame_source_mark_frame_yielded_sets_ready():
+    from phasmid.camera_frame_source import CameraFrameSource
+
+    source = CameraFrameSource(frame_size=(320, 240))
+    source.state.active_backend = "picamera2"
+    source.state.ready = False
+    source.mark_frame_yielded()
+    status = source.status()
+
+    assert status["ready"] is True
+    assert status["frames_yielded"] >= 1
+
+
 def test_ai_gate_generate_frames_yields_placeholder_when_camera_unavailable(tmp_path):
     from phasmid.ai_gate import AIGate
 
@@ -358,6 +392,7 @@ def test_ai_gate_status_includes_camera_backend_fields(tmp_path):
     assert "last_camera_error" in status
     assert "stream_resolution" in status
     assert "fps_target" in status
+    assert "camera_ready" in status
 
 
 # ---------------------------------------------------------------------------

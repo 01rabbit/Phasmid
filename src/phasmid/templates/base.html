@@ -916,7 +916,15 @@
                 const object = document.getElementById('objectState');
                 const mode   = document.getElementById('operationMode');
                 if (device) device.textContent = data.device_state === 'ready' ? 'Ready' : 'Locked';
-                if (camera) camera.textContent = data.camera_ready ? 'Active' : 'Unavailable';
+                if (camera) {
+                    if (data.camera_ready) {
+                        camera.textContent = data.camera_backend ? `Active (${data.camera_backend})` : 'Active';
+                    } else if (data.last_camera_error) {
+                        camera.textContent = `Unavailable (${data.last_camera_error})`;
+                    } else {
+                        camera.textContent = 'Unavailable';
+                    }
+                }
                 if (object) object.textContent = stateText(data.object_state);
                 if (mode)   mode.textContent   = data.local_mode ? 'Local-only' : 'Restricted';
 

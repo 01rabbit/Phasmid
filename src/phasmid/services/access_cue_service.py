@@ -30,8 +30,7 @@ class AccessCueService:
             return None if self.gate.latest_frame is None else self.gate.latest_frame.copy()
 
     def camera_ready(self):
-        with self.gate.lock:
-            return self.gate.latest_frame is not None
+        return bool(self.gate.get_status().get("camera_ready"))
 
     def status(self):
         return self.gate.get_status()
