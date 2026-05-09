@@ -103,7 +103,7 @@ class HomeScreen(OperatorScreen):
         yield Static("", id="profile-status", markup=True)
         yield Static("", id="doctor-badge", markup=True)
         yield WarningBox(
-            "WebUI active on 127.0.0.1:8000. Press [w] in TUI to retract.",
+            "WebUI active on 0.0.0.0:8000. Access via the USB gadget IP.",
             level="error",
             id="webui-warning-panel",
         )
@@ -134,6 +134,9 @@ class HomeScreen(OperatorScreen):
             return
         app = cast("PhasmidApp", self.app)
         is_running = app.webui_svc.is_running()
+        warning.update_message(
+            self.webui_running_message().replace(" - PRESS [w] TO RETRACT", "")
+        )
         warning.display = is_running
 
     def _update_profile_status(self) -> None:

@@ -29,5 +29,12 @@ class WarningBox(Widget):
             self.add_class("error")
 
     def compose(self) -> ComposeResult:
+        yield Static(self._content())
+
+    def update_message(self, message: str) -> None:
+        self._message = message
+        self.query_one(Static).update(self._content())
+
+    def _content(self) -> str:
         prefix = "!" if self._level == "warn" else "✗"
-        yield Static(f"{prefix}  {self._message}")
+        return f"{prefix}  {self._message}"

@@ -25,14 +25,23 @@ class OperatorScreen(Screen):
     }
     """
 
-    _WEBUI_WARNING = "WEBUI ACTIVE ON 127.0.0.1:8000 - PRESS [w] TO RETRACT"
+    _WEBUI_WARNING_FALLBACK = (
+        "WEBUI ACTIVE ON 0.0.0.0:8000 - ACCESS VIA USB GADGET IP - PRESS [w] TO RETRACT"
+    )
 
     def webui_warning_banner(self) -> Static:
         return Static(
-            self._WEBUI_WARNING,
+            self._WEBUI_WARNING_FALLBACK,
             id="webui-warning-banner",
             classes="webui-warning-banner",
         )
+
+    def webui_running_message(self) -> str:
+        app = cast("PhasmidApp", self.app)
+        access_url = app.webui_svc.access_url()
+        if access_url:
+            return f"WEBUI ACTIVE AT {access_url} - PRESS [w] TO RETRACT"
+        return self._WEBUI_WARNING_FALLBACK
 
     def refresh_webui_status(self) -> None:
         try:
@@ -40,4 +49,5 @@ class OperatorScreen(Screen):
         except NoMatches:
             return
         app = cast("PhasmidApp", self.app)
+        banner.update(self.webui_running_message())
         banner.display = app.webui_svc.is_running()
