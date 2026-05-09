@@ -185,7 +185,7 @@ class WebUIService:
     def startup_failure_reason(self) -> str | None:
         return self._startup_failure_reason
 
-    def _wait_for_startup(self, timeout: float = 2.0) -> bool:
+    def _wait_for_startup(self, timeout: float = 10.0) -> bool:
         deadline = time.time() + timeout
         while time.time() < deadline:
             if self._process is None:

@@ -132,7 +132,7 @@ def test_webui_service_start_uses_uvicorn_command_and_env(tmp_path, monkeypatch)
         return FakeProcess()
 
     monkeypatch.setattr("subprocess.Popen", fake_popen)
-    monkeypatch.setattr(svc, "_wait_for_startup", lambda timeout=2.0: True)
+    monkeypatch.setattr(svc, "_wait_for_startup", lambda timeout=10.0: True)
     monkeypatch.setattr(svc, "reset_timer", lambda: None)
 
     assert svc.start(host="127.0.0.1", port=8000) is True
@@ -166,12 +166,20 @@ def test_webui_service_start_failure_cleans_pid_and_preserves_log(tmp_path, monk
             return 2
 
     monkeypatch.setattr("subprocess.Popen", lambda *args, **kwargs: FakeProcess())
-    monkeypatch.setattr(svc, "_wait_for_startup", lambda timeout=2.0: False)
+    monkeypatch.setattr(svc, "_wait_for_startup", lambda timeout=10.0: False)
     monkeypatch.setattr(svc, "_terminate_pid", lambda pid: None)
 
     assert svc.start() is False
     assert not svc.pid_file.exists()
     assert svc.log_file.exists()
+
+
+def test_webui_service_startup_wait_default_is_hardware_safe():
+    from phasmid.services.webui_service import WebUIService
+
+    defaults = WebUIService._wait_for_startup.__defaults__
+    assert defaults is not None
+    assert defaults[0] >= 10.0
 
 
 # ---------------------------------------------------------------------------
