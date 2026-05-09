@@ -535,7 +535,7 @@ class AIGate:
                         mode: dict(state) for mode, state in self.reference_data.items()
                     }
 
-                image = cv2.flip(frame, 1)
+                image = self._prepare_stream_frame(frame)
 
                 processed_gray = self._to_gray(frame)
                 matches = {
@@ -591,6 +591,10 @@ class AIGate:
             1,
         )
         return image
+
+    def _prepare_stream_frame(self, frame):
+        # Apply a single deterministic horizontal mirror correction.
+        return cv2.flip(frame, 1)
 
     def close(self):
         self._stop_event.set()

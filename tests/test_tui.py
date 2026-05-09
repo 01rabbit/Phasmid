@@ -416,6 +416,27 @@ def test_prepare_frame_for_jpeg_keeps_bgr_without_conversion(monkeypatch):
     assert source._last_rgb_to_bgr_applied is False
 
 
+def test_prepare_frame_for_jpeg_supports_rgba_family(monkeypatch):
+    import numpy as np
+
+    from phasmid.camera_frame_source import CameraFrameSource
+
+    source = CameraFrameSource(frame_size=(320, 240))
+    frame = np.zeros((2, 2, 4), dtype=np.uint8)
+    calls = {"n": 0}
+
+    def fake_cvt_color(img, code):
+        calls["n"] += 1
+        return img[:, :, :3]
+
+    monkeypatch.setattr("cv2.cvtColor", fake_cvt_color)
+    out = source._prepare_frame_for_jpeg(frame, source_format="XRGB8888")
+
+    assert out.shape == (2, 2, 3)
+    assert calls["n"] == 1
+    assert source._last_rgb_to_bgr_applied is True
+
+
 def test_camera_frame_source_clears_stale_error_after_backend_recovers():
     from phasmid.camera_frame_source import CameraFrameSource
 
@@ -563,6 +584,20 @@ def test_ai_gate_generate_frames_yields_mjpeg_when_frame_exists(tmp_path):
 
     assert b"Content-Type: image/jpeg" in chunk
     assert len(chunk) > 64
+
+
+def test_ai_gate_stream_frame_is_horizontally_flipped(tmp_path):
+    import numpy as np
+
+    from phasmid.ai_gate import AIGate
+
+    gate = AIGate(reference_dir=str(tmp_path))
+    frame = np.zeros((3, 4, 3), dtype=np.uint8)
+    frame[:, 0, :] = [255, 0, 0]
+    flipped = gate._prepare_stream_frame(frame)
+
+    assert (flipped[:, -1, :] == [255, 0, 0]).all()
+    assert (flipped[:, 0, :] == [0, 0, 0]).all()
 
 
 def test_ai_gate_status_includes_camera_backend_fields(tmp_path):

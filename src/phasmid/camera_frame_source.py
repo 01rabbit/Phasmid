@@ -250,9 +250,16 @@ class CameraFrameSource:
             }
 
     def _prepare_frame_for_jpeg(self, frame, *, source_format: str):
-        if source_format == "RGB888":
+        if source_format in {"RGB888", "RGB"}:
             self._last_rgb_to_bgr_applied = True
             return cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        if source_format in {"XRGB8888", "ARGB8888", "RGBA"}:
+            self._last_rgb_to_bgr_applied = True
+            return cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+        if source_format in {"BGR", "BGR888"}:
+            self._last_rgb_to_bgr_applied = False
+            return frame
+        LOG.warning("Unknown source pixel format for JPEG prep: %s", source_format)
         self._last_rgb_to_bgr_applied = False
         return frame
 
