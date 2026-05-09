@@ -322,6 +322,9 @@ def neutral_status():
     raw = _raw_gate_status()
     matched_mode = raw.get("matched_mode")
     camera_ready = bool(raw.get("camera_ready"))
+    camera_backend = raw.get("camera_backend", "unknown")
+    if camera_ready and camera_backend in {"none", "unavailable", "unknown"}:
+        camera_backend = "stream"
 
     if matched_mode == access_cue_service.match_ambiguous():
         object_state = "ambiguous"
@@ -334,7 +337,7 @@ def neutral_status():
 
     return {
         "camera_ready": camera_ready,
-        "camera_backend": raw.get("camera_backend", "unknown"),
+        "camera_backend": camera_backend,
         "last_camera_error": raw.get("last_camera_error"),
         "backend_warnings": raw.get("camera_backend_warnings", []),
         "stream_resolution": raw.get("stream_resolution", {"width": 0, "height": 0}),

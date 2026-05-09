@@ -341,6 +341,20 @@ def test_camera_frame_source_mark_frame_yielded_sets_ready():
     assert status["frames_yielded"] >= 1
 
 
+def test_camera_frame_source_mark_frame_yielded_sets_stream_backend_if_unknown():
+    from phasmid.camera_frame_source import CameraFrameSource
+
+    source = CameraFrameSource(frame_size=(320, 240))
+    source.state.active_backend = "none"
+    source.backend = "none"
+    source.mark_frame_yielded()
+    status = source.status()
+
+    assert status["ready"] is True
+    assert status["backend"] == "stream"
+    assert status["backend"] != "none"
+
+
 def test_ai_gate_generate_frames_yields_placeholder_when_camera_unavailable(tmp_path):
     from phasmid.ai_gate import AIGate
 

@@ -936,6 +936,16 @@
                 paintObjectBadge(data.object_state);
             } catch (e) {}
         }
+        const cameraFeed = document.querySelector('.camera-feed');
+        if (cameraFeed) {
+            cameraFeed.addEventListener('load', () => {
+                const camera = document.getElementById('cameraState');
+                if (camera && camera.textContent && camera.textContent.startsWith('Unavailable')) {
+                    camera.textContent = 'Active (stream)';
+                }
+                setLed(document.getElementById('cameraStateLed'), 'active');
+            });
+        }
         pollStatus();
         window.setInterval(pollStatus, 1200);
     </script>
