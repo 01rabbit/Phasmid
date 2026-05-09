@@ -283,6 +283,8 @@ environment so `phasmid --help` and the CLI subcommands work as documented.
 For a reproducible Raspberry Pi setup (Bookworm/Bullseye class, USB gadget
 operation, Picamera2/libcamera), use:
 
+#### First Run (Fresh Install)
+
 ```bash
 ./scripts/bootstrap_pi.sh
 source .venv/bin/activate
@@ -293,6 +295,13 @@ source .venv/bin/activate
 `python3-picamera2`/`python3-libcamera` remain importable from the virtualenv.
 This is required on Raspberry Pi deployments because Picamera2 is installed via
 OS packages in the supported hardware stack.
+
+#### Later Runs (Normal Operation)
+
+```bash
+source .venv/bin/activate
+phasmid
+```
 
 ## TUI Operator Console
 
