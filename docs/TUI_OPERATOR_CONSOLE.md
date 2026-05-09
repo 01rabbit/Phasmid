@@ -192,7 +192,7 @@ The Main Operator Console is the default TUI entry point.
 
 Phasmid provides a local WebUI for operators who require a graphical interface
 for certain tasks. This interface is considered "exposed" as it opens a network
-port (default `127.0.0.1:8000`).
+port (default `0.0.0.0:8000` for USB gadget-connected operation).
 
 ### WebUI Control
 

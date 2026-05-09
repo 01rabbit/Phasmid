@@ -32,7 +32,7 @@ class WebUIService:
         self._timeout_seconds = 600  # 10 minutes
         self._on_timeout_cb: Callable[[], None] | None = None
         self._start_time: float | None = None
-        self._host = "127.0.0.1"
+        self._host = "0.0.0.0"
         self._port = 8000
         self._startup_failure_reason: str | None = None
         self._last_start_command: list[str] = []
@@ -66,7 +66,7 @@ class WebUIService:
 
         return True
 
-    def start(self, host: str = "127.0.0.1", port: int = 8000) -> bool:
+    def start(self, host: str = "0.0.0.0", port: int = 8000) -> bool:
         """Start the WebUI subprocess."""
         self._startup_failure_reason = None
         self._last_returncode = None

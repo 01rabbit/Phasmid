@@ -135,19 +135,19 @@ def test_webui_service_start_uses_uvicorn_command_and_env(tmp_path, monkeypatch)
     monkeypatch.setattr(svc, "_wait_for_startup", lambda timeout=10.0: True)
     monkeypatch.setattr(svc, "reset_timer", lambda: None)
 
-    assert svc.start(host="127.0.0.1", port=8000) is True
+    assert svc.start() is True
     assert captured["cmd"] == [
         sys.executable,
         "-m",
         "uvicorn",
         "phasmid.web_server:app",
         "--host",
-        "127.0.0.1",
+        "0.0.0.0",
         "--port",
         "8000",
     ]
     env = captured["env"]
-    assert env["PHASMID_HOST"] == "127.0.0.1"
+    assert env["PHASMID_HOST"] == "0.0.0.0"
     assert env["PHASMID_PORT"] == "8000"
 
 
@@ -180,6 +180,31 @@ def test_webui_service_startup_wait_default_is_hardware_safe():
     defaults = WebUIService._wait_for_startup.__defaults__
     assert defaults is not None
     assert defaults[0] >= 10.0
+
+
+def test_webui_service_start_default_host_is_gadget_exposed():
+    from phasmid.services.webui_service import WebUIService
+
+    defaults = WebUIService.start.__defaults__
+    assert defaults is not None
+    assert defaults[0] == "0.0.0.0"
+
+
+def test_tui_success_notification_mentions_gadget_ip_guidance(monkeypatch):
+    from phasmid.tui.app import PhasmidApp
+
+    app = PhasmidApp()
+    monkeypatch.setattr(app.webui_svc, "is_running", lambda: False)
+    monkeypatch.setattr(app.webui_svc, "start", lambda: True)
+    notified: list[str] = []
+    monkeypatch.setattr(app, "notify", lambda message, **kwargs: notified.append(message))
+    monkeypatch.setattr(app, "_refresh_webui_status", lambda: None)
+
+    app.action_toggle_webui()
+
+    assert notified
+    assert "0.0.0.0:8000" in notified[0]
+    assert "127.0.0.1" not in notified[0]
 
 
 # ---------------------------------------------------------------------------

@@ -96,7 +96,7 @@ class PhasmidApp(App):
         else:
             if self.webui_svc.start():
                 self.notify(
-                    "WebUI active at http://127.0.0.1:8000",
+                    "WebUI active on 0.0.0.0:8000. Use the device USB gadget IP from your laptop.",
                     title="WEBUI EXPOSED",
                     severity="information",
                     timeout=10,
