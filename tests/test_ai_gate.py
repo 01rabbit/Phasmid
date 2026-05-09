@@ -357,9 +357,9 @@ class AIGateTemplateTests(unittest.TestCase):
     def test_ai_gate_close_releases_camera_source(self):
         with tempfile.TemporaryDirectory() as tmp:
             gate = AIGate(reference_dir=tmp)
-            with mock.patch.object(gate.camera, "release") as release:
+            with mock.patch.object(gate.camera, "close") as close:
                 gate.close()
-            release.assert_called_once_with()
+            close.assert_called_once_with()
 
     def test_local_state_cipher_domain_separates_local_key_material(self):
         with tempfile.TemporaryDirectory() as tmp:

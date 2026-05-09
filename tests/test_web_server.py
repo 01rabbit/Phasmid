@@ -274,6 +274,35 @@ class WebServerBoundaryTests(unittest.TestCase):
         dependency_names = {item.call.__name__ for item in route.dependant.dependencies}
         self.assertIn("require_ui_unlock", dependency_names)
 
+    def test_shutdown_cleanup_closes_camera_resources(self):
+        async def run():
+            with mock.patch.object(web_server.access_cue_service, "close") as close:
+                await web_server.shutdown_cleanup()
+                close.assert_called_once()
+
+        asyncio.run(run())
+
+    def test_video_feed_stream_cleanup_runs_on_disconnect(self):
+        async def run():
+            with (
+                mock.patch.object(
+                    web_server.access_cue_service,
+                    "generate_frames",
+                    return_value=iter([b"--frame\r\nContent-Type: image/jpeg\r\n\r\nx\r\n"]),
+                ),
+                mock.patch.object(
+                    web_server.access_cue_service, "release_camera"
+                ) as release_camera,
+            ):
+                response = await web_server.video_feed()
+                iterator = response.body_iterator
+                first = await iterator.__anext__()
+                self.assertTrue(first.startswith(b"--frame"))
+                await iterator.aclose()
+                release_camera.assert_called_once()
+
+        asyncio.run(run())
+
     def test_restricted_confirmation_sets_short_lived_cookie(self):
         async def run():
             request = SimpleNamespace(

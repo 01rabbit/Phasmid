@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -36,6 +37,7 @@ class CameraFrameSource:
         self.last_error: str | None = None
         self._last_open_attempt_at = 0.0
         self._open_retry_seconds = 2.0
+        self._lock = threading.RLock()
         self._first_frame_logged = False
         self.source_pixel_format = "unknown"
         self._last_rgb_to_bgr_applied = False
@@ -45,6 +47,10 @@ class CameraFrameSource:
         )
 
     def open(self) -> None:
+        with self._lock:
+            self._open_locked()
+
+    def _open_locked(self) -> None:
         now = time.time()
         if self.backend in {"picamera2", "opencv"}:
             return
@@ -136,7 +142,11 @@ class CameraFrameSource:
             return False
 
     def read(self):
-        self.open()
+        with self._lock:
+            self._open_locked()
+            return self._read_locked()
+
+    def _read_locked(self):
         if self.backend == "picamera2":
             if self.picam2 is None:
                 self.last_error = "Picamera2 backend lost"
@@ -182,41 +192,62 @@ class CameraFrameSource:
         return False, None
 
     def mark_frame_yielded(self) -> None:
-        self.state.frames_yielded += 1
-        self.state.last_frame_at = time.time()
-        self.state.ready = True
-        self.state.last_error = None
-        if self.state.active_backend not in {"picamera2", "opencv", "stream"}:
-            self.state.active_backend = (
-                self.backend if self.backend in {"picamera2", "opencv"} else "stream"
-            )
+        with self._lock:
+            self.state.frames_yielded += 1
+            self.state.last_frame_at = time.time()
+            self.state.ready = True
+            self.state.last_error = None
+            if self.state.active_backend not in {"picamera2", "opencv", "stream"}:
+                self.state.active_backend = (
+                    self.backend if self.backend in {"picamera2", "opencv"} else "stream"
+                )
+
+    def close(self) -> None:
+        with self._lock:
+            cleanup_error: str | None = None
+            try:
+                self._release_picamera2()
+            except Exception as exc:
+                cleanup_error = f"Picamera2 cleanup failed: {exc}"
+                LOG.error("%s", cleanup_error)
+            try:
+                self._release_opencv()
+            except Exception as exc:
+                msg = f"OpenCV cleanup failed: {exc}"
+                cleanup_error = f"{cleanup_error}; {msg}" if cleanup_error else msg
+                LOG.error("%s", msg)
+            self.backend = "none"
+            self.source_pixel_format = "unknown"
+            self.state.active_backend = "none"
+            self.state.ready = False
+            self.state.last_frame_at = None
+            self.state.last_error = cleanup_error
+            self._first_frame_logged = False
+            self._last_rgb_to_bgr_applied = False
 
     def release(self) -> None:
-        self._release_picamera2()
-        self._release_opencv()
-        self.backend = "none"
-        self.state.active_backend = "none"
-        self.state.ready = False
+        self.close()
 
     def status(self) -> dict[str, Any]:
-        ready_now = self.state.ready
-        if self.state.last_frame_at is not None:
-            ready_now = ready_now and (time.time() - self.state.last_frame_at) <= 30.0
-        backend = self.state.active_backend
-        if ready_now and backend in {"none", "unavailable"} and self.state.frames_yielded > 0:
-            backend = "stream"
-        return {
-            "backend": backend,
-            "ready": ready_now,
-            "last_error": self.state.last_error,
-            "backend_warnings": list(self.state.backend_warnings[-4:]),
-            "resolution": {"width": self.frame_size[0], "height": self.frame_size[1]},
-            "fps_target": self.fps,
-            "last_frame_at": self.state.last_frame_at,
-            "frames_yielded": self.state.frames_yielded,
-            "source_pixel_format": self.source_pixel_format,
-            "rgb_to_bgr_applied": self._last_rgb_to_bgr_applied,
-        }
+        with self._lock:
+            ready_now = self.state.ready
+            if self.state.last_frame_at is not None:
+                ready_now = ready_now and (time.time() - self.state.last_frame_at) <= 30.0
+            backend = self.state.active_backend
+            if ready_now and backend in {"none", "unavailable"} and self.state.frames_yielded > 0:
+                backend = "stream"
+            return {
+                "backend": backend,
+                "ready": ready_now,
+                "last_error": self.state.last_error,
+                "backend_warnings": list(self.state.backend_warnings[-4:]),
+                "resolution": {"width": self.frame_size[0], "height": self.frame_size[1]},
+                "fps_target": self.fps,
+                "last_frame_at": self.state.last_frame_at,
+                "frames_yielded": self.state.frames_yielded,
+                "source_pixel_format": self.source_pixel_format,
+                "rgb_to_bgr_applied": self._last_rgb_to_bgr_applied,
+            }
 
     def _prepare_frame_for_jpeg(self, frame, *, source_format: str):
         if source_format == "RGB888":
@@ -243,6 +274,10 @@ class CameraFrameSource:
             return
         try:
             self.picam2.stop()
+        except Exception:
+            pass
+        try:
+            self.picam2.close()
         except Exception:
             pass
         self.picam2 = None

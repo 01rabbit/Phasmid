@@ -56,5 +56,8 @@ class AccessCueService:
     def close(self):
         self.gate.close()
 
+    def release_camera(self):
+        self.gate.release_camera()
+
 
 access_cue_service = AccessCueService()

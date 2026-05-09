@@ -499,72 +499,75 @@ class AIGate:
     def generate_frames(self):
         frame_delay = 1.0 / self.TARGET_FPS
         empty_reads = 0
-        while not self._stop_event.is_set():
-            loop_start = time.time()
-            success, frame = self.camera.read()
-            if not success:
-                empty_reads += 1
-                if empty_reads == 1 or empty_reads % 10 == 0:
-                    LOG.warning(
-                        "Camera frame unavailable (backend=%s): %s",
-                        self.camera.status()["backend"],
-                        self.camera.status()["last_error"],
+        try:
+            while not self._stop_event.is_set():
+                loop_start = time.time()
+                success, frame = self.camera.read()
+                if not success:
+                    empty_reads += 1
+                    if empty_reads == 1 or empty_reads % 10 == 0:
+                        LOG.warning(
+                            "Camera frame unavailable (backend=%s): %s",
+                            self.camera.status()["backend"],
+                            self.camera.status()["last_error"],
+                        )
+                    placeholder = self._camera_error_frame()
+                    ok, buffer = cv2.imencode(
+                        ".jpg",
+                        placeholder,
+                        [cv2.IMWRITE_JPEG_QUALITY, 55],
                     )
-                placeholder = self._camera_error_frame()
-                ok, buffer = cv2.imencode(
-                    ".jpg",
-                    placeholder,
-                    [cv2.IMWRITE_JPEG_QUALITY, 55],
+                    if ok:
+                        yield (
+                            b"--frame\r\n"
+                            b"Content-Type: image/jpeg\r\n\r\n"
+                            + buffer.tobytes()
+                            + b"\r\n"
+                        )
+                        self.camera.mark_frame_yielded()
+                    time.sleep(frame_delay)
+                    continue
+                empty_reads = 0
+
+                with self.lock:
+                    self.latest_frame = frame.copy()
+                    reference_data = {
+                        mode: dict(state) for mode, state in self.reference_data.items()
+                    }
+
+                image = cv2.flip(frame, 1)
+
+                processed_gray = self._to_gray(frame)
+                matches = {
+                    mode: self._match_reference_state(state, processed_gray)
+                    for mode, state in reference_data.items()
+                }
+                if self.experimental_object_model_enabled:
+                    gate_results = {
+                        mode: self.object_gate.evaluate_frame(frame=frame, orb_match=match)
+                        for mode, match in matches.items()
+                    }
+                    self._update_match_result_from_gate_results(gate_results)
+                else:
+                    self._update_match_result(matches)
+                self._draw_match_status(image)
+
+                ok, buffer = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 55])
+                if not ok:
+                    LOG.error("JPEG encode failed for camera frame")
+                    continue
+
+                yield (
+                    b"--frame\r\n"
+                    b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
                 )
-                if ok:
-                    yield (
-                        b"--frame\r\n"
-                        b"Content-Type: image/jpeg\r\n\r\n"
-                        + buffer.tobytes()
-                        + b"\r\n"
-                    )
-                    self.camera.mark_frame_yielded()
-                time.sleep(frame_delay)
-                continue
-            empty_reads = 0
+                self.camera.mark_frame_yielded()
 
-            with self.lock:
-                self.latest_frame = frame.copy()
-                reference_data = {
-                    mode: dict(state) for mode, state in self.reference_data.items()
-                }
-
-            image = cv2.flip(frame, 1)
-
-            processed_gray = self._to_gray(frame)
-            matches = {
-                mode: self._match_reference_state(state, processed_gray)
-                for mode, state in reference_data.items()
-            }
-            if self.experimental_object_model_enabled:
-                gate_results = {
-                    mode: self.object_gate.evaluate_frame(frame=frame, orb_match=match)
-                    for mode, match in matches.items()
-                }
-                self._update_match_result_from_gate_results(gate_results)
-            else:
-                self._update_match_result(matches)
-            self._draw_match_status(image)
-
-            ok, buffer = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 55])
-            if not ok:
-                LOG.error("JPEG encode failed for camera frame")
-                continue
-
-            yield (
-                b"--frame\r\n"
-                b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
-            )
-            self.camera.mark_frame_yielded()
-
-            elapsed = time.time() - loop_start
-            if elapsed < frame_delay:
-                time.sleep(frame_delay - elapsed)
+                elapsed = time.time() - loop_start
+                if elapsed < frame_delay:
+                    time.sleep(frame_delay - elapsed)
+        finally:
+            self.release_camera()
 
     def _camera_error_frame(self):
         width, height = self.FRAME_SIZE
@@ -591,10 +594,13 @@ class AIGate:
 
     def close(self):
         self._stop_event.set()
-        self.camera.release()
+        self.release_camera()
         if self._thread:
             self._thread.join()
             self._thread = None
+
+    def release_camera(self):
+        self.camera.close()
 
     def start(self):
         if self._thread is None:

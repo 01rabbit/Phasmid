@@ -1,4 +1,5 @@
 import io
+import logging
 import secrets
 import time
 import urllib.parse
@@ -64,6 +65,7 @@ from .vault_core import PhasmidVault
 from .volatile_state import require_volatile_state
 
 app = FastAPI(title="Phasmid - Local Secure Interface")
+LOG = logging.getLogger(__name__)
 app.mount(
     "/static",
     StaticFiles(directory=str(Path(__file__).with_name("static"))),
@@ -76,6 +78,14 @@ async def startup_self_tests():
     apply_process_hardening()
     require_volatile_state()
     ensure_crypto_self_tests()
+
+
+@app.on_event("shutdown")
+async def shutdown_cleanup():
+    try:
+        access_cue_service.close()
+    except Exception as exc:
+        LOG.error("Camera cleanup on shutdown failed: %s", exc)
 
 
 templates = Jinja2Templates(directory=str(Path(__file__).with_name("templates")))
@@ -496,8 +506,17 @@ async def emergency_page(request: Request):
 
 @app.get("/video_feed", dependencies=[Depends(require_ui_unlock)])
 async def video_feed():
+    def stream():
+        try:
+            yield from access_cue_service.generate_frames()
+        finally:
+            try:
+                access_cue_service.release_camera()
+            except Exception as exc:
+                LOG.error("Camera cleanup after stream disconnect failed: %s", exc)
+
     return StreamingResponse(
-        access_cue_service.generate_frames(),
+        stream(),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )
 

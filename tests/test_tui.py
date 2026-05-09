@@ -408,6 +408,55 @@ def test_camera_frame_source_status_not_none_when_ready_and_yielded():
     assert status["ready"] is True
 
 
+def test_camera_frame_source_close_calls_picamera2_stop_close_and_opencv_release():
+    from phasmid.camera_frame_source import CameraFrameSource
+
+    class FakePicam:
+        def __init__(self):
+            self.stopped = 0
+            self.closed = 0
+
+        def stop(self):
+            self.stopped += 1
+
+        def close(self):
+            self.closed += 1
+
+    class FakeCap:
+        def __init__(self):
+            self.released = 0
+
+        def release(self):
+            self.released += 1
+
+    source = CameraFrameSource(frame_size=(320, 240))
+    picam = FakePicam()
+    cap = FakeCap()
+    source.picam2 = picam
+    source.cap = cap
+    source.backend = "picamera2"
+    source.state.active_backend = "picamera2"
+    source.state.ready = True
+
+    source.close()
+
+    assert picam.stopped == 1
+    assert picam.closed == 1
+    assert cap.released == 1
+    assert source.backend == "none"
+    assert source.state.ready is False
+
+
+def test_camera_frame_source_close_is_idempotent():
+    from phasmid.camera_frame_source import CameraFrameSource
+
+    source = CameraFrameSource(frame_size=(320, 240))
+    source.close()
+    source.close()
+    assert source.backend == "none"
+    assert source.state.ready is False
+
+
 def test_ai_gate_generate_frames_yields_placeholder_when_camera_unavailable(tmp_path):
     from phasmid.ai_gate import AIGate
 
