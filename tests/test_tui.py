@@ -308,6 +308,45 @@ def test_camera_frame_source_falls_back_to_opencv(monkeypatch):
     assert source.backend == "opencv"
 
 
+def test_prepare_frame_for_jpeg_converts_rgb888_once(monkeypatch):
+    import numpy as np
+
+    from phasmid.camera_frame_source import CameraFrameSource
+
+    source = CameraFrameSource(frame_size=(320, 240))
+    frame = np.zeros((2, 2, 3), dtype=np.uint8)
+    calls = {"n": 0}
+
+    def fake_cvt_color(img, code):
+        calls["n"] += 1
+        return img
+
+    monkeypatch.setattr("cv2.cvtColor", fake_cvt_color)
+    out = source._prepare_frame_for_jpeg(frame, source_format="RGB888")
+
+    assert out is frame
+    assert calls["n"] == 1
+    assert source._last_rgb_to_bgr_applied is True
+
+
+def test_prepare_frame_for_jpeg_keeps_bgr_without_conversion(monkeypatch):
+    import numpy as np
+
+    from phasmid.camera_frame_source import CameraFrameSource
+
+    source = CameraFrameSource(frame_size=(320, 240))
+    frame = np.zeros((2, 2, 3), dtype=np.uint8)
+
+    def fail_cvt_color(img, code):
+        raise AssertionError("unexpected conversion")
+
+    monkeypatch.setattr("cv2.cvtColor", fail_cvt_color)
+    out = source._prepare_frame_for_jpeg(frame, source_format="BGR")
+
+    assert out is frame
+    assert source._last_rgb_to_bgr_applied is False
+
+
 def test_camera_frame_source_clears_stale_error_after_backend_recovers():
     from phasmid.camera_frame_source import CameraFrameSource
 
@@ -353,6 +392,20 @@ def test_camera_frame_source_mark_frame_yielded_sets_stream_backend_if_unknown()
     assert status["ready"] is True
     assert status["backend"] == "stream"
     assert status["backend"] != "none"
+
+
+def test_camera_frame_source_status_not_none_when_ready_and_yielded():
+    from phasmid.camera_frame_source import CameraFrameSource
+
+    source = CameraFrameSource(frame_size=(320, 240))
+    source.state.active_backend = "none"
+    source.state.ready = True
+    source.state.frames_yielded = 1
+    source.state.last_frame_at = time.time()
+
+    status = source.status()
+    assert status["backend"] != "none"
+    assert status["ready"] is True
 
 
 def test_ai_gate_generate_frames_yields_placeholder_when_camera_unavailable(tmp_path):
@@ -407,6 +460,13 @@ def test_ai_gate_status_includes_camera_backend_fields(tmp_path):
     assert "stream_resolution" in status
     assert "fps_target" in status
     assert "camera_ready" in status
+
+
+def test_frontend_clears_unavailable_on_camera_feed_load():
+    template_path = Path("src/phasmid/templates/base.html")
+    source = template_path.read_text(encoding="utf-8")
+    assert "cameraFeed.addEventListener('load'" in source
+    assert "Active (stream)" in source
 
 
 # ---------------------------------------------------------------------------

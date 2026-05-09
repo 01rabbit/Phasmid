@@ -36,6 +36,9 @@ class CameraFrameSource:
         self.last_error: str | None = None
         self._last_open_attempt_at = 0.0
         self._open_retry_seconds = 2.0
+        self._first_frame_logged = False
+        self.source_pixel_format = "unknown"
+        self._last_rgb_to_bgr_applied = False
         self.state = CameraRuntimeState(
             resolution={"width": frame_size[0], "height": frame_size[1]},
             fps_target=fps,
@@ -83,6 +86,7 @@ class CameraFrameSource:
             self.picam2.configure(config)
             self.picam2.start()
             self.backend = "picamera2"
+            self.source_pixel_format = "RGB888"
             self.last_error = None
             self.state.active_backend = "picamera2"
             self.state.last_error = None
@@ -113,6 +117,7 @@ class CameraFrameSource:
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.frame_size[1])
             self.cap.set(cv2.CAP_PROP_FPS, float(self.fps))
             self.backend = "opencv"
+            self.source_pixel_format = "BGR"
             self.last_error = None
             self.state.active_backend = "opencv"
             self.state.last_error = None
@@ -138,12 +143,15 @@ class CameraFrameSource:
                 return False, None
             try:
                 frame_rgb = self.picam2.capture_array("main")
-                frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+                frame_bgr = self._prepare_frame_for_jpeg(
+                    frame_rgb, source_format=self.source_pixel_format
+                )
                 self.last_error = None
                 self.state.last_error = None
                 self.state.active_backend = "picamera2"
                 self.state.last_frame_at = time.time()
                 self.state.ready = True
+                self._log_first_frame_details(frame_bgr)
                 return True, frame_bgr
             except Exception as exc:
                 self.last_error = f"Picamera2 frame capture failed: {exc}"
@@ -168,6 +176,7 @@ class CameraFrameSource:
             self.state.active_backend = "opencv"
             self.state.last_frame_at = time.time()
             self.state.ready = True
+            self._log_first_frame_details(frame)
             return True, frame
 
         return False, None
@@ -205,7 +214,29 @@ class CameraFrameSource:
             "fps_target": self.fps,
             "last_frame_at": self.state.last_frame_at,
             "frames_yielded": self.state.frames_yielded,
+            "source_pixel_format": self.source_pixel_format,
+            "rgb_to_bgr_applied": self._last_rgb_to_bgr_applied,
         }
+
+    def _prepare_frame_for_jpeg(self, frame, *, source_format: str):
+        if source_format == "RGB888":
+            self._last_rgb_to_bgr_applied = True
+            return cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        self._last_rgb_to_bgr_applied = False
+        return frame
+
+    def _log_first_frame_details(self, frame) -> None:
+        if self._first_frame_logged:
+            return
+        self._first_frame_logged = True
+        LOG.info(
+            "Camera first frame: backend=%s source_format=%s shape=%s dtype=%s rgb_to_bgr=%s",
+            self.state.active_backend,
+            self.source_pixel_format,
+            getattr(frame, "shape", None),
+            getattr(frame, "dtype", None),
+            self._last_rgb_to_bgr_applied,
+        )
 
     def _release_picamera2(self) -> None:
         if self.picam2 is None:
