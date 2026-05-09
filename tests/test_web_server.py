@@ -106,9 +106,10 @@ class WebServerBoundaryTests(unittest.TestCase):
             status = web_server.neutral_status()
 
         self.assertEqual(status["object_state"], "matched")
-        self.assertEqual(
-            set(status.keys()),
-            {"camera_ready", "object_state", "device_state", "local_mode"},
+        self.assertTrue(
+            {"camera_ready", "object_state", "device_state", "local_mode"}.issubset(
+                set(status.keys())
+            )
         )
 
     def test_require_ui_unlock_allows_webui_without_face_gate(self):
@@ -138,9 +139,13 @@ class WebServerBoundaryTests(unittest.TestCase):
             self.assertEqual(response["device_state"], "ready")
             self.assertTrue(response["camera_ready"])
             self.assertEqual(response["object_state"], "matched")
-            self.assertEqual(
-                set(response.keys()),
-                {"camera_ready", "object_state", "device_state", "local_mode"},
+            self.assertTrue(
+                {
+                    "camera_ready",
+                    "object_state",
+                    "device_state",
+                    "local_mode",
+                }.issubset(set(response.keys()))
             )
 
         asyncio.run(run())

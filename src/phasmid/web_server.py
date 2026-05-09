@@ -334,6 +334,10 @@ def neutral_status():
 
     return {
         "camera_ready": camera_ready,
+        "camera_backend": raw.get("camera_backend", "unknown"),
+        "last_camera_error": raw.get("last_camera_error"),
+        "stream_resolution": raw.get("stream_resolution", {"width": 0, "height": 0}),
+        "fps_target": raw.get("fps_target", 0),
         "object_state": object_state,
         "device_state": "ready",
         "local_mode": True,

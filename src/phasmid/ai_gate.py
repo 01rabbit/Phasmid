@@ -1,3 +1,4 @@
+import logging
 import os
 import threading
 import time
@@ -22,6 +23,8 @@ from .object_cue_matcher import ObjectCueMatcher
 from .object_cue_store import ObjectCueStore
 from .object_gate import ObjectGate
 
+LOG = logging.getLogger(__name__)
+
 
 class AIGate:
     # Legacy internal identifiers are retained for vault compatibility only.
@@ -38,11 +41,11 @@ class AIGate:
     MIN_FRAME_DESCRIPTORS = 10
     MIN_GOOD_MATCHES = 50
     MIN_INLIERS = 30
-    FRAME_SIZE = (640, 480)
+    FRAME_SIZE = (320, 240)
     MATCH_HISTORY_FRAMES = 5
     MATCH_HISTORY_REQUIRED = 3
     REFERENCE_CAPTURE_SAMPLES = 3
-    TARGET_FPS = 5
+    TARGET_FPS = 4
     MODE_STRICT = "strict"
     MODE_COERCION_SAFE = "coercion_safe"
     MODE_DEMO = "demo"
@@ -87,7 +90,7 @@ class AIGate:
         )
         self.experimental_object_model_enabled = experimental_object_model_enabled()
         self.object_gate = ObjectGate()
-        self.camera = CameraFrameSource(frame_size=self.FRAME_SIZE)
+        self.camera = CameraFrameSource(frame_size=self.FRAME_SIZE, fps=self.TARGET_FPS)
 
         self.reference_data = {mode: self._empty_reference() for mode in self.MODES}
         self._load_references()
@@ -344,6 +347,7 @@ class AIGate:
         return max(candidates, key=lambda state: len(state["kp"]))
 
     def get_status(self):
+        camera_status = self.camera.status()
         status = {
             "object_detected": self.object_detected,
             "matched_mode": self.last_match_mode,
@@ -352,6 +356,10 @@ class AIGate:
                 mode: self.reference_data[mode]["des"] is not None
                 for mode in self.MODES
             },
+            "camera_backend": camera_status["backend"],
+            "last_camera_error": camera_status["last_error"],
+            "stream_resolution": camera_status["resolution"],
+            "fps_target": camera_status["fps_target"],
         }
         if self.experimental_object_model_enabled:
             status["object_gate"] = {
@@ -486,11 +494,34 @@ class AIGate:
 
     def generate_frames(self):
         frame_delay = 1.0 / self.TARGET_FPS
+        empty_reads = 0
         while not self._stop_event.is_set():
             loop_start = time.time()
             success, frame = self.camera.read()
             if not success:
+                empty_reads += 1
+                if empty_reads == 1 or empty_reads % 10 == 0:
+                    LOG.warning(
+                        "Camera frame unavailable (backend=%s): %s",
+                        self.camera.status()["backend"],
+                        self.camera.status()["last_error"],
+                    )
+                placeholder = self._camera_error_frame()
+                ok, buffer = cv2.imencode(
+                    ".jpg",
+                    placeholder,
+                    [cv2.IMWRITE_JPEG_QUALITY, 55],
+                )
+                if ok:
+                    yield (
+                        b"--frame\r\n"
+                        b"Content-Type: image/jpeg\r\n\r\n"
+                        + buffer.tobytes()
+                        + b"\r\n"
+                    )
+                time.sleep(frame_delay)
                 continue
+            empty_reads = 0
 
             with self.lock:
                 self.latest_frame = frame.copy()
@@ -515,8 +546,9 @@ class AIGate:
                 self._update_match_result(matches)
             self._draw_match_status(image)
 
-            ok, buffer = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            ok, buffer = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 55])
             if not ok:
+                LOG.error("JPEG encode failed for camera frame")
                 continue
 
             yield (
@@ -527,6 +559,29 @@ class AIGate:
             elapsed = time.time() - loop_start
             if elapsed < frame_delay:
                 time.sleep(frame_delay - elapsed)
+
+    def _camera_error_frame(self):
+        width, height = self.FRAME_SIZE
+        image = np.zeros((height, width, 3), dtype=np.uint8)
+        cv2.putText(
+            image,
+            "Camera unavailable",
+            (12, int(height * 0.45)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.55,
+            (0, 180, 255),
+            2,
+        )
+        cv2.putText(
+            image,
+            "Check camera backend",
+            (12, int(height * 0.62)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.45,
+            (180, 180, 180),
+            1,
+        )
+        return image
 
     def close(self):
         self._stop_event.set()

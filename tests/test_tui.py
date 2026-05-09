@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import sys
 from pathlib import Path
 
@@ -255,6 +256,108 @@ def test_detect_usb_gadget_ipv4_prefers_private_ip(tmp_path, monkeypatch):
     )
 
     assert svc._first_preferred_ipv4_on_interface("usb0") == "10.55.0.10"
+
+
+def test_no_tui_webui_success_string_hardcodes_localhost():
+    from phasmid.tui.screens.base import OperatorScreen
+    from phasmid.tui.screens.home import HomeScreen
+
+    assert "127.0.0.1:8000" not in OperatorScreen._WEBUI_WARNING_FALLBACK
+    source = inspect.getsource(HomeScreen.compose)
+    assert "127.0.0.1:8000" not in source
+
+
+def test_camera_frame_source_prefers_picamera2(monkeypatch):
+    from phasmid.camera_frame_source import CameraFrameSource
+
+    source = CameraFrameSource(frame_size=(320, 240))
+
+    def fake_picam():
+        source.backend = "picamera2"
+        return True
+
+    called = {"opencv": False}
+
+    def fake_cv():
+        called["opencv"] = True
+        return False
+
+    monkeypatch.setattr(source, "_open_picamera2", fake_picam)
+    monkeypatch.setattr(source, "_open_opencv", fake_cv)
+    source.open()
+
+    assert source.backend == "picamera2"
+    assert called["opencv"] is False
+
+
+def test_camera_frame_source_falls_back_to_opencv(monkeypatch):
+    from phasmid.camera_frame_source import CameraFrameSource
+
+    source = CameraFrameSource(frame_size=(320, 240))
+
+    monkeypatch.setattr(source, "_open_picamera2", lambda: False)
+
+    def fake_cv():
+        source.backend = "opencv"
+        return True
+
+    monkeypatch.setattr(source, "_open_opencv", fake_cv)
+    source.open()
+
+    assert source.backend == "opencv"
+
+
+def test_ai_gate_generate_frames_yields_placeholder_when_camera_unavailable(tmp_path):
+    from phasmid.ai_gate import AIGate
+
+    gate = AIGate(reference_dir=str(tmp_path))
+
+    def no_frame():
+        gate._stop_event.set()
+        return False, None
+
+    gate.camera.read = no_frame  # type: ignore[assignment]
+    chunk = next(gate.generate_frames())
+
+    assert b"Content-Type: image/jpeg" in chunk
+    assert len(chunk) > 64
+
+
+def test_ai_gate_generate_frames_yields_mjpeg_when_frame_exists(tmp_path):
+    import numpy as np
+
+    from phasmid.ai_gate import AIGate
+
+    gate = AIGate(reference_dir=str(tmp_path))
+    frame = np.zeros((gate.FRAME_SIZE[1], gate.FRAME_SIZE[0], 3), dtype=np.uint8)
+    calls = {"n": 0}
+
+    def one_frame():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return True, frame
+        gate._stop_event.set()
+        return False, None
+
+    gate.camera.read = one_frame  # type: ignore[assignment]
+    chunk = next(gate.generate_frames())
+
+    assert b"Content-Type: image/jpeg" in chunk
+    assert len(chunk) > 64
+
+
+def test_ai_gate_status_includes_camera_backend_fields(tmp_path):
+    from phasmid.ai_gate import AIGate
+
+    gate = AIGate(reference_dir=str(tmp_path))
+    gate.camera.backend = "picamera2"
+    gate.camera.last_error = "none"
+    status = gate.get_status()
+
+    assert "camera_backend" in status
+    assert "last_camera_error" in status
+    assert "stream_resolution" in status
+    assert "fps_target" in status
 
 
 # ---------------------------------------------------------------------------
