@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import pathlib
+import re
 import signal
 import socket
 import subprocess
@@ -185,6 +186,12 @@ class WebUIService:
     def startup_failure_reason(self) -> str | None:
         return self._startup_failure_reason
 
+    def access_url(self) -> str | None:
+        ip = self._detect_usb_gadget_ipv4()
+        if ip is None:
+            return None
+        return f"http://{ip}:{self._port}"
+
     def _wait_for_startup(self, timeout: float = 10.0) -> bool:
         deadline = time.time() + timeout
         while time.time() < deadline:
@@ -290,3 +297,67 @@ class WebUIService:
             f"Port check failed: {self._last_port_check_failed}. "
             f"Log file: {self.log_file}"
         )
+
+    def _detect_usb_gadget_ipv4(self) -> str | None:
+        candidates = ["usb0", *self._list_gadget_like_interfaces()]
+        seen: set[str] = set()
+        for iface in candidates:
+            if iface in seen:
+                continue
+            seen.add(iface)
+            ip = self._first_preferred_ipv4_on_interface(iface)
+            if ip is not None:
+                return ip
+        return None
+
+    def _list_gadget_like_interfaces(self) -> list[str]:
+        try:
+            output = subprocess.check_output(
+                ["ip", "-o", "link", "show"],
+                stderr=subprocess.DEVNULL,
+                text=True,
+            )
+        except (FileNotFoundError, subprocess.CalledProcessError, OSError):
+            return []
+
+        names: list[str] = []
+        for line in output.splitlines():
+            m = re.match(r"^\d+:\s+([^:]+):", line)
+            if not m:
+                continue
+            name = m.group(1).split("@", 1)[0]
+            if name.startswith("enx"):
+                names.append(name)
+        return names
+
+    def _first_preferred_ipv4_on_interface(self, iface: str) -> str | None:
+        try:
+            output = subprocess.check_output(
+                ["ip", "-4", "-o", "addr", "show", "dev", iface],
+                stderr=subprocess.DEVNULL,
+                text=True,
+            )
+        except (FileNotFoundError, subprocess.CalledProcessError, OSError):
+            return None
+
+        private_candidates: list[str] = []
+        other_candidates: list[str] = []
+        for line in output.splitlines():
+            m = re.search(r"\binet\s+(\d+\.\d+\.\d+\.\d+)/", line)
+            if not m:
+                continue
+            ip = m.group(1)
+            if ip.startswith("127.") or ip == "0.0.0.0":
+                continue
+            if ip.startswith("10.") or ip.startswith("192.168.") or (
+                ip.startswith("172.")
+                and 16 <= int(ip.split(".")[1]) <= 31
+            ):
+                private_candidates.append(ip)
+            else:
+                other_candidates.append(ip)
+        if private_candidates:
+            return private_candidates[0]
+        if other_candidates:
+            return other_candidates[0]
+        return None

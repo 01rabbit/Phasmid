@@ -196,6 +196,7 @@ def test_tui_success_notification_mentions_gadget_ip_guidance(monkeypatch):
     app = PhasmidApp()
     monkeypatch.setattr(app.webui_svc, "is_running", lambda: False)
     monkeypatch.setattr(app.webui_svc, "start", lambda: True)
+    monkeypatch.setattr(app.webui_svc, "access_url", lambda: None)
     notified: list[str] = []
     monkeypatch.setattr(app, "notify", lambda message, **kwargs: notified.append(message))
     monkeypatch.setattr(app, "_refresh_webui_status", lambda: None)
@@ -204,7 +205,56 @@ def test_tui_success_notification_mentions_gadget_ip_guidance(monkeypatch):
 
     assert notified
     assert "0.0.0.0:8000" in notified[0]
+    assert "USB gadget IP" in notified[0]
     assert "127.0.0.1" not in notified[0]
+
+
+def test_webui_service_access_url_uses_detected_usb_ip(tmp_path, monkeypatch):
+    from phasmid import config
+    from phasmid.services.webui_service import WebUIService
+
+    monkeypatch.setattr(config, "DEFAULT_STATE_DIR", str(tmp_path))
+    WebUIService._instance = None
+    svc = WebUIService()
+    monkeypatch.setattr(svc, "_detect_usb_gadget_ipv4", lambda: "10.55.0.10")
+
+    assert svc.access_url() == "http://10.55.0.10:8000"
+
+
+def test_tui_success_notification_uses_access_url_when_available(monkeypatch):
+    from phasmid.tui.app import PhasmidApp
+
+    app = PhasmidApp()
+    monkeypatch.setattr(app.webui_svc, "is_running", lambda: False)
+    monkeypatch.setattr(app.webui_svc, "start", lambda: True)
+    monkeypatch.setattr(app.webui_svc, "access_url", lambda: "http://10.55.0.10:8000")
+    notified: list[str] = []
+    monkeypatch.setattr(app, "notify", lambda message, **kwargs: notified.append(message))
+    monkeypatch.setattr(app, "_refresh_webui_status", lambda: None)
+
+    app.action_toggle_webui()
+
+    assert notified
+    assert notified[0] == "WebUI active at http://10.55.0.10:8000"
+
+
+def test_detect_usb_gadget_ipv4_prefers_private_ip(tmp_path, monkeypatch):
+    from phasmid import config
+    from phasmid.services.webui_service import WebUIService
+
+    monkeypatch.setattr(config, "DEFAULT_STATE_DIR", str(tmp_path))
+    WebUIService._instance = None
+    svc = WebUIService()
+
+    monkeypatch.setattr(
+        "subprocess.check_output",
+        lambda cmd, **kwargs: (
+            "2: usb0    inet 100.64.1.2/24 brd 100.64.1.255 scope global usb0\n"
+            "2: usb0    inet 10.55.0.10/24 brd 10.55.0.255 scope global usb0\n"
+        ),
+    )
+
+    assert svc._first_preferred_ipv4_on_interface("usb0") == "10.55.0.10"
 
 
 # ---------------------------------------------------------------------------
