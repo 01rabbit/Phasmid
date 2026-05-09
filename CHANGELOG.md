@@ -16,6 +16,23 @@ and this project follows SemVer-style release intent for documented interfaces.
 - Dependency vulnerability scanning via `pip-audit` in CI.
 - Reproducible-build verification job added to CI to detect artifact drift.
 
+## [0.1.1] - 2026-05-09
+
+### Fixed
+
+- TUI-launched WebUI now starts the FastAPI app through `uvicorn` reliably.
+- Extended WebUI startup wait to 10 seconds to support Raspberry Pi Zero 2 W class hardware.
+- WebUI launch failures now retain actionable diagnostics (attempted command, return code, port-check status, and log path) for operator troubleshooting.
+
+### Changed
+
+- TUI-launched WebUI default bind host changed to `0.0.0.0` for Raspberry Pi USB gadget network access.
+- TUI success notification updated to guide access via the device USB gadget IP.
+
+### Security
+
+- Existing WebUI protections (token checks, restricted confirmations, rate limits, and headers) remain unchanged while enabling gadget-network exposure.
+
 ## [0.1.0-prototype] - 2026-05-07
 
 ### Added
