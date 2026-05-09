@@ -16,6 +16,29 @@ and this project follows SemVer-style release intent for documented interfaces.
 - Dependency vulnerability scanning via `pip-audit` in CI.
 - Reproducible-build verification job added to CI to detect artifact drift.
 
+## [0.1.2] - 2026-05-10
+
+### Added
+
+- Raspberry Pi-first camera backend flow with Picamera2/libcamera as primary and OpenCV as fallback.
+
+### Fixed
+
+- WebUI camera stream/status synchronization so `/status` reflects active streaming state.
+- MJPEG streaming resilience under camera frame acquisition failures with explicit fallback frame behavior.
+- WebUI process termination robustness: graceful stop with forced termination fallback when shutdown hangs.
+- Camera resource cleanup lifecycle on WebUI shutdown and stream disconnect paths.
+- Raspberry Pi camera color handling and stream orientation for WebUI preview consistency.
+
+### Changed
+
+- TUI/WebUI operator-facing WebUI exposure messaging aligned to non-localhost gadget-access operation.
+- WebUI runtime observability expanded for camera backend, readiness, and stream attributes.
+
+### Security
+
+- Existing WebUI protections (token checks, restricted confirmations, rate limits, headers, and restricted-action policy) preserved while introducing Raspberry Pi operational hardening.
+
 ## [0.1.1] - 2026-05-09
 
 ### Fixed
