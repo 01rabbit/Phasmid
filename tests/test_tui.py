@@ -377,7 +377,7 @@ def test_camera_frame_source_falls_back_to_opencv(monkeypatch):
     assert source.backend == "opencv"
 
 
-def test_prepare_frame_for_jpeg_converts_rgb888_once(monkeypatch):
+def test_prepare_frame_for_jpeg_keeps_rgb888_without_conversion(monkeypatch):
     import numpy as np
 
     from phasmid.camera_frame_source import CameraFrameSource
@@ -394,8 +394,8 @@ def test_prepare_frame_for_jpeg_converts_rgb888_once(monkeypatch):
     out = source._prepare_frame_for_jpeg(frame, source_format="RGB888")
 
     assert out is frame
-    assert calls["n"] == 1
-    assert source._last_rgb_to_bgr_applied is True
+    assert calls["n"] == 0
+    assert source._last_rgb_to_bgr_applied is False
 
 
 def test_prepare_frame_for_jpeg_keeps_bgr_without_conversion(monkeypatch):

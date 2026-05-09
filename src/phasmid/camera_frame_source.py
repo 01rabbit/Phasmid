@@ -152,17 +152,17 @@ class CameraFrameSource:
                 self.last_error = "Picamera2 backend lost"
                 return False, None
             try:
-                frame_rgb = self.picam2.capture_array("main")
-                frame_bgr = self._prepare_frame_for_jpeg(
-                    frame_rgb, source_format=self.source_pixel_format
+                frame_for_jpeg = self.picam2.capture_array("main")
+                frame_encoded = self._prepare_frame_for_jpeg(
+                    frame_for_jpeg, source_format=self.source_pixel_format
                 )
                 self.last_error = None
                 self.state.last_error = None
                 self.state.active_backend = "picamera2"
                 self.state.last_frame_at = time.time()
                 self.state.ready = True
-                self._log_first_frame_details(frame_bgr)
-                return True, frame_bgr
+                self._log_first_frame_details(frame_encoded)
+                return True, frame_encoded
             except Exception as exc:
                 self.last_error = f"Picamera2 frame capture failed: {exc}"
                 self.state.last_error = self.last_error
@@ -250,9 +250,11 @@ class CameraFrameSource:
             }
 
     def _prepare_frame_for_jpeg(self, frame, *, source_format: str):
+        # Hardware note: on some Raspberry Pi Picamera2 paths, RGB888 frames are
+        # already suitable for OpenCV JPEG encode without channel swap.
         if source_format in {"RGB888", "RGB"}:
-            self._last_rgb_to_bgr_applied = True
-            return cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            self._last_rgb_to_bgr_applied = False
+            return frame
         if source_format in {"XRGB8888", "ARGB8888", "RGBA"}:
             self._last_rgb_to_bgr_applied = True
             return cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
