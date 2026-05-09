@@ -102,8 +102,11 @@ class PhasmidApp(App):
                     timeout=10,
                 )
             else:
+                log_path = self.webui_svc.log_file
                 self.notify(
-                    "Failed to start WebUI server.", title="ERROR", severity="error"
+                    f"Failed to start WebUI server. Check log: {log_path}",
+                    title="ERROR",
+                    severity="error",
                 )
             self._refresh_webui_status()
 

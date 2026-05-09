@@ -34,6 +34,10 @@ class WebUIService:
         self._start_time: float | None = None
         self._host = "127.0.0.1"
         self._port = 8000
+        self._startup_failure_reason: str | None = None
+        self._last_start_command: list[str] = []
+        self._last_returncode: int | None = None
+        self._last_port_check_failed = False
 
     def set_timeout_callback(self, callback: Callable[[], None]) -> None:
         """Set a callback to be executed when the WebUI is auto-killed."""
@@ -64,6 +68,9 @@ class WebUIService:
 
     def start(self, host: str = "127.0.0.1", port: int = 8000) -> bool:
         """Start the WebUI subprocess."""
+        self._startup_failure_reason = None
+        self._last_returncode = None
+        self._last_port_check_failed = False
         self._host = host
         self._port = port
         if self.is_running():
@@ -73,27 +80,49 @@ class WebUIService:
         env["PHASMID_HOST"] = host
         env["PHASMID_PORT"] = str(port)
 
-        # Run as a module to ensure imports work correctly
-        cmd = [sys.executable, "-m", "phasmid.web_server"]
+        cmd = [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "phasmid.web_server:app",
+            "--host",
+            host,
+            "--port",
+            str(port),
+        ]
+        self._last_start_command = cmd[:]
+        log_path = self.log_file
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_fh = log_path.open("a", encoding="utf-8")
 
         try:
             self._process = subprocess.Popen(
                 cmd,
                 env=env,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stdout=log_fh,
+                stderr=subprocess.STDOUT,
                 start_new_session=True,
             )
             self._start_time = time.time()
             self._write_pid(self._process.pid)
             if not self._wait_for_startup():
+                self._last_returncode = self._process.poll() if self._process else None
+                self._last_port_check_failed = True
+                self._startup_failure_reason = self._build_startup_failure_reason()
                 self._cleanup_failed_process()
                 return False
             self.reset_timer()
             return True
-        except Exception:
+        except Exception as exc:
+            self._startup_failure_reason = (
+                f"WebUI launch exception: {exc}. "
+                f"Command: {' '.join(self._last_start_command)}. "
+                f"Log file: {self.log_file}"
+            )
             self._clear_pid_file()
             return False
+        finally:
+            log_fh.close()
 
     def stop(self) -> None:
         """Stop the WebUI subprocess and cancel the timer."""
@@ -144,6 +173,17 @@ class WebUIService:
     @property
     def pid_file(self) -> pathlib.Path:
         return pathlib.Path(state_dir()) / "webui.pid"
+
+    @property
+    def log_file(self) -> pathlib.Path:
+        try:
+            return pathlib.Path(state_dir()) / "webui.log"
+        except Exception:
+            return pathlib.Path("/tmp/phasmid-webui.log")
+
+    @property
+    def startup_failure_reason(self) -> str | None:
+        return self._startup_failure_reason
 
     def _wait_for_startup(self, timeout: float = 2.0) -> bool:
         deadline = time.time() + timeout
@@ -240,3 +280,13 @@ class WebUIService:
             return int(first_line)
         except ValueError:
             return None
+
+    def _build_startup_failure_reason(self) -> str:
+        cmd = " ".join(self._last_start_command) if self._last_start_command else "<none>"
+        return (
+            "WebUI startup failed. "
+            f"Command: {cmd}. "
+            f"Return code: {self._last_returncode}. "
+            f"Port check failed: {self._last_port_check_failed}. "
+            f"Log file: {self.log_file}"
+        )

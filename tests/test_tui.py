@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -100,6 +101,77 @@ def test_webui_service_start_fails_if_process_dies_before_port_opens(
     assert svc.start() is False
     assert svc._process is None
     assert not svc.pid_file.exists()
+    assert svc.startup_failure_reason is not None
+    assert "Command:" in svc.startup_failure_reason
+    assert "Return code:" in svc.startup_failure_reason
+    assert "Port check failed: True" in svc.startup_failure_reason
+    assert str(svc.log_file) in svc.startup_failure_reason
+
+
+def test_webui_service_start_uses_uvicorn_command_and_env(tmp_path, monkeypatch):
+    from phasmid import config
+    from phasmid.services.webui_service import WebUIService
+
+    monkeypatch.setattr(config, "DEFAULT_STATE_DIR", str(tmp_path))
+    WebUIService._instance = None
+    svc = WebUIService()
+
+    captured: dict[str, object] = {}
+
+    class FakeProcess:
+        pid = 5001
+
+        def poll(self):
+            return None
+
+    def fake_popen(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["env"] = kwargs["env"]
+        captured["stdout"] = kwargs["stdout"]
+        captured["stderr"] = kwargs["stderr"]
+        return FakeProcess()
+
+    monkeypatch.setattr("subprocess.Popen", fake_popen)
+    monkeypatch.setattr(svc, "_wait_for_startup", lambda timeout=2.0: True)
+    monkeypatch.setattr(svc, "reset_timer", lambda: None)
+
+    assert svc.start(host="127.0.0.1", port=8000) is True
+    assert captured["cmd"] == [
+        sys.executable,
+        "-m",
+        "uvicorn",
+        "phasmid.web_server:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000",
+    ]
+    env = captured["env"]
+    assert env["PHASMID_HOST"] == "127.0.0.1"
+    assert env["PHASMID_PORT"] == "8000"
+
+
+def test_webui_service_start_failure_cleans_pid_and_preserves_log(tmp_path, monkeypatch):
+    from phasmid import config
+    from phasmid.services.webui_service import WebUIService
+
+    monkeypatch.setattr(config, "DEFAULT_STATE_DIR", str(tmp_path))
+    WebUIService._instance = None
+    svc = WebUIService()
+
+    class FakeProcess:
+        pid = 6002
+
+        def poll(self):
+            return 2
+
+    monkeypatch.setattr("subprocess.Popen", lambda *args, **kwargs: FakeProcess())
+    monkeypatch.setattr(svc, "_wait_for_startup", lambda timeout=2.0: False)
+    monkeypatch.setattr(svc, "_terminate_pid", lambda pid: None)
+
+    assert svc.start() is False
+    assert not svc.pid_file.exists()
+    assert svc.log_file.exists()
 
 
 # ---------------------------------------------------------------------------
