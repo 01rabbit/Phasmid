@@ -38,7 +38,7 @@ Phasmid claims:
 
 - separation of protected local state from coerced-disclosure output paths;
 - passphrase-based controlled disclosure of a specified local entry;
-- local-only operation by default, with WebUI bound to `127.0.0.1` unless explicitly changed;
+- local-only operation by default, with WebUI intended for localhost or directly connected USB gadget access;
 - reduced dependence on `vault.bin` alone through mixed local key material.
 
 Phasmid does not claim:
@@ -278,6 +278,22 @@ pip install -e .
 That manual path installs the local `phasmid` command into the active virtual
 environment so `phasmid --help` and the CLI subcommands work as documented.
 
+### Raspberry Pi Bootstrap (Zero 2 W)
+
+For a reproducible Raspberry Pi setup (Bookworm/Bullseye class, USB gadget
+operation, Picamera2/libcamera), use:
+
+```bash
+./scripts/bootstrap_pi.sh
+source .venv/bin/activate
+./scripts/validate_pi_environment.sh
+```
+
+`bootstrap_pi.sh` creates `.venv` with `--system-site-packages` so apt-provided
+`python3-picamera2`/`python3-libcamera` remain importable from the virtualenv.
+This is required on Raspberry Pi deployments because Picamera2 is installed via
+OS packages in the supported hardware stack.
+
 ## TUI Operator Console
 
 ### What is a Vessel?
@@ -443,10 +459,10 @@ inactivity.
 To start the WebUI manually:
 
 ```bash
-PYTHONPATH=src python3 -m phasmid.web_server
+python -m uvicorn phasmid.web_server:app --host 0.0.0.0 --port 8000
 ```
 
-Open `http://127.0.0.1:8000`.
+When using USB gadget Ethernet, open `http://<pi-usb-ip>:8000/` from the laptop.
 
 WebUI v2 uses neutral entry-based terminology. Normal screens do not show internal storage labels, retrieval order, or restricted local-state behavior.
 
