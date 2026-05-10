@@ -2,6 +2,10 @@
 
 Phasmid is a field-evaluation prototype for local-only coercion-aware storage and the reference implementation of the Janus Eidolon System.
 
+![Phasmid architecture overview](../images/architecture_v1.png)
+
+Two-slot architecture overview: vessel structure, disclosure faces, local key material, and object-cue operating boundary.
+
 ## Architectural Layers
 
 Phasmid is organized into a few narrow local layers:

@@ -56,14 +56,15 @@ If the TUI does not open, run `phasmid doctor`.
 
 ## Architecture Overview
 
-![Phasmid Architecture Overview](images/architecture_v1.png)
+![Phasmid Architecture Overview](images/architecture_overview.png)
 
-Quick legend:
-
-- **Vessel**: local container that carries multiple Disclosure Faces
-- **Disclosure Face**: operator-selected visible retrieval path
-- **Local key material**: local recovery input mixed with passphrase-derived key path
-- **Object cue**: operational access cue, not cryptographic key material
+> Quick legend:
+> - **Vessel**: local container carrying multiple Disclosure Faces
+> - **Object cue**: operational access gate, not cryptographic key material
+> - **Restricted slot**: triggers irreversible local-state destruction on access
+>
+> Full cryptographic parameters and storage layout:
+> [docs/PHASMID_ARCHITECTURE.md](docs/PHASMID_ARCHITECTURE.md)
 
 Access flow, two-slot storage, coercion defense, and local-only boundary are documented in [`docs/PHASMID_ARCHITECTURE.md`](docs/PHASMID_ARCHITECTURE.md).
 

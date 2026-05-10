@@ -47,7 +47,9 @@ jobs:
 
       - name: Run unit tests with coverage and enforce threshold
         run: |
+          python -m coverage erase
           python -m coverage run --source=src -m unittest discover -s tests
+          python -m coverage run --append --source=src -m unittest discover -s tests_optional
           python -m coverage report -m
           python -m coverage report --fail-under=70
 

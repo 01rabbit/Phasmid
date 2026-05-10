@@ -19,25 +19,28 @@ Command:
 
 ```bash
 python3 -m unittest discover -s tests
+python3 -m unittest discover -s tests_optional
 ```
 
 Result:
 
 ```text
-2026-05-02, macOS Darwin arm64, python3 -m unittest discover -s tests, 151 tests passed.
+2026-05-11, macOS Darwin arm64, python3 -m unittest discover -s tests, 449 tests passed (5 skipped).
+2026-05-11, macOS Darwin arm64, python3 -m unittest discover -s tests_optional, 124 tests passed.
 ```
 
 Coverage baseline:
 
 ```bash
 python3 -m coverage run --source=src -m unittest discover -s tests
+python3 -m coverage run --append --source=src -m unittest discover -s tests_optional
 python3 -m coverage report -m
 ```
 
 Result:
 
 ```text
-coverage: 71% overall
+coverage: 71% overall (tests + tests_optional combined)
 ```
 
 The coverage baseline records a minimum acceptable regression gate (70%) for future changes.

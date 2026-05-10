@@ -9,17 +9,55 @@ and this project follows SemVer-style release intent for documented interfaces.
 
 No unreleased entries.
 
-## [0.1.4] - 2026-05-10
+## [0.1.5] - 2026-05-11
+
+### Added
+
+- Architecture figure embedded at the top of `docs/PHASMID_ARCHITECTURE.md` using `images/architecture_v1.png` to improve onboarding and design readability.
+- Release-log updates in `docs/REVIEW_VALIDATION_RECORD.md` for profile-based test execution and combined coverage recording.
 
 ### Changed
 
-- Project guidance documents synchronized after issue-track completion, including AGENTS status updates and readiness-plan consistency fixes.
-- Repository-wide Python formatting refactor applied across `src/`, `tests/`, and `scripts/` using Ruff formatter.
-- README and Pi Zero 2 W workflow documentation cleaned up for duplicate or stale status wording.
+- CI coverage gate logic updated to aggregate `tests` + `tests_optional` coverage before enforcing `--fail-under=70`.
+- `CONTRIBUTING.md` validation guidance updated to document default/optional/archive-review test profiles.
+- `tests/TEST_RETENTION_MATRIX.md` updated from candidate planning to current consolidation status.
+- `0.1.4` changelog entry expanded to reflect the full scope of completed documentation and test-suite restructuring work.
 
 ### Security
 
-- Existing local-only boundary, restricted-action constraints, and neutral capture-visible language policies were preserved during refactor and documentation consolidation.
+- Coverage gating remains at 70% without threshold reduction by combining default and optional profiles, preserving verification discipline for active security boundaries.
+
+## [0.1.4] - 2026-05-10
+
+### Added
+
+- `docs/README_INDEX.md` as a long-form documentation entrypoint and navigation index.
+- `docs/archive/` policy and archived historical analysis/evaluation documents for traceable but non-active references.
+- TUI operator screenshots (`images/TUI_HOME.png`, `images/TUI_AUDIT.png`, `images/TUI_DOCTOR.png`, `images/TUI_INSPECT.png`, `images/TUI_FACE.png`).
+- Test profile documentation and retention matrix (`tests/README.md`, `tests/TEST_RETENTION_MATRIX.md`).
+- Split test profiles for lifecycle management:
+  - `tests_optional/` for dependency-heavy or extended tests
+  - `tests_archive_review/` for historical/evaluation review tests
+
+### Changed
+
+- `AGENTS.md` compressed and de-duplicated while preserving boundary/security invariants and authority order.
+- README restructured into a two-layer entry model:
+  - quick-start-first structure with requirements before install details
+  - shortened overview with deep links moved to docs index
+- TUI banner/title updated to the new PHASMID ASCII identity and synchronized with operator docs.
+- `docs/TUI_OPERATOR_CONSOLE.md` updated with screenshot-based presentation and current banner representation.
+- Test suite reorganized and consolidated:
+  - merged overlapping observability/context-profile/dual-approval/coercion-safe scenario tests
+  - moved optional and archive-review tests to dedicated profiles
+  - CI expanded to include default, optional, reproducible-build, and manual archive-review job paths
+- `tests/test_docs_and_templates.py` and `tests/test_terminology.py` aligned with README/docs archive restructuring.
+- Historical roadmap links updated to archived document paths.
+
+### Security
+
+- Existing local-only boundary, restricted-action constraints, and neutral capture-visible language policies were preserved during documentation and test-suite restructuring.
+- Capture-visible vocabulary controls and restricted-route semantics remained enforced by updated terminology and scenario tests.
 
 ## [0.1.3] - 2026-05-10
 
