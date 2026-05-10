@@ -6,7 +6,6 @@ context profile. The generator does NOT:
 
   - forge forensic artifacts
   - fake kernel logs or system events
-  - perform timestamp forgery
   - tamper with filesystem metadata for anti-forensic purposes
   - claim to produce content indistinguishable under expert forensic analysis
 
@@ -15,12 +14,15 @@ Generated content is advisory plausibility material only.
 
 from __future__ import annotations
 
+import json
 import os
 import string
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Sequence, TypeVar
 
+from . import config
 from .context_profile import (
     ContextProfile,
     ProfileValidationResult,
@@ -48,6 +50,10 @@ class GeneratedDummyReport:
     directory_count: int
     extension_distribution: dict[str, int]
     plausibility: ProfileValidationResult
+    container_size_bytes: int
+    occupancy_ratio: float
+    size_distribution: dict[str, int]
+    evaluation_report_path: str
     warnings: list[str] = field(default_factory=list)
 
 
@@ -164,6 +170,79 @@ def _random_alnum_bytes(length: int) -> bytes:
     return bytes(_urandom_choice(alphabet.encode()) for _ in range(length))
 
 
+def _random_filename(ext: str) -> str:
+    stem_len = _urandom_int(8, 16)
+    stem = _random_alnum_bytes(stem_len).decode("ascii", errors="ignore")
+    return f"{stem}.{ext.lstrip('.')}"
+
+
+def _bucket_file_sizes(file_sizes: list[int]) -> dict[str, int]:
+    buckets = {
+        "lt_64kb": 0,
+        "64kb_to_256kb": 0,
+        "256kb_to_1mb": 0,
+        "1mb_to_4mb": 0,
+        "gte_4mb": 0,
+    }
+    for size in file_sizes:
+        if size < 64 * 1024:
+            buckets["lt_64kb"] += 1
+        elif size < 256 * 1024:
+            buckets["64kb_to_256kb"] += 1
+        elif size < 1024 * 1024:
+            buckets["256kb_to_1mb"] += 1
+        elif size < 4 * 1024 * 1024:
+            buckets["1mb_to_4mb"] += 1
+        else:
+            buckets["gte_4mb"] += 1
+    return buckets
+
+
+def _apply_mtime_variation(file_paths: list[Path]) -> None:
+    if not file_paths:
+        return
+    base_ns = time.time_ns()
+    # Keep mtime near write time but avoid uniform timestamps across generated files.
+    for idx, fpath in enumerate(file_paths):
+        delta_ns = (idx + 1) * 1_000_000 + int.from_bytes(os.urandom(2), "little")
+        ts_ns = base_ns - delta_ns
+        try:
+            os.utime(fpath, ns=(ts_ns, ts_ns))
+        except OSError:
+            continue
+
+
+def _resolve_container_size(target_size_bytes: int) -> int:
+    container_path = Path(config.dummy_container_path())
+    try:
+        return container_path.stat().st_size
+    except OSError:
+        return max(0, int(target_size_bytes))
+
+
+def _write_local_evaluation_report(
+    *,
+    output_dir: Path,
+    profile_name: str,
+    container_size_bytes: int,
+    dummy_size_bytes: int,
+    occupancy_ratio: float,
+    file_count: int,
+    size_distribution: dict[str, int],
+) -> Path:
+    report_path = output_dir / "dummy_profile_eval.json"
+    payload = {
+        "profile_name": profile_name,
+        "container_size_bytes": container_size_bytes,
+        "dummy_size_bytes": dummy_size_bytes,
+        "occupancy_ratio": occupancy_ratio,
+        "file_count": file_count,
+        "size_distribution": size_distribution,
+    }
+    report_path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+    return report_path
+
+
 _TEXT_EXTENSIONS = {"txt", "md", "bib", "html", "yaml", "xml"}
 _LOG_EXTENSIONS = {"log"}
 _JSON_EXTENSIONS = {"json"}
@@ -185,18 +264,17 @@ def _generate_file_content(ext: str, target_bytes: int) -> bytes:
     return _generate_binary_stub(target_bytes)
 
 
-def generate_dummy_dataset(config: DummyGeneratorConfig) -> GeneratedDummyReport:
+def generate_dummy_dataset(config_data: DummyGeneratorConfig) -> GeneratedDummyReport:
     """
     Generate a plausible dummy dataset in `config.output_dir`.
 
     Creates directories and files consistent with the selected context profile.
-    Does not forge metadata, timestamps, or forensic artifacts.
     """
-    output_dir = Path(config.output_dir)
+    output_dir = Path(config_data.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    profile = config.profile
-    effective_size = config.effective_dummy_size_bytes()
+    profile = config_data.profile
+    effective_size = config_data.effective_dummy_size_bytes()
 
     extensions = list(profile.dummy_content_types)
     directories = list(profile.typical_directories)
@@ -207,38 +285,57 @@ def generate_dummy_dataset(config: DummyGeneratorConfig) -> GeneratedDummyReport
         subdir.mkdir(parents=True, exist_ok=True)
         dirs_to_create.append(subdir)
 
-    if effective_size > 0 and profile.min_file_count > 0:
-        avg_file_size = effective_size // profile.min_file_count
-    else:
-        avg_file_size = 8 * 1024
+    configured_min_size_bytes = config.dummy_min_size_mb() * 1024 * 1024
+    configured_min_file_count = config.dummy_min_file_count()
+    occupancy_warn_threshold = config.dummy_occupancy_warn()
 
-    remaining_bytes = effective_size
+    required_bytes = effective_size
+    required_file_count = profile.min_file_count
+
+    remaining_bytes = required_bytes
     files_created = 0
     total_bytes_written = 0
     ext_dist: dict[str, int] = {}
+    file_sizes: list[int] = []
+    written_paths: list[Path] = []
 
-    for _ in range(max(profile.min_file_count, 1)):
-        if remaining_bytes <= 0:
-            break
+    if effective_size > 0 and profile.min_file_count > 0:
+        avg_file_size = max(512, effective_size // profile.min_file_count)
+    else:
+        avg_file_size = 8 * 1024
 
+    while remaining_bytes > 0:
         ext = _urandom_choice(extensions)
         parent = _urandom_choice(dirs_to_create)
         fname = _random_filename(ext)
         fpath = parent / fname
 
-        size = min(remaining_bytes, max(512, avg_file_size))
+        if remaining_bytes > 0:
+            size = min(remaining_bytes, max(512, avg_file_size))
+        else:
+            size = max(512, avg_file_size)
+
         content = _generate_file_content(ext, size)
         try:
             fpath.write_bytes(content)
         except OSError:
-            continue
+            break
 
         files_created += 1
-        total_bytes_written += len(content)
-        remaining_bytes -= len(content)
+        bytes_written = len(content)
+        total_bytes_written += bytes_written
+        remaining_bytes = max(0, remaining_bytes - bytes_written)
         ext_dist[ext] = ext_dist.get(ext, 0) + 1
+        file_sizes.append(bytes_written)
+        written_paths.append(fpath)
 
-    container_size_bytes = config.target_size_bytes
+    _apply_mtime_variation(written_paths)
+
+    container_size_bytes = _resolve_container_size(config_data.target_size_bytes)
+    occupancy_ratio = 0.0
+    if container_size_bytes > 0:
+        occupancy_ratio = total_bytes_written / float(container_size_bytes)
+
     plausibility = validate_against_profile(
         profile=profile,
         container_size_bytes=container_size_bytes,
@@ -247,13 +344,36 @@ def generate_dummy_dataset(config: DummyGeneratorConfig) -> GeneratedDummyReport
         extension_distribution=ext_dist,
     )
 
+    size_distribution = _bucket_file_sizes(file_sizes)
+    report_path = _write_local_evaluation_report(
+        output_dir=output_dir,
+        profile_name=profile.profile_name,
+        container_size_bytes=container_size_bytes,
+        dummy_size_bytes=total_bytes_written,
+        occupancy_ratio=occupancy_ratio,
+        file_count=files_created,
+        size_distribution=size_distribution,
+    )
+
     warnings = list(plausibility.warnings)
-    if files_created < profile.min_file_count:
+    if files_created < required_file_count:
         warnings.append(
-            f"only {files_created} files created; profile minimum is {profile.min_file_count}"
+            f"only {files_created} files created; profile minimum is {required_file_count}"
+        )
+    if files_created < configured_min_file_count:
+        warnings.append(
+            f"only {files_created} files created; configured minimum is {configured_min_file_count}"
+        )
+    if total_bytes_written < configured_min_size_bytes:
+        warnings.append(
+            f"dummy size {total_bytes_written} bytes is below configured minimum {configured_min_size_bytes} bytes"
+        )
+    if container_size_bytes > 0 and occupancy_ratio < occupancy_warn_threshold:
+        warnings.append(
+            "dummy profile size is disproportionately small relative to the local container"
         )
     if total_bytes_written == 0:
-        warnings.append("no bytes were written — dataset is empty")
+        warnings.append("no bytes were written - dataset is empty")
 
     return GeneratedDummyReport(
         output_dir=str(output_dir),
@@ -263,6 +383,10 @@ def generate_dummy_dataset(config: DummyGeneratorConfig) -> GeneratedDummyReport
         directory_count=len(dirs_to_create),
         extension_distribution=ext_dist,
         plausibility=plausibility,
+        container_size_bytes=container_size_bytes,
+        occupancy_ratio=occupancy_ratio,
+        size_distribution=size_distribution,
+        evaluation_report_path=str(report_path),
         warnings=warnings,
     )
 
@@ -318,16 +442,12 @@ def import_sample_directory(
         dest_file = dst / rel
         dest_file.parent.mkdir(parents=True, exist_ok=True)
         try:
-            dest_file.write_bytes(item.read_bytes())
-            files_copied += 1
-            bytes_copied += size
-        except OSError as exc:
-            warnings.append(f"could not copy {item.name}: {exc}")
+            data = item.read_bytes()
+            dest_file.write_bytes(data)
+        except OSError:
+            continue
+
+        files_copied += 1
+        bytes_copied += len(data)
 
     return files_copied, bytes_copied, warnings
-
-
-def _random_filename(ext: str) -> str:
-    length = _urandom_int(6, 14)
-    stem = _random_alnum_bytes(length).decode()
-    return f"{stem}.{ext}"

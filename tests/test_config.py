@@ -115,6 +115,24 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(config.restricted_session_seconds(), 42)
             self.assertEqual(config.doctor_recent_seconds(), 120)
 
+    def test_dummy_plausibility_threshold_config(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(config.dummy_min_size_mb(), 50)
+            self.assertEqual(config.dummy_min_file_count(), 20)
+            self.assertEqual(config.dummy_occupancy_warn(), 0.10)
+        with mock.patch.dict(
+            os.environ,
+            {
+                "PHASMID_DUMMY_MIN_SIZE_MB": "7",
+                "PHASMID_DUMMY_MIN_FILE_COUNT": "42",
+                "PHASMID_DUMMY_OCCUPANCY_WARN": "0.25",
+            },
+            clear=True,
+        ):
+            self.assertEqual(config.dummy_min_size_mb(), 7)
+            self.assertEqual(config.dummy_min_file_count(), 42)
+            self.assertEqual(config.dummy_occupancy_warn(), 0.25)
+
     def test_no_direct_phasmid_env_reads_outside_config(self):
         root = Path(ROOT) / "src" / "phasmid"
         offenders: list[str] = []

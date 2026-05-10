@@ -1,7 +1,9 @@
+import json
 import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
@@ -87,6 +89,15 @@ class TestGenerateDummyDataset(unittest.TestCase):
             config = self._make_config(tmp, target_mb=20)
             report = generate_dummy_dataset(config)
             self.assertIsNotNone(report.plausibility)
+            self.assertTrue(os.path.exists(report.evaluation_report_path))
+            with open(report.evaluation_report_path, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            self.assertIn("container_size_bytes", payload)
+            self.assertIn("dummy_size_bytes", payload)
+            self.assertIn("occupancy_ratio", payload)
+            self.assertIn("file_count", payload)
+            self.assertIn("size_distribution", payload)
+            self.assertIsInstance(report.size_distribution, dict)
 
     def test_generate_does_not_produce_disallowed_content(self):
         """Verify no forged system files, kernel logs, or forensic artifacts."""
@@ -109,6 +120,38 @@ class TestGenerateDummyDataset(unittest.TestCase):
             output_dir="/tmp",
         )
         self.assertEqual(config.effective_dummy_size_bytes(), 25 * 1024 * 1024)
+
+    def test_generate_warns_when_configured_thresholds_not_met(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config = self._make_config(tmp, target_mb=1, occupancy=0.1)
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "PHASMID_DUMMY_MIN_SIZE_MB": "5",
+                    "PHASMID_DUMMY_MIN_FILE_COUNT": "1000",
+                    "PHASMID_DUMMY_OCCUPANCY_WARN": "0.90",
+                },
+                clear=False,
+            ):
+                report = generate_dummy_dataset(config)
+            joined = " | ".join(report.warnings).lower()
+            self.assertIn("configured minimum", joined)
+            self.assertIn("disproportionately small", joined)
+
+    def test_generate_disperses_file_mtime(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config = self._make_config(tmp, target_mb=2, occupancy=0.5)
+            report = generate_dummy_dataset(config)
+            self.assertGreater(report.files_created, 0)
+
+            mtimes = set()
+            for dirpath, _dirnames, filenames in os.walk(tmp):
+                for fname in filenames:
+                    if fname == "dummy_profile_eval.json":
+                        continue
+                    path = os.path.join(dirpath, fname)
+                    mtimes.add(os.stat(path).st_mtime_ns)
+            self.assertGreater(len(mtimes), 1)
 
 
 class TestImportSampleDirectory(unittest.TestCase):
