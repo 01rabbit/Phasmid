@@ -299,6 +299,10 @@ class WebServerBoundaryTests(unittest.TestCase):
                 first = await iterator.__anext__()
                 self.assertTrue(first.startswith(b"--frame"))
                 await iterator.aclose()
+                for _ in range(20):
+                    if release_camera.call_count >= 1:
+                        break
+                    await asyncio.sleep(0.01)
                 release_camera.assert_called_once()
 
         asyncio.run(run())

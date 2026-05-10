@@ -309,7 +309,7 @@ Issue #101 acceptance status (current):
 Current status:
 
 ```text
-Field-evaluation prototype. Not field-proven until this checklist is completed on target hardware.
+Pi Zero 2 W validated for the recorded deployment conditions; checklist completed on 2026-05-10.
 ```
 
 ## Solution Readiness

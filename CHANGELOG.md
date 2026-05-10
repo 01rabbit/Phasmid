@@ -7,16 +7,27 @@ and this project follows SemVer-style release intent for documented interfaces.
 
 ## [Unreleased]
 
+No unreleased entries.
+
+## [0.1.3] - 2026-05-10
+
 ### Added
 
 - M6 release-discipline controls for reproducible artifact generation, dependency audit checks, and release policy documentation.
+- Raspberry Pi environment bootstrap and validation scripts for target-hardware setup and checks.
+- Pi Zero 2 W LUKS calibration profile and helper scripts for constrained-device measurement workflows.
+
+### Changed
+
+- Raspberry Pi deployment and validation documentation expanded across setup, field test procedure, seizure review checklist, and readiness planning.
+- Release and validation records updated to reflect Pi Zero 2 W evaluation workflow expectations.
 
 ### Security
 
 - Dependency vulnerability scanning via `pip-audit` in CI.
 - Reproducible-build verification job added to CI to detect artifact drift.
 
-## [0.1.2] - 2026-05-10
+## [0.1.2] - 2026-05-09
 
 ### Added
 

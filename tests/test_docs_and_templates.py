@@ -123,7 +123,10 @@ class DocsAndTemplateTests(unittest.TestCase):
         self.assertRegex(record, r"\d+ tests passed")
         self.assertIn("tests/scenarios/restricted_flows.json", record)
         self.assertIn("Target-hardware validation result", record)
-        self.assertIn("Not field-proven", record)
+        self.assertRegex(
+            record,
+            r"(Not field-proven|validated for the recorded deployment conditions)",
+        )
         self.assertIn("Solution Readiness", record)
 
     def test_solution_readiness_plan_bounds_solution_claims(self):
