@@ -94,6 +94,7 @@ PHASE_SYSTEM_INFO="not_run"
 PHASE_PREPARE_ENV="not_run"
 PHASE_PERF_TIMING="not_run"
 PHASE_WEBUI="not_run"
+PHASE_LUKS="not_run"
 
 set_phase_status() {
     case "$1" in
@@ -102,6 +103,7 @@ set_phase_status() {
         prepare_env) PHASE_PREPARE_ENV="$2" ;;
         perf_timing) PHASE_PERF_TIMING="$2" ;;
         webui) PHASE_WEBUI="$2" ;;
+        luks) PHASE_LUKS="$2" ;;
     esac
 }
 
@@ -112,6 +114,7 @@ phase_status() {
         prepare_env) printf '%s' "$PHASE_PREPARE_ENV" ;;
         perf_timing) printf '%s' "$PHASE_PERF_TIMING" ;;
         webui) printf '%s' "$PHASE_WEBUI" ;;
+        luks) printf '%s' "$PHASE_LUKS" ;;
         *) printf '%s' "unknown" ;;
     esac
 }
@@ -228,6 +231,30 @@ else
     phase_skip "webui"
 fi
 
+# ── Phase J: LUKS field-test calibration (#101) ─────────────────────────────
+
+if [[ "$PHASE_PREPARE_ENV" != "fail" ]]; then
+    log ""
+    log "--- Phase J: LUKS calibration probe ---"
+
+    REMOTE_RESULTS_DIR="$PHASMID_PI_REMOTE_DIR/_pi_field_test/results"
+
+    if pi_ssh "
+        set -uo pipefail
+        cd '$PHASMID_PI_REMOTE_DIR'
+        mkdir -p '$REMOTE_RESULTS_DIR'
+        PHASMID_LUKS_ITER_TIME_MS=\${PHASMID_LUKS_ITER_TIME_MS:-2000} \
+        bash scripts/pi_zero2w/run_luks_probe.sh '$REMOTE_RESULTS_DIR'
+    " 2>&1 | tee -a "$RUN_LOG"; then
+        phase_ok "luks"
+    else
+        warn "LUKS probe failed or partially failed"
+        phase_fail "luks"
+    fi
+else
+    phase_skip "luks"
+fi
+
 # ── Collect results from Pi ───────────────────────────────────────────────────
 
 log ""
@@ -235,7 +262,6 @@ log "--- Collecting results from Pi ---"
 
 REMOTE_RESULTS_DIR="$PHASMID_PI_REMOTE_DIR/_pi_field_test/results"
 if pi_rsync \
-    --no-delete \
     "$PHASMID_PI_USER@$PHASMID_PI_HOST:$REMOTE_RESULTS_DIR/" \
     "$RESULTS_DIR/" 2>&1 | tee -a "$RUN_LOG"; then
     log "Results copied to $RESULTS_DIR"
@@ -248,7 +274,7 @@ fi
 log ""
 log "=== Phase summary ==="
 OVERALL="ok"
-for phase in ssh_sanity system_info prepare_env perf_timing webui; do
+for phase in ssh_sanity system_info prepare_env perf_timing webui luks; do
     status="$(phase_status "$phase")"
     log "  $phase: $status"
     [[ "$status" == "fail" ]] && OVERALL="fail"

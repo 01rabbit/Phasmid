@@ -104,3 +104,33 @@ less than 5% of Argon2id wall time, or the deviation must be documented with a r
 acceptance note.
 
 Record failures with exact screen text, command output, and response headers.
+
+## LUKS Calibration (Pi Zero 2 W)
+
+When the optional LUKS layer is enabled for appliance deployment, run LUKS
+calibration on the target unit and record measured values (not projections).
+
+1. Run the remote harness including LUKS probe:
+   - `./scripts/pi_zero2w/run_remote_perf.sh`
+2. Confirm artifacts exist:
+   - `release/pi-zero2w/luks_field_test.json`
+   - `release/pi-zero2w/luks_field_test.log`
+3. Validate acceptance targets:
+   - `luksFormat` wall time target: approximately 2000 ms, accepted range 1500–4000 ms.
+   - `luksOpen` wall time target: less than 3000 ms, accepted range less than 5000 ms.
+   - AES instruction present in `/proc/cpuinfo`.
+   - `dm_crypt` loadable on the target kernel.
+4. Evaluate by device tier:
+   - Tier-A/B may use strict setup-time acceptance directly.
+   - Tier-C (Pi Zero 2 W class) must be assessed with constrained-device interpretation.
+   - Tier-C uses constrained-device acceptance values with
+     `acceptance_luks_format_ms_max=4300` and `acceptance_luks_open_ms_max=5000`.
+   - Distinguish setup-time (`luksFormat`) from operational unlock (`luksOpen`).
+5. Record `aes_acceleration_status`:
+   - `confirmed`, `inferred`, `unavailable`, or `unknown`.
+   - On ARM, capability flags may not expose acceleration exactly like x86 AES-NI.
+   - Benchmark-backed `inferred` is acceptable when flag visibility is inconsistent.
+6. If `luksFormat` exceeds 4000 ms:
+   - reduce `PHASMID_LUKS_ITER_TIME_MS`,
+   - record the measured trade-off in `docs/REVIEW_VALIDATION_RECORD.md`,
+   - do not describe the value as "secure"; report measured timing on the tested model.

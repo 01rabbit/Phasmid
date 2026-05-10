@@ -20,6 +20,28 @@ The solution boundary is:
 - no guaranteed deletion claims;
 - no approved classified-data handling claims.
 
+## Hardware Tiers and Crypto Calibration
+
+LUKS calibration and acceptance are hardware-tier-aware:
+
+- Tier-A: AES-NI / desktop / workstation class
+- Tier-B: higher-power ARM (for example Raspberry Pi 5 class)
+- Tier-C: constrained low-power edge (Raspberry Pi Zero 2 W class)
+
+Tier-C must be evaluated with constrained-device expectations. Slow `luksFormat`
+setup time on Tier-C does not automatically mean deployment failure when
+operational unlock remains usable and key controls remain intact.
+
+For field-test reporting, use:
+
+- `PASS`
+- `PASS_WITH_CONSTRAINTS`
+- `FAIL`
+
+`PASS_WITH_CONSTRAINTS` is the expected class when constrained hardware meets
+operational unlock expectations and cryptographic controls, but diverges from
+higher-power setup-time assumptions.
+
 ## Readiness Gates
 
 Phasmid remains a field-evaluation prototype until all of these readiness gates are completed for a release:

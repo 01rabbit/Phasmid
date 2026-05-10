@@ -38,4 +38,10 @@ Expected result:
 - restricted actions require server-side confirmation and typed action phrases;
 - logs and CLI output do not explain structural meaning.
 
+Additional Raspberry Pi LUKS checks (when LUKS is enabled):
+
+- Is the LUKS layer active on the configured state path?
+- Is tmpfs key-store material unmounted/cleared after shutdown?
+- Is swap disabled or explicitly risk-accepted for this deployment?
+
 This checklist does not make the device tamper-resistant and does not replace operational judgment.

@@ -46,14 +46,13 @@ pi_ssh "mkdir -p '$PHASMID_PI_REMOTE_DIR'"
 
 # ── Step 2: Sync repository ───────────────────────────────────────────────────
 # Excludes: local runtime artifacts, caches, venv, test artifacts.
-# --no-delete: never remove files that exist only on the remote side.
+# Note: rsync does not delete destination files unless a --delete* option is set.
 
 printf '[prepare] Syncing repository to %s:%s ...\n' "$PHASMID_PI_HOST" "$PHASMID_PI_REMOTE_DIR"
 
 if has_local_cmd rsync; then
     rsync -av \
         -e "ssh $(printf '%q ' "${SSH_OPTS[@]}")" \
-        --no-delete \
         --exclude='.git/' \
         --exclude='.venv/' \
         --exclude='__pycache__/' \
@@ -111,7 +110,10 @@ fi
 "
 
 printf '[prepare] Checking remote free disk space ...\n'
-REMOTE_FREE_KB="$(pi_ssh "df -Pk '$PHASMID_PI_REMOTE_DIR' | awk 'NR==2 {print \\$4}'" 2>/dev/null || true)"
+REMOTE_FREE_KB="$(
+    pi_ssh "df -Pk '$PHASMID_PI_REMOTE_DIR' | tail -n 1 | tr -s ' ' | cut -d ' ' -f4" \
+        2>/dev/null || true
+)"
 if [[ -z "$REMOTE_FREE_KB" ]]; then
     printf 'WARNING: Could not determine remote free disk space.\n'
 else
