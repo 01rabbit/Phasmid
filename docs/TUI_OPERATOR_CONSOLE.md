@@ -151,25 +151,8 @@ automation and advanced use.
 
 The Main Operator Console is the default TUI entry point.
 
-```text
-┌─ PHASMID : JANUS EIDOLON SYSTEM ───────────────────────────┐
-│ coercion-aware deniable storage                             │
-│ one vessel / multiple faces / no confession                 │
-├───────────────────────┬─────────────────────────────────────┤
-│ Vessels               │ Vessel Summary                      │
-│ Deniable containers   │                                     │
-│                       │ Name          travel.vessel          │
-│ > travel.vessel       │ Size          512.0 MiB              │
-│   archive.vessel      │ Header        absent                 │
-│   field-notes.vessel  │ Magic Bytes   absent                 │
-│                       │ Faces         unknown                │
-│                       │ Posture       operational            │
-├───────────────────────┴─────────────────────────────────────┤
-│ [event log]                                                 │
-├─────────────────────────────────────────────────────────────┤
-│ o Open  c Create  i Inspect  f Faces  g Guided  a Audit … q │
-└─────────────────────────────────────────────────────────────┘
-```
+![TUI Home screen](../images/TUI_HOME.png)
+Home screen with vessel list, vessel summary panel, event log, and operator shortcuts.
 
 ### Keyboard Shortcuts
 
@@ -187,6 +170,28 @@ The Main Operator Console is the default TUI entry point.
 | `?` | Help / About |
 | `q` | Quit |
 | `r` | Refresh Vessel list (not shown in footer) |
+
+## Screen Gallery (Operator Reference)
+
+To reduce unnecessary exposure, keep public-facing screenshot use minimal.
+The Home screen above should be the default reference image.
+The following screenshots are optional operator-reference views.
+
+### Audit View
+
+![TUI Audit screen](../images/TUI_AUDIT.png)
+
+### Doctor View
+
+![TUI Doctor screen](../images/TUI_DOCTOR.png)
+
+### Inspect Vessel View
+
+![TUI Inspect screen](../images/TUI_INSPECT.png)
+
+### Disclosure Face Manager
+
+![TUI Face Manager screen](../images/TUI_FACE.png)
 
 ## WebUI Integration (Exposed Mode)
 
@@ -239,26 +244,23 @@ Behaviour:
 Full banner:
 
 ```text
-       ____  __
-      / __ \/ /_  ____ __________ ___  (_)____/ /
-     / /_/ / __ \/ __ `/ ___/ __ `__ \/ / ___/ /
-    / ____/ / / / /_/ (__  ) / / / / / / /  /_/
-   /_/   /_/ /_/\__,_/____/_/ /_/ /_/_/_/  (_)
+██████╗ ██╗  ██╗ █████╗ ███████╗███╗   ███╗██╗██████╗
+██╔══██╗██║  ██║██╔══██╗██╔════╝████╗ ████║██║██╔══██╗
+██████╔╝███████║███████║███████╗██╔████╔██║██║██║  ██║
+██╔═══╝ ██╔══██║██╔══██║╚════██║██║╚██╔╝██║██║██║  ██║
+██║     ██║  ██║██║  ██║███████║██║ ╚═╝ ██║██║██████╔╝
+╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═╝╚═════╝
 
-        Janus Eidolon System
-        coercion-aware deniable storage
-
-        one vessel / multiple faces / no confession
+Janus Eidolon System
+LOCAL DISCLOSURE CONTROL
 ```
 
 Compact banner:
 
 ```text
 PHASMID
-JANUS EIDOLON SYSTEM
-
-coercion-aware deniable storage
-one vessel / multiple faces / no confession
+Janus Eidolon System
+LOCAL DISCLOSURE CONTROL
 ```
 
 ## Vessel Discovery and Registration

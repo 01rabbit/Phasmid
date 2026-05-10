@@ -29,7 +29,7 @@ Use this file to keep AI-assisted changes small, scoped, and consistent with the
 
 ### Current Focus: Unified JES Operator Surface Hardening and Documentation Consistency
 
-The JES Operator Interface unification work is merged into **`main`** and the Raspberry Pi Zero 2 W validation issue track (`#89` through `#94`) is completed. The current focus is stability maintenance of the unified operator experience, preserving WebUI/TUI terminology parity, and keeping implementation and documentation synchronized without reintroducing branch-specific assumptions. Design concept: *政府機関・軍 × DEFCONハッカー* — institutional structure with terminal-hacker aesthetic.
+The JES Operator Interface unification work is merged into **`main`** and the Raspberry Pi Zero 2 W validation issue track (`#89` through `#94`) is completed. The current focus is stability maintenance of the unified operator experience, preserving WebUI/TUI terminology parity, and keeping implementation and documentation synchronized without reintroducing branch-specific assumptions.
 
 ### Active Branch
 
@@ -130,6 +130,7 @@ Preserve these invariants unless a change explicitly updates the threat model, s
 ## Canonical Source Map
 
 Load only the relevant files for the requested change. Do not load the whole repository by default.
+Issue-level implementation history is maintained in `docs/ROADMAP_HISTORY.md`.
 
 ### Cryptography, Container Format, and Key Path
 
@@ -145,14 +146,6 @@ Use this context for changes involving `vault.bin`, the Phasmid vault core, Argo
 - `docs/THREAT_MODEL.md`
 - `tests/test_vault_core.py` and related tests
 
-Relevant issues:
-
-- `#4` cryptographic erase and local access-path invalidation
-- `#5` Argon2id + HKDF-SHA-256 migration
-- `#10` cryptographic module boundary and startup self-tests
-- `#19` local multi-source key derivation pipeline ✅
-- `#26` vault cryptographic core split ✅
-
 ### TUI Operator Console
 
 Use this context for changes involving the Textual-based operator interface, TUI screens, widgets, theme, banner, service layer, or WebUI lifecycle management from the TUI:
@@ -167,7 +160,7 @@ Use this context for changes involving the Textual-based operator interface, TUI
 - `docs/TUI_OPERATOR_CONSOLE.md`
 - `tests/test_tui.py`
 
-Design concept: *政府機関・軍 × DEFCON hacker* — institutional structure with terminal-hacker aesthetic.  
+Design concept: structured institutional UI with terminal-first aesthetics.  
 Theme: `phasmid-dark` (`primary=#00d7af`, `background=#0d0d0d`, `success=#87d700`).
 
 Key TUI-only responsibilities (do not replicate these in WebUI):
@@ -175,11 +168,6 @@ Key TUI-only responsibilities (do not replicate these in WebUI):
 - Profile and settings persistence via `ProfileService`
 - WebUI lifecycle control (start/stop/auto-kill) via `WebUIService`
 - Secure passphrase input (terminal prompt, not browser field)
-
-Relevant issues:
-- `#39` JES Neon-Ops design system for WebUI (TUI color parity) ✅
-- `#41` Operator Console pages (shared service layer usage) ✅
-- `#42` Terminology alignment (TUI vocabulary → WebUI) ✅
 
 ### WebUI, API Routes, and Restricted Actions
 
@@ -195,21 +183,6 @@ Use this context for changes involving FastAPI routes, Web mutation token, restr
 - `docs/THREAT_MODEL.md`
 - `tests/test_web_server.py` and related tests
 
-Relevant issues:
-
-- `#3` observable differences in restricted recovery flows
-- `#7` authentication attempt limiting and backoff
-- `#15` WebUI security headers and CSRF review
-- `#21` deployment profiles and capability table
-- `#22` restricted action policy enforcement ✅
-- `#24` local coercion and restricted-flow scenario matrix ✅
-- `#25` user-visible UI and CLI strings ✅
-- `#39` JES Neon-Ops design system overhaul (Phase 1–2) ✅
-- `#40` Operator Console navigation + WebUI exposure banner (Phase 3) ✅
-- `#41` Operator Console pages: Doctor, Audit, Guided, Inspect (Phase 0+4) ✅
-- `#42` WebUI/TUI terminology alignment (Phase 5) ✅
-- `#43` Brand polish and animation update (Phase 6–7) ✅
-
 ### CLI Behavior
 
 Use this context for changes involving `main.py`, command syntax, CLI output, confirmations, retrieve/store/init/brick/reset-face-lock behavior, or CLI terminology:
@@ -221,15 +194,6 @@ Use this context for changes involving `main.py`, command syntax, CLI output, co
 - `docs/THREAT_MODEL.md`
 - `tests/test_cli.py` and related tests
 
-Relevant issues:
-
-- `#4` cryptographic erase and local access-path invalidation
-- `#6` access passphrase policy and strength checks
-- `#7` authentication attempt limiting and backoff
-- `#11` process hardening and secure memory best-effort support
-- `#25` user-visible UI and CLI strings ✅
-- `#29` local operations commands and docs alignment ✅
-
 ### Object Cue, Camera Matching, and Face Lock
 
 Use this context for changes involving ORB matching, camera capture, object cue registration, match ambiguity, stable multi-frame matching, face template enrollment, or UI lock behavior:
@@ -239,12 +203,6 @@ Use this context for changes involving ORB matching, camera capture, object cue 
 - `docs/SPECIFICATION.md`, especially section 12
 - `docs/THREAT_MODEL.md`
 - related tests in `tests/`
-
-Relevant issues:
-
-- `#20` multi-object cue and visual sequence matching
-- `#27` split camera, object cue, and face UI lock responsibilities
-- `#28` local dual-passphrase approval flow, if face-lock replacement is affected
 
 ### Metadata Handling
 
@@ -256,12 +214,6 @@ Use this context for changes involving metadata risk detection, metadata reducti
 - `docs/THREAT_MODEL.md`
 - related tests in `tests/`
 
-Relevant issues:
-
-- `#24` scenario matrix ✅
-- `#25` user-visible UI and CLI strings ✅
-- `#30` metadata reduction for exported payloads
-
 ### Audit Logging
 
 Use this context for changes involving event logs, audit record shape, hash chains, HMACs, log export, audit filenames, event names, or audit metadata:
@@ -272,13 +224,6 @@ Use this context for changes involving event logs, audit record shape, hash chai
 - `docs/THREAT_MODEL.md`
 - `docs/SPECIFICATION.md`
 - related tests in `tests/`
-
-Relevant issues:
-
-- `#2` hash-chained audit log integrity checks
-- `#16` release integrity manifest and SBOM workflow
-- `#29` local operations commands and docs alignment ✅
-- `#31` audit integrity and hash-chaining
 
 ### Local State and Deployment Posture
 
@@ -295,17 +240,6 @@ Use this context for changes involving `.state/`, state file names, state permis
 - `docs/SOLUTION_READINESS_PLAN.md`
 - related tests in `tests/`
 
-Relevant issues:
-
-- `#11` process hardening and secure memory best-effort support
-- `#12` volatile local key-material store using tmpfs
-- `#13` local device-binding inputs
-- `#17` optional LUKS layer
-- `#18` restricted recovery observability on target hardware ✅
-- `#21` deployment profiles and capability table
-- `#23` typed local state store and transition checks ✅
-- `#29` local operations commands and docs alignment ✅
-
 ### Testing, CI, Coverage, and Release Review
 
 Use this context for changes involving tests, CI, static analysis, coverage, release validation, SBOMs, manifests, or review records:
@@ -318,11 +252,6 @@ Use this context for changes involving tests, CI, static analysis, coverage, rel
 - `docs/REVIEW_VALIDATION_RECORD.md`
 - `docs/SOLUTION_READINESS_PLAN.md`
 - `README.md`
-
-Relevant issues:
-
-- `#16` release integrity manifest and SBOM workflow
-- `#24` scenario matrix ✅
 
 ---
 
@@ -539,12 +468,6 @@ Before finalizing an AI-generated change, verify:
 
 ## Operational Discipline
 
-### AI Context Management
-
-- Load only the **minimal set of files** required for the current domain.
-- Do not initiate broad repository-wide rewrites.
-- Check `ruff` and `mypy` before submitting any Python changes.
-
 ### Self-Hardening Execution Rules
 
 When implementing tasks generated from `PHASMID_SELF_HARDENING_ISSUES.md`, follow these additional constraints:
@@ -559,7 +482,7 @@ When implementing tasks generated from `PHASMID_SELF_HARDENING_ISSUES.md`, follo
 ### Change & Test Strategy
 
 - **Surgical Edits**: Prefer targeted edits over full-file rewrites for large files.
-- **Verification**: Always run `python3 -m unittest discover -s tests` after changes.
+- **Verification**: Run `ruff`, `mypy`, and `python3 -m unittest discover -s tests` after changes.
 - **No Regressions**: Ensure coverage stays above **70%**.
 
 ---

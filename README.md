@@ -17,26 +17,7 @@ Phasmid is a field-evaluation prototype for local-only coercion-aware storage. I
 
 Phasmid is research software. It is not a replacement for full-disk encryption, hardware-backed key storage, an audited classified-data handling system, or a complete solution to compelled disclosure.
 
-**Who this is for:** security researchers, field-risk evaluators, and operators running local controlled-disclosure experiments. It is not a general-purpose file encryption tool.
-
-## Architecture Overview
-
-![Phasmid Architecture Overview](images/architecture_v1.png)
-
-Access flow, two-slot storage, coercion defense, and local-only boundary.
-See [`docs/PHASMID_ARCHITECTURE.md`](docs/PHASMID_ARCHITECTURE.md) for detail.
-
-## Quick Start
-
-```bash
-git clone https://github.com/01rabbit/Phasmid.git
-cd Phasmid
-./phasmid            # creates .venv, installs deps, opens TUI
-```
-
-On first run, `./phasmid` sets up the virtual environment automatically. You should see the TUI Operator Console (the ASCII panel shown in the TUI section below). From there, press `c` to create a Vessel and `g` for a guided walkthrough.
-
-If the TUI does not open, run `phasmid doctor` to diagnose environment issues.
+**Who this is for:** security researchers, field-risk evaluators, and local-only disclosure-control experiments. It is not for casual file encryption.
 
 ## Requirements
 
@@ -51,257 +32,76 @@ If the TUI does not open, run `phasmid doctor` to diagnose environment issues.
 
 For Raspberry Pi deployment, `python3-picamera2` and `python3-libcamera` must be installed via apt before running the bootstrap script.
 
-## What It Does
+## Quick Start in 60 seconds
 
-- Creates an encrypted `vault.bin` container.
-- Stores protected entries in an internal two-slot container model.
-- Provides a coercion-safe delaying architecture with Silent Standby (`active` / `standby` / `sealed` / `dummy_disclosure`), preconfigured disclosure-support content workflows, and local plausibility checks.
-- Uses object-image matching with ORB as an operational access cue.
-- Can optionally evaluate an experimental lightweight local object model behind a feature flag.
-- Encrypts payloads with AES-GCM and Argon2id-derived keys.
-- Mixes a local access key into recovery so `vault.bin` alone is not enough.
-- Supports normal access and restricted recovery behavior.
-- Provides a CLI and a local WebUI v2.
-- Provides owner-controlled restricted actions that can clear local state.
-- Includes metadata risk check workflows for metadata-reduced copy review.
-- Metadata detection and reduction are best-effort.
+```bash
+git clone https://github.com/01rabbit/Phasmid.git
+cd Phasmid
+./phasmid
+```
 
-Phasmid does not promise perfect deniability. It reduces operational damage in some compelled-access scenarios by separating access conditions, local state, physical-object cues, and restricted recovery behavior.
+What `./phasmid` does on first run:
 
-## Security Claims and Non-Claims
+- creates `.venv` if needed
+- installs project dependencies
+- opens the TUI Operator Console
 
-Phasmid separates four concepts that are often conflated:
+Success check:
 
-- Software existence concealment: Phasmid does not claim this.
-- Data-existence deniability: partial and scenario-dependent.
-- Controlled disclosure: primary project claim.
-- Coercion-aware fallback behavior: operational goal.
+- you see the TUI Operator Console panel
+- press `c` to create a Vessel
+- press `g` for a guided walkthrough
+
+If the TUI does not open, run `phasmid doctor`.
+
+## Architecture Overview
+
+![Phasmid Architecture Overview](images/architecture_v1.png)
+
+Quick legend:
+
+- **Vessel**: local container that carries multiple Disclosure Faces
+- **Disclosure Face**: operator-selected visible retrieval path
+- **Local key material**: local recovery input mixed with passphrase-derived key path
+- **Object cue**: operational access cue, not cryptographic key material
+
+Access flow, two-slot storage, coercion defense, and local-only boundary are documented in [`docs/PHASMID_ARCHITECTURE.md`](docs/PHASMID_ARCHITECTURE.md).
+
+## What Phasmid does
+
+- creates and operates encrypted local containers (`vault.bin`)
+- uses Argon2id-derived keys and AES-GCM authenticated encryption
+- mixes local key material into recovery so `vault.bin` alone is insufficient
+- supports local CLI, TUI Operator Console, and optional local WebUI
+- enforces restricted local actions with explicit confirmation
+- provides metadata-risk review and metadata-reduction workflows (best effort)
+
+## Security boundary summary
 
 Phasmid claims:
 
-- separation of protected local state from coerced-disclosure output paths;
-- passphrase-based controlled disclosure of a specified local entry;
-- local-only operation by default, with WebUI intended for localhost or directly connected USB gadget access;
-- reduced dependence on `vault.bin` alone through mixed local key material.
+- local-only operation by default
+- controlled disclosure behavior under documented conditions
+- reduced dependence on `vault.bin` alone through mixed local key material
 
 Phasmid does not claim:
 
-- hiding the existence of the software from a capable forensic examiner;
-- perfect deniability under all adversary models;
-- guaranteed secure deletion on flash media;
-- protection against live memory capture, compromised hosts, or keyloggers;
-- forensic immunity of any kind.
+- perfect deniability
+- guaranteed secure deletion
+- protection against compromised hosts, keyloggers, or live memory capture
+- covert communication, censorship bypass, remote wipe, or remote unlock
 
-Tool discovery, repository discovery, process logs, shell history, and host artifacts can weaken operational deniability. Discovery of Phasmid does not by itself prove the existence of additional undisclosed data, but it does narrow ambiguity and should be treated as an operational risk.
+For complete claims and non-claims, see [`docs/CLAIMS.md`](docs/CLAIMS.md), [`docs/NON_CLAIMS.md`](docs/NON_CLAIMS.md), and [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
-## Philosophy
+## Install and run details
 
-Phasmid follows a simple rule: no lies, no unnecessary truth.
-
-The interface should report what the user needs to complete the current operation, but it should not reveal the internal disclosure model, storage structure, trial order, or restricted recovery behavior.
-
-Honest interface. Silent structure.
-
-Phasmid is not field-proven until it has been validated on target hardware with the Field Test Procedure and Seizure Review Checklist. For the Raspberry Pi Zero 2 W deployment conditions recorded in `docs/REVIEW_VALIDATION_RECORD.md`, those gates were completed on 2026-05-10.
-
-## When to Use Phasmid
-
-Use Phasmid when the problem is not merely file encryption, but compelled access, device seizure, over-disclosure, metadata risk, or local UI/log leakage.
-
-If your only requirement is normal file encryption on a trusted device, a mature full-disk encryption system, password manager, or audited file-encryption tool may be more appropriate.
-
-Phasmid is intentionally specialized. It is not designed to be the simplest way to encrypt files.
-
-## From Prototype to Solution
-
-Phasmid should not become a stronger product by claiming more. It becomes stronger by making its operating boundary repeatable, testable, and boring.
-
-The path from field-evaluation prototype to operational solution is:
-
-1. keep the scope local-only;
-2. keep the interface quiet under capture;
-3. provide a reproducible appliance deployment;
-4. complete target-hardware field testing;
-5. complete seizure-review testing;
-6. record validation results for each release;
-7. publish only claims that are covered by tests or documented limits.
-
-Until those validation gates are completed on target hardware, Phasmid should be described as a field-evaluation prototype. After those gates are completed and recorded, it can be described as a local coercion-aware storage appliance for the validated deployment conditions.
-
-The Raspberry Pi Zero 2 W remote SSH field-test harness implementation is tracked in GitHub issues `#89` through `#94`, and runnable scripts are available under `scripts/pi_zero2w/`. Harness availability alone is not evidence of validation; validation status is established by recorded results in `docs/REVIEW_VALIDATION_RECORD.md`.
-
-## Hardware Form Factor Boundary
-
-Current Phasmid hardware is an evaluation prototype, not a hostile-inspection-ready field form factor.
-
-Evaluation prototype (current):
-
-- Raspberry Pi Zero 2 W-based build;
-- visible camera module and development-oriented wiring may be present;
-- intended for development, benchmarking, protocol validation, and controlled operator training.
-
-Future field form factor (not solved in current codebase):
-
-- benign external appearance appropriate to operating context;
-- no visually obvious camera/security-hardware signal;
-- possession plausibility and interaction pattern that do not attract unnecessary inspection.
-
-This distinction is operational, not cosmetic. Validation on Raspberry Pi Zero 2 W does not by itself solve physical plausibility under hostile inspection.
-
-## Safe Use Boundary
-
-Phasmid is intended for lawful local protection of sensitive material where device seizure, compelled access, or over-disclosure are realistic risks.
-
-It is appropriate for:
-
-- source-protection workflows,
-- temporary field notes,
-- research material,
-- travel-sensitive files,
-- local-only controlled disclosure experiments,
-- defensive security research.
-
-It is not intended for:
-
-- covert communication,
-- surveillance evasion,
-- censorship bypass,
-- remote wipe,
-- remote unlock,
-- offensive operations,
-- malware storage,
-- illegal concealment,
-- replacing organizational classified-data systems.
-
-## Government and Organizational Use Boundary
-
-Phasmid is not approved classified-data handling infrastructure. It does not replace organizational records-management systems, certified encryption products, HSM-backed key management, full-disk encryption, or formal classified-data procedures.
-
-Use of Phasmid in government or organizational environments must follow applicable law, policy, records-retention requirements, and classification rules. Phasmid is intended for local field-evaluation and harm-reduction workflows, not as a substitute for approved systems of record.
-
-## Storage Encryption (LUKS Layer)
-
-Phasmid supports an optional LUKS2 storage layer for local container and state paths.
-This layer can reduce offline filesystem exposure by encrypting the underlying block
-storage until mapped and mounted. It does not replace Phasmid's local-only posture,
-and it does not provide protection against compromised hosts, live memory capture,
-or keylogging. Erase-related actions in this layer remain best-effort.
-
-See [`docs/LUKS_LAYER.md`](docs/LUKS_LAYER.md) for threat-model limits, operating
-procedure, and deployment notes. This layer is not a replacement for full-disk
-encryption on a trusted platform.
-
-## Reviewer Notes and Known Limits
-
-Phasmid is intentionally narrow.
-
-Configuration reference:
-
-- [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) — authoritative reference for `PHASMID_*` environment variables
-- Common examples: `PHASMID_FIELD_MODE`, `PHASMID_MIN_PASSPHRASE_LENGTH`, `PHASMID_ACCESS_MAX_FAILURES`, `PHASMID_ACCESS_LOCKOUT_SECONDS`
-- Experimental object gate: `PHASMID_EXPERIMENTAL_OBJECT_MODEL=1` enables a local-only secondary object-gate path. It is disabled by default and does not affect key derivation.
-- Model provisioning is explicit. Phasmid does not auto-download models during normal startup or access attempts.
-
-Experimental model fetch flow:
-
-```bash
-python3 scripts/fetch_object_model.py
-export PHASMID_OBJECT_MODEL_PATH="$PWD/models/object_gate/mobilenet_v2_1.0_224_feature_vector.tflite"
-export PHASMID_EXPERIMENTAL_OBJECT_MODEL=1
-```
-
-Threat model and security review documents:
-
-- [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) — authoritative threat model (adversaries, assets, attack surfaces, threat scenarios, non-goals)
-- [`docs/COERCION_SAFE_DELAYING.md`](docs/COERCION_SAFE_DELAYING.md) — coercion-safe delaying architecture (standby and disclosure-support workflow)
-- [`docs/THREAT_ANALYSIS_STRIDE.md`](docs/THREAT_ANALYSIS_STRIDE.md) — full STRIDE analysis cross-referencing the threat model
-- [`docs/CLAIMS.md`](docs/CLAIMS.md) — inventory of project claims with verification status
-- [`docs/NON_CLAIMS.md`](docs/NON_CLAIMS.md) — explicit non-claims and rationale
-- [`docs/KEY_LIFECYCLE.md`](docs/KEY_LIFECYCLE.md) — key-material lifecycle audit summary and persistence boundaries
-- [`SECURITY.md`](SECURITY.md) — vulnerability disclosure policy
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution scope, claim, and review discipline
-- [`docs/BUS_FACTOR.md`](docs/BUS_FACTOR.md) — maintainer continuity note
-- [`docs/REPRODUCIBLE_BUILDS.md`](docs/REPRODUCIBLE_BUILDS.md) — reproducible release-review artifact procedure
-- [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md) — dependency pinning and update policy
-- [`docs/VERSIONING.md`](docs/VERSIONING.md) — versioning and compatibility policy
-- [`docs/OBJECT_CUE_LIGHTWEIGHT_AI_REEVALUATION.md`](docs/OBJECT_CUE_LIGHTWEIGHT_AI_REEVALUATION.md) — offline lightweight AI re-evaluation plan for object-cue matching
-- [`CHANGELOG.md`](CHANGELOG.md) — release history and security-impact notes
-
-Operational review and deployment guidance can be found in:
-
-- [`docs/SOURCE_SAFE_WORKFLOW.md`](docs/SOURCE_SAFE_WORKFLOW.md)
-- [`docs/SEIZURE_REVIEW_CHECKLIST.md`](docs/SEIZURE_REVIEW_CHECKLIST.md)
-- [`docs/FIELD_TEST_PROCEDURE.md`](docs/FIELD_TEST_PROCEDURE.md)
-- [`docs/REVIEW_VALIDATION_RECORD.md`](docs/REVIEW_VALIDATION_RECORD.md)
-- [`docs/SOLUTION_READINESS_PLAN.md`](docs/SOLUTION_READINESS_PLAN.md)
-- [`docs/JANUS_EIDOLON_SYSTEM.md`](docs/JANUS_EIDOLON_SYSTEM.md)
-- [`docs/PHASMID_ARCHITECTURE.md`](docs/PHASMID_ARCHITECTURE.md)
-- [`docs/OPERATIONS.md`](docs/OPERATIONS.md)
-- [`docs/RESTRICTED_ACTIONS.md`](docs/RESTRICTED_ACTIONS.md)
-- [`docs/STATE_RECOVERY.md`](docs/STATE_RECOVERY.md)
-
-This README is part of the authoritative appliance deployment guide and review workflow. Release Review Artifacts are generated by the CI pipeline to support review. This is not a validated cryptographic-module certification.
-
-### Release Review Artifacts (Issue #16)
-
-Generate a local review bundle with a checksum manifest and CycloneDX SBOM:
-
-```bash
-python3 scripts/generate_release_artifacts.py --output-dir release/local --archive
-```
-
-If you need a signed manifest for release review, provide an Ed25519 private key PEM:
-
-```bash
-python3 scripts/generate_release_artifacts.py \
-  --output-dir release/local \
-  --archive \
-  --signing-key ./release-signing-private.pem
-```
-
-This writes `MANIFEST.sha256`, `sbom.cyclonedx.json`, `release-summary.json`, and `MANIFEST.sha256.sig` when signing is enabled.
-
-## Repository Layout
-
-```text
-.
-├── main.py                  # Local CLI launcher
-├── src/phasmid/            # Application package
-│   ├── cli.py              # CLI entry point — routes to TUI by default
-│   ├── vault_core.py
-│   ├── ai_gate.py
-│   ├── web_server.py
-│   ├── tui/                # TUI Operator Console (textual)
-│   │   ├── app.py
-│   │   ├── banner.py
-│   │   ├── theme.py
-│   │   ├── screens/        # Home, Audit, Doctor, Guided, Inspect, ...
-│   │   └── widgets/        # VesselTable, VesselSummaryPanel, EventLog, WarningBox
-│   ├── services/           # Service layer (vessel, doctor, audit, guided, ...)
-│   ├── models/             # Data models (VesselMeta, DoctorResult, AuditReport, ...)
-│   └── templates/
-├── docs/                    # Specification and threat model
-├── scripts/                 # Utility scripts
-├── tests/                   # Unit tests
-└── requirements.txt
-```
-
-Runtime files such as `vault.bin`, `.state/`, and audit logs are intentionally ignored by Git.
-
-## Install
-
-For normal repository-local use, start with:
+For normal repository-local use:
 
 ```bash
 ./phasmid
 ```
 
-The repo wrapper creates `.venv` on first use if needed, installs dependencies
-into that environment if the local `phasmid` entrypoint is missing, and then
-launches the TUI. This is the recommended path for both first run and later
-runs inside this repository.
-
-If you need to manage the virtual environment manually, use:
+If you need a manual environment setup:
 
 ```bash
 python3 -m venv .venv
@@ -310,15 +110,7 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-That manual path installs the local `phasmid` command into the active virtual
-environment so `phasmid --help` and the CLI subcommands work as documented.
-
-### Raspberry Pi Bootstrap (Zero 2 W)
-
-For a reproducible Raspberry Pi setup (Bookworm/Bullseye class, USB gadget
-operation, Picamera2/libcamera), use:
-
-#### First Run (Fresh Install)
+Raspberry Pi bootstrap:
 
 ```bash
 ./scripts/bootstrap_pi.sh
@@ -326,222 +118,43 @@ source .venv/bin/activate
 ./scripts/validate_pi_environment.sh
 ```
 
-`bootstrap_pi.sh` creates `.venv` with `--system-site-packages` so apt-provided
-`python3-picamera2`/`python3-libcamera` remain importable from the virtualenv.
-This is required on Raspberry Pi deployments because Picamera2 is installed via
-OS packages in the supported hardware stack.
-
-#### Later Runs (Normal Operation)
+## Common commands
 
 ```bash
-source .venv/bin/activate
-phasmid
-```
-
-## TUI Operator Console
-
-### What is a Vessel?
-
-In Phasmid, a **Vessel** is a headerless deniable container file. It carries one or more disclosure faces without exposing metadata, magic bytes, or an obvious vault structure.
-
-### Starting the TUI
-
-```bash
-./phasmid
-```
-
-Running `phasmid` with no arguments opens the Main Operator Console.
-
-```text
-┌─ PHASMID : JANUS EIDOLON SYSTEM ───────────────────────────┐
-│ coercion-aware deniable storage                             │
-│ one vessel / multiple faces / no confession                 │
-├───────────────────────┬─────────────────────────────────────┤
-│ Vessels               │ Vessel Summary                      │
-│ Deniable containers   │                                     │
-│                       │ Name          travel.vessel          │
-│ > travel.vessel       │ Size          512.0 MiB              │
-│   archive.vessel      │ Header        absent                 │
-│   field-notes.vessel  │ Magic Bytes   absent                 │
-│                       │ Faces         unknown                │
-│                       │ Posture       operational            │
-├───────────────────────┴─────────────────────────────────────┤
-│ o Open  c Create  i Inspect  f Faces  g Guided  a Audit … q │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### TUI Commands
-
-| Command | Description |
-|---|---|
-| `phasmid` | Open the Main Operator Console |
-| `phasmid open <vessel>` | Open a Vessel |
-| `phasmid create <vessel>` | Create a new Vessel |
-| `phasmid inspect <vessel>` | Inspect a Vessel |
-| `phasmid guided` | Open Guided Workflows |
-| `phasmid audit` | Open Audit View |
-| `phasmid doctor` | Run Doctor checks |
-| `phasmid doctor --no-tui` | Print Doctor output without TUI |
-
-### Keyboard Shortcuts
-
-| Key | Action |
-|---|---|
-| `o` | Open selected Vessel |
-| `c` | Create new Vessel |
-| `i` | Inspect selected Vessel |
-| `f` | Manage Faces |
-| `g` | Guided Workflows |
-| `a` | Audit View |
-| `d` | Doctor |
-| `s` | Settings |
-| `?` | Help / About |
-| `q` | Quit |
-
-### Guided Workflows
-
-Guided Workflows are step-by-step interactive explanations for education, demonstrations, and operator onboarding. They are accessible from the main console (`g`) or directly:
-
-```bash
-phasmid guided
-```
-
-Available workflows:
-
-- **Coerced Disclosure Walkthrough** — Step through a compelled-disclosure scenario.
-- **Headerless Vessel Inspection** — See what an external observer finds when inspecting a Vessel.
-- **Multiple Disclosure Faces** — Walk through the concept of multiple disclosure faces.
-- **Operator Safety Checklist** — Review operational controls and known risks.
-
-### Audit View
-
-Audit View shows system position, cryptographic controls, operational controls, logging policy, known limitations, and non-claims. It exists to make Phasmid reviewable by security researchers, government-adjacent evaluators, and institutional stakeholders.
-
-```bash
-phasmid audit
-```
-
-### Doctor View
-
-Doctor View runs structured local risk checks on the operator's environment.
-
-```bash
-phasmid doctor
-```
-
-Checks include: configuration directory permissions, shell history risk, temporary directory policy, secure randomness availability, swap status (best effort), terminal scrollback notice, and debug logging status.
-
-> This check reduces obvious mistakes. It does not certify the host as secure.
-
-### Security Limitations
-
-Phasmid is a **research-grade prototype**. It does not claim:
-
-- deniability that is forensically unverifiable
-- operation that is coercion-proof
-- storage that is undetectable
-- encryption that is unbreakable
-- operation that is guaranteed safe
-
-Deniability is procedural and depends on operational context. Host compromise may defeat confidentiality. OS artifacts may reveal usage. Coercion resistance is not absolute.
-
-Brick and restricted-clear actions are logical access-destruction mechanisms (key-path invalidation plus best-effort overwrite). They are not physical media sanitization guarantees on flash storage.
-
----
-
-## CLI Usage
-
-Initialize a container:
-
-```bash
-phasmid init
-```
-
-Store a file:
-
-```bash
-phasmid store --entry a --file path/to/file
-phasmid store --entry b --file path/to/file
-```
-
-The CLI keeps a compact entry selector. The WebUI uses neutral entry-based language and does not expose the internal storage model during normal operation.
-
-Retrieve a file:
-
-```bash
-phasmid retrieve --out output.bin
-```
-
-Clear the local access path:
-
-```bash
-phasmid brick
-```
-
-Local operations checks:
-
-```bash
-phasmid verify-state
-phasmid verify-audit-log
-phasmid doctor
-phasmid export-redacted-log --out review-events.jsonl
-```
-
-These commands report neutral readiness and audit-review status without printing local paths in normal output.
-
-New local state checks use a typed state-store helper for atomic writes, restrictive permissions, and transition validation. Existing vault and object-cue state files remain managed by their owning modules until a documented state migration replaces them.
-
-When audit logging is enabled, new audit records include sequence and integrity fields for local review. Audit logging remains disabled by default because audit records can create additional local metadata.
-
-## WebUI v2
-
-The local WebUI is managed directly through the TUI Operator Console (press `w`
-to start/stop). This is the recommended method as it includes an **Auto-Kill
-Timer** that automatically terminates the WebUI after 10 minutes of TUI
-inactivity.
-
-To start the WebUI manually:
-
-```bash
-python -m uvicorn phasmid.web_server:app --host 0.0.0.0 --port 8000
-```
-
-When using USB gadget Ethernet, open `http://<pi-usb-ip>:8000/` from the laptop.
-
-Run the WebUI in Field Mode by setting `PHASMID_FIELD_MODE=1` to reduce exposure in capture-visible workflows. Field Mode is not a security boundary.
-
-WebUI v2 uses neutral entry-based terminology. Normal screens do not show internal storage labels, retrieval order, or restricted local-state behavior.
-
-Common WebUI/API wording is centralized where practical so terminology checks can audit capture-visible messages consistently.
-
-## Test Command
-
-```bash
+phasmid                # open TUI Operator Console
+phasmid doctor         # local environment checks
+phasmid guided         # guided workflows
+phasmid audit          # audit view
 python3 -m unittest discover -s tests
 ```
 
-Static check commands:
+## Documentation map
 
-```bash
-python3 -m black --check src tests scripts
-python3 -m bandit -r src
+Primary entry points:
+
+- Documentation index (full map): [`docs/README_INDEX.md`](docs/README_INDEX.md)
+- Threat model authority: [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)
+- Behavioral specification: [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md)
+- Architecture overview: [`docs/PHASMID_ARCHITECTURE.md`](docs/PHASMID_ARCHITECTURE.md)
+
+## Repository layout
+
+```text
+.
+├── main.py                  # Local CLI launcher
+├── src/phasmid/            # Application package
+│   ├── cli.py              # CLI entry point
+│   ├── vault_core.py
+│   ├── ai_gate.py
+│   ├── web_server.py
+│   ├── tui/                # TUI Operator Console (textual)
+│   ├── services/           # Service layer
+│   ├── models/             # Data models
+│   └── templates/
+├── docs/                   # Specification and threat model
+├── scripts/                # Utility scripts
+├── tests/                  # Unit tests
+└── requirements.txt
 ```
 
-Coverage command:
-
-```bash
-python3 -m coverage run --source=src -m unittest discover -s tests
-python3 -m coverage report -m
-```
-
-Release Review Artifacts are generated by the CI pipeline and support review of the current branch.
-
-Passing automated tests do not prove field safety. They verify expected local behavior and regression boundaries only.
-
-## License
-
-Phasmid is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
-
-Third-party dependency licenses are listed in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
-
-Phasmid is research software. The license grants software-use rights; it does not imply operational approval, field validation, classified-data handling approval, or suitability for any specific deployment.
+Runtime files such as `vault.bin`, `.state/`, and audit logs are intentionally ignored by Git.

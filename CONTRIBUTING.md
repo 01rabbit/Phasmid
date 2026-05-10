@@ -29,6 +29,8 @@ This repository accepts focused, reviewable contributions that preserve Phasmid'
 
 ## Minimum Validation Before PR
 
-- Run: `python3 -m unittest discover -s tests`
+- Run default profile: `python3 -m unittest discover -s tests`
+- Run optional profile when your change touches optional modules (AI/object/camera/LUKS/property tests): `python3 -m unittest discover -s tests_optional`
+- Run archive-review profile only when you are updating historical/evaluation paths: `python3 -m unittest discover -s tests_archive_review`
 - For Python changes, also run: `python3 -m ruff check .` and `python3 -m mypy src`
 - For self-hardening issues that require it, run additional checks listed in the issue (for example `black --check` and `bandit`).
