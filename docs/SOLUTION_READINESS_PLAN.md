@@ -105,8 +105,11 @@ Remote management platform.
 
 Current status is defined by `docs/REVIEW_VALIDATION_RECORD.md`.
 
-At the time this plan was added, automated tests had passed on a development machine, and target-hardware validation had not yet been recorded.
+At the time this plan was added, automated tests had passed on a development
+machine, and target-hardware validation had not yet been recorded.
 
-As of 2026-05-09, harness scripts exist in `scripts/pi_zero2w/` and are tracked
-by GitHub issues `#89` through `#94`, but target-hardware validation is still not
-recorded.
+As of 2026-05-10, target-hardware validation is recorded in
+`docs/REVIEW_VALIDATION_RECORD.md` for the documented Raspberry Pi Zero 2 W
+deployment conditions. Harness implementation and issue closure (`#89` through
+`#94`) are traceability inputs; release readiness still depends on satisfying
+all gates above for each release candidate.

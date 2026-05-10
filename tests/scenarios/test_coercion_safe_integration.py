@@ -7,6 +7,7 @@ dataset generation → Silent Standby state machine → recognition routing.
 Hardware-dependent subtests (Pi Zero 2W SSH execution, camera-based unlock)
 are skipped unless RUN_HARDWARE_TESTS=1 is set in the environment.
 """
+
 import os
 import sys
 import tempfile
@@ -205,13 +206,15 @@ class TestPiZero2WCoercionSafeHardware(unittest.TestCase):
         return result.returncode, result.stdout, result.stderr
 
     def test_pi_phasmid_import_succeeds(self):
-        rc, out, err = self._ssh("python3 -c 'import phasmid; print(phasmid.__version__)'")
+        rc, out, err = self._ssh(
+            "python3 -c 'import phasmid; print(phasmid.__version__)'"
+        )
         self.assertEqual(rc, 0, f"phasmid import failed: {err}")
 
     def test_pi_context_profile_loads(self):
         rc, out, err = self._ssh(
             "python3 -c 'from phasmid.context_profile import get_profile; "
-            "p = get_profile(\"travel\"); print(p.profile_name)'"
+            'p = get_profile("travel"); print(p.profile_name)\''
         )
         self.assertEqual(rc, 0, f"context_profile import failed: {err}")
         self.assertIn("travel", out)
@@ -231,7 +234,7 @@ class TestPiZero2WCoercionSafeHardware(unittest.TestCase):
             "import tempfile, os; "
             "from phasmid.context_profile import get_profile; "
             "from phasmid.dummy_generator import DummyGeneratorConfig, generate_dummy_dataset; "
-            "p = get_profile(\"travel\"); "
+            'p = get_profile("travel"); '
             "cfg = DummyGeneratorConfig(target_size_bytes=65536, occupancy_ratio=0.5, profile=p, output_dir=tempfile.mkdtemp()); "
             "r = generate_dummy_dataset(cfg); "
             "print(r.files_created)'"

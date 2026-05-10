@@ -199,7 +199,9 @@ class CameraFrameSource:
             self.state.last_error = None
             if self.state.active_backend not in {"picamera2", "opencv", "stream"}:
                 self.state.active_backend = (
-                    self.backend if self.backend in {"picamera2", "opencv"} else "stream"
+                    self.backend
+                    if self.backend in {"picamera2", "opencv"}
+                    else "stream"
                 )
 
     def close(self) -> None:
@@ -232,16 +234,25 @@ class CameraFrameSource:
         with self._lock:
             ready_now = self.state.ready
             if self.state.last_frame_at is not None:
-                ready_now = ready_now and (time.time() - self.state.last_frame_at) <= 30.0
+                ready_now = (
+                    ready_now and (time.time() - self.state.last_frame_at) <= 30.0
+                )
             backend = self.state.active_backend
-            if ready_now and backend in {"none", "unavailable"} and self.state.frames_yielded > 0:
+            if (
+                ready_now
+                and backend in {"none", "unavailable"}
+                and self.state.frames_yielded > 0
+            ):
                 backend = "stream"
             return {
                 "backend": backend,
                 "ready": ready_now,
                 "last_error": self.state.last_error,
                 "backend_warnings": list(self.state.backend_warnings[-4:]),
-                "resolution": {"width": self.frame_size[0], "height": self.frame_size[1]},
+                "resolution": {
+                    "width": self.frame_size[0],
+                    "height": self.frame_size[1],
+                },
                 "fps_target": self.fps,
                 "last_frame_at": self.state.last_frame_at,
                 "frames_yielded": self.state.frames_yielded,

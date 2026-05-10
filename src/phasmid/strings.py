@@ -77,14 +77,20 @@ AI_GATE_CUES_CLEARED = "Object bindings cleared."
 # Dual-approval flow (neutral wording)
 DUAL_APPROVAL_NOT_ENABLED = "Dual authorization is not enabled for this action."
 DUAL_APPROVAL_SUPERVISOR_NOT_CONFIGURED = "Supervisor passphrase is not configured."
-DUAL_APPROVAL_REQUEST_CREATED = "Authorization request created. Supervisor must authorize within the time limit."
-DUAL_APPROVAL_REQUEST_NOT_FOUND = "No pending authorization request found for this action."
+DUAL_APPROVAL_REQUEST_CREATED = (
+    "Authorization request created. Supervisor must authorize within the time limit."
+)
+DUAL_APPROVAL_REQUEST_NOT_FOUND = (
+    "No pending authorization request found for this action."
+)
 DUAL_APPROVAL_REQUEST_EXPIRED = "Authorization request has expired. Request again."
 DUAL_APPROVAL_GRANT_EXPIRED = "Authorization has expired. Request again."
 DUAL_APPROVAL_WRONG_PASSPHRASE = "Authorization rejected: passphrase did not match."
 DUAL_APPROVAL_GRANTED = "Authorization accepted."
 DUAL_APPROVAL_CONSUMED = "Authorization used. Action may proceed."
-DUAL_APPROVAL_ALREADY_PENDING = "An authorization request is already pending for this action."
+DUAL_APPROVAL_ALREADY_PENDING = (
+    "An authorization request is already pending for this action."
+)
 DUAL_APPROVAL_SUPERVISOR_SET = "Supervisor passphrase configured."
 DUAL_APPROVAL_SUPERVISOR_CLEARED = "Supervisor passphrase cleared."
 DUAL_APPROVAL_SUPERVISOR_CLEAR_FAILED = "Failed to clear supervisor passphrase."

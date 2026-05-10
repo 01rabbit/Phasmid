@@ -22,6 +22,7 @@ Threat properties (summary):
   high-risk action.
 - Nonces are cryptographically random (16 bytes); replay within TTL is prevented.
 """
+
 from __future__ import annotations
 
 import os

@@ -16,6 +16,7 @@ The supervisor passphrase hash is stored in an AES-GCM encrypted file under the
 configured state directory using :class:`~phasmid.local_state_crypto.LocalStateCipher`.
 The hash uses PBKDF2-HMAC-SHA-256 with a random 32-byte salt (100 000 iterations).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -177,5 +178,3 @@ class RoleStore:
         if not isinstance(supervisor, dict):
             raise ValueError("role state supervisor entry is not a dict")
         return {str(k): str(v) for k, v in supervisor.items()}
-
-

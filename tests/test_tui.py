@@ -76,7 +76,7 @@ def test_webui_service_stop_uses_pid_file(tmp_path, monkeypatch):
     monkeypatch.setattr(
         svc,
         "_wait_for_shutdown",
-        lambda pid, timeout=2.0: (waits.append(timeout) or True),
+        lambda pid, timeout=2.0: waits.append(timeout) or True,
     )
 
     svc.stop()
@@ -165,7 +165,9 @@ def test_webui_service_start_uses_uvicorn_command_and_env(tmp_path, monkeypatch)
     assert env["PHASMID_PORT"] == "8000"
 
 
-def test_webui_service_start_failure_cleans_pid_and_preserves_log(tmp_path, monkeypatch):
+def test_webui_service_start_failure_cleans_pid_and_preserves_log(
+    tmp_path, monkeypatch
+):
     from phasmid import config
     from phasmid.services.webui_service import WebUIService
 
@@ -269,7 +271,9 @@ def test_tui_success_notification_mentions_gadget_ip_guidance(monkeypatch):
     monkeypatch.setattr(app.webui_svc, "start", lambda: True)
     monkeypatch.setattr(app.webui_svc, "access_url", lambda: None)
     notified: list[str] = []
-    monkeypatch.setattr(app, "notify", lambda message, **kwargs: notified.append(message))
+    monkeypatch.setattr(
+        app, "notify", lambda message, **kwargs: notified.append(message)
+    )
     monkeypatch.setattr(app, "_refresh_webui_status", lambda: None)
 
     app.action_toggle_webui()
@@ -300,7 +304,9 @@ def test_tui_success_notification_uses_access_url_when_available(monkeypatch):
     monkeypatch.setattr(app.webui_svc, "start", lambda: True)
     monkeypatch.setattr(app.webui_svc, "access_url", lambda: "http://10.55.0.10:8000")
     notified: list[str] = []
-    monkeypatch.setattr(app, "notify", lambda message, **kwargs: notified.append(message))
+    monkeypatch.setattr(
+        app, "notify", lambda message, **kwargs: notified.append(message)
+    )
     monkeypatch.setattr(app, "_refresh_webui_status", lambda: None)
 
     app.action_toggle_webui()
@@ -903,9 +909,9 @@ def test_guided_workflows_no_forbidden_terms():
             + " ".join(s.text + " " + s.detail for s in wf.steps)
         ).lower()
         for term in forbidden:
-            assert (
-                term not in text
-            ), f"Forbidden term '{term}' found in workflow '{wf.id}'"
+            assert term not in text, (
+                f"Forbidden term '{term}' found in workflow '{wf.id}'"
+            )
 
 
 # ---------------------------------------------------------------------------

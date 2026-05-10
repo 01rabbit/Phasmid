@@ -2,11 +2,54 @@
 
 ![Phasmid logo](images/Phasmid_banner.jpg)
 
-Phasmid is a field-evaluation prototype for local-only coercion-aware storage.
+[![CI](https://github.com/01rabbit/Phasmid/actions/workflows/ci.yml/badge.svg)](https://github.com/01rabbit/Phasmid/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+[![code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
+[![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
+[![status: research prototype](https://img.shields.io/badge/status-research%20prototype-orange)](docs/CLAIMS.md)
+[![local-only](https://img.shields.io/badge/operation-local--only-lightgrey)](docs/THREAT_MODEL.md)
+[![Security Policy](https://img.shields.io/badge/security-policy-informational)](SECURITY.md)
 
-It is the reference implementation of the Janus Eidolon System, a two-slot local storage architecture designed to separate visible disclosure from protected local state under practical risks such as device seizure, compelled access, and over-disclosure.
+Phasmid is a field-evaluation prototype for local-only coercion-aware storage. It is the reference implementation of the Janus Eidolon System, a two-slot local storage architecture designed to separate visible disclosure from protected local state under practical risks such as device seizure, compelled access, and over-disclosure.
 
 Phasmid is research software. It is not a replacement for full-disk encryption, hardware-backed key storage, an audited classified-data handling system, or a complete solution to compelled disclosure.
+
+**Who this is for:** security researchers, field-risk evaluators, and operators running local controlled-disclosure experiments. It is not a general-purpose file encryption tool.
+
+## Architecture Overview
+
+![Phasmid Architecture Overview](images/architecture_v1.png)
+
+Access flow, two-slot storage, coercion defense, and local-only boundary.
+See [`docs/PHASMID_ARCHITECTURE.md`](docs/PHASMID_ARCHITECTURE.md) for detail.
+
+## Quick Start
+
+```bash
+git clone https://github.com/01rabbit/Phasmid.git
+cd Phasmid
+./phasmid            # creates .venv, installs deps, opens TUI
+```
+
+On first run, `./phasmid` sets up the virtual environment automatically. You should see the TUI Operator Console (the ASCII panel shown in the TUI section below). From there, press `c` to create a Vessel and `g` for a guided walkthrough.
+
+If the TUI does not open, run `phasmid doctor` to diagnose environment issues.
+
+## Requirements
+
+| Requirement | Detail |
+|---|---|
+| Python | 3.10 or later |
+| OS | Linux, macOS (development); Raspberry Pi OS Bookworm/Bullseye (deployment) |
+| Hardware | x86-64 laptop/desktop for development; Raspberry Pi Zero 2 W for field deployment |
+| Camera (optional) | Picamera2 / libcamera — required only for object-cue matching on Pi |
+| WebUI (optional) | Any modern browser; intended for localhost or USB gadget Ethernet access only |
+| LUKS (optional) | Linux kernel with dm-crypt — required for the optional LUKS2 storage layer |
+
+For Raspberry Pi deployment, `python3-picamera2` and `python3-libcamera` must be installed via apt before running the bootstrap script.
 
 ## What It Does
 
@@ -82,8 +125,6 @@ The path from field-evaluation prototype to operational solution is:
 5. complete seizure-review testing;
 6. record validation results for each release;
 7. publish only claims that are covered by tests or documented limits.
-
-Run the WebUI in Field Mode by setting `PHASMID_FIELD_MODE=1`. Field Mode reduces normal exposure in capture-visible workflows, but Field Mode is not a security boundary.
 
 Until those validation gates are completed on target hardware, Phasmid should be described as a field-evaluation prototype. After those gates are completed and recorded, it can be described as a local coercion-aware storage appliance for the validated deployment conditions.
 
@@ -173,7 +214,7 @@ Threat model and security review documents:
 
 - [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) — authoritative threat model (adversaries, assets, attack surfaces, threat scenarios, non-goals)
 - [`docs/COERCION_SAFE_DELAYING.md`](docs/COERCION_SAFE_DELAYING.md) — coercion-safe delaying architecture (standby and disclosure-support workflow)
-- `docs/THREAT_ANALYSIS_STRIDE.md` — full STRIDE analysis cross-referencing the threat model
+- [`docs/THREAT_ANALYSIS_STRIDE.md`](docs/THREAT_ANALYSIS_STRIDE.md) — full STRIDE analysis cross-referencing the threat model
 - [`docs/CLAIMS.md`](docs/CLAIMS.md) — inventory of project claims with verification status
 - [`docs/NON_CLAIMS.md`](docs/NON_CLAIMS.md) — explicit non-claims and rationale
 - [`docs/KEY_LIFECYCLE.md`](docs/KEY_LIFECYCLE.md) — key-material lifecycle audit summary and persistence boundaries
@@ -188,18 +229,16 @@ Threat model and security review documents:
 
 Operational review and deployment guidance can be found in:
 
-- `docs/SOURCE_SAFE_WORKFLOW.md`
-- `docs/SEIZURE_REVIEW_CHECKLIST.md`
-- `docs/FIELD_TEST_PROCEDURE.md`
-- `docs/REVIEW_VALIDATION_RECORD.md`
-- `docs/SOLUTION_READINESS_PLAN.md`
-- `docs/JANUS_EIDOLON_SYSTEM.md`
-- `docs/PHASMID_ARCHITECTURE.md`
-- `docs/OPERATIONS.md`
-- `docs/RESTRICTED_ACTIONS.md`
-- `docs/STATE_RECOVERY.md`
-
-Target-hardware validation workflow implementation for Raspberry Pi Zero 2 W is tracked in GitHub issues `#89` through `#94`. Recorded validation results for the documented Pi Zero 2 W deployment conditions are available in `docs/REVIEW_VALIDATION_RECORD.md`.
+- [`docs/SOURCE_SAFE_WORKFLOW.md`](docs/SOURCE_SAFE_WORKFLOW.md)
+- [`docs/SEIZURE_REVIEW_CHECKLIST.md`](docs/SEIZURE_REVIEW_CHECKLIST.md)
+- [`docs/FIELD_TEST_PROCEDURE.md`](docs/FIELD_TEST_PROCEDURE.md)
+- [`docs/REVIEW_VALIDATION_RECORD.md`](docs/REVIEW_VALIDATION_RECORD.md)
+- [`docs/SOLUTION_READINESS_PLAN.md`](docs/SOLUTION_READINESS_PLAN.md)
+- [`docs/JANUS_EIDOLON_SYSTEM.md`](docs/JANUS_EIDOLON_SYSTEM.md)
+- [`docs/PHASMID_ARCHITECTURE.md`](docs/PHASMID_ARCHITECTURE.md)
+- [`docs/OPERATIONS.md`](docs/OPERATIONS.md)
+- [`docs/RESTRICTED_ACTIONS.md`](docs/RESTRICTED_ACTIONS.md)
+- [`docs/STATE_RECOVERY.md`](docs/STATE_RECOVERY.md)
 
 This README is part of the authoritative appliance deployment guide and review workflow. Release Review Artifacts are generated by the CI pipeline to support review. This is not a validated cryptographic-module certification.
 
@@ -221,10 +260,6 @@ python3 scripts/generate_release_artifacts.py \
 ```
 
 This writes `MANIFEST.sha256`, `sbom.cyclonedx.json`, `release-summary.json`, and `MANIFEST.sha256.sig` when signing is enabled.
-
-Phasmid non-claims are maintained in:
-
-- [`docs/NON_CLAIMS.md`](docs/NON_CLAIMS.md)
 
 ## Repository Layout
 
@@ -473,6 +508,8 @@ python -m uvicorn phasmid.web_server:app --host 0.0.0.0 --port 8000
 
 When using USB gadget Ethernet, open `http://<pi-usb-ip>:8000/` from the laptop.
 
+Run the WebUI in Field Mode by setting `PHASMID_FIELD_MODE=1` to reduce exposure in capture-visible workflows. Field Mode is not a security boundary.
+
 WebUI v2 uses neutral entry-based terminology. Normal screens do not show internal storage labels, retrieval order, or restricted local-state behavior.
 
 Common WebUI/API wording is centralized where practical so terminology checks can audit capture-visible messages consistently.
@@ -481,8 +518,6 @@ Common WebUI/API wording is centralized where practical so terminology checks ca
 
 ```bash
 python3 -m unittest discover -s tests
-python3 -m black --check src tests scripts
-python3 -m bandit -r src
 ```
 
 Static check commands:
@@ -497,13 +532,6 @@ Coverage command:
 ```bash
 python3 -m coverage run --source=src -m unittest discover -s tests
 python3 -m coverage report -m
-```
-
-Alternative short coverage command:
-
-```bash
-coverage run -m unittest discover -s tests
-coverage report
 ```
 
 Release Review Artifacts are generated by the CI pipeline and support review of the current branch.

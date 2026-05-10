@@ -78,6 +78,7 @@ class TestDualApprovalGate(unittest.TestCase):
 
     def tearDown(self):
         import shutil
+
         shutil.rmtree(self.tmp_dir, ignore_errors=True)
 
     # ------------------------------------------------------------------

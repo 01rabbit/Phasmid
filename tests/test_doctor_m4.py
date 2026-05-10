@@ -64,7 +64,9 @@ class DoctorM4Checks(unittest.TestCase):
         self.assertEqual("WARN", check.level.value)
 
     def test_luks_checks_show_disabled_state(self):
-        with mock.patch.dict(os.environ, {"PHASMID_LUKS_MODE": "disabled"}, clear=False):
+        with mock.patch.dict(
+            os.environ, {"PHASMID_LUKS_MODE": "disabled"}, clear=False
+        ):
             result = run_doctor_checks()
         checks = {c.name: c for c in result.checks}
         self.assertIn("[DISABLED]", checks["LUKS Mode"].message)

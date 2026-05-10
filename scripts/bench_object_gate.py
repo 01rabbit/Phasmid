@@ -83,7 +83,11 @@ def main() -> None:
         stable_frames = sum(1 for item in results if item.state == "accepted")
         result_state = results[-1].state if results else "no_signal"
         avg_frame_ms = elapsed_ms / max(len(results), 1)
-        notes = "model backend unavailable by default" if args.method == "model" else "combined gate path"
+        notes = (
+            "model backend unavailable by default"
+            if args.method == "model"
+            else "combined gate path"
+        )
 
     cpu_elapsed = time.process_time() - started_cpu
     _current, peak = tracemalloc.get_traced_memory()

@@ -28,6 +28,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
             from importlib import reload
 
             import phasmid.config as cfg
+
             reload(cfg)
             self.assertEqual(cfg.recognition_mode(), "strict")
 
@@ -36,6 +37,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
             from importlib import reload
 
             import phasmid.config as cfg
+
             reload(cfg)
             self.assertEqual(cfg.recognition_mode(), "coercion_safe")
 
@@ -44,6 +46,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
             from importlib import reload
 
             import phasmid.config as cfg
+
             reload(cfg)
             self.assertEqual(cfg.recognition_mode(), "demo")
 
@@ -52,6 +55,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
             from importlib import reload
 
             import phasmid.config as cfg
+
             reload(cfg)
             self.assertEqual(cfg.recognition_mode(), "strict")
 
@@ -61,6 +65,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
             from importlib import reload
 
             import phasmid.config as cfg
+
             reload(cfg)
             self.assertAlmostEqual(cfg.true_unlock_threshold(), 0.85)
 
@@ -70,6 +75,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
             from importlib import reload
 
             import phasmid.config as cfg
+
             reload(cfg)
             self.assertAlmostEqual(cfg.dummy_fallback_threshold(), 0.40)
 
@@ -78,6 +84,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
             from importlib import reload
 
             import phasmid.config as cfg
+
             reload(cfg)
             self.assertEqual(cfg.true_unlock_threshold(), 0.0)
 
@@ -86,6 +93,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
             from importlib import reload
 
             import phasmid.config as cfg
+
             reload(cfg)
             self.assertEqual(cfg.true_unlock_threshold(), 1.0)
 
@@ -94,6 +102,7 @@ class TestRecognitionModeConfig(unittest.TestCase):
             from importlib import reload
 
             import phasmid.config as cfg
+
             reload(cfg)
             self.assertEqual(cfg.dummy_fallback_threshold(), 0.0)
 
@@ -105,6 +114,7 @@ class TestStandbyHotkeyConfig(unittest.TestCase):
             from importlib import reload
 
             import phasmid.config as cfg
+
             reload(cfg)
             self.assertEqual(cfg.standby_hotkey(), "ctrl+s")
 
@@ -113,6 +123,7 @@ class TestStandbyHotkeyConfig(unittest.TestCase):
             from importlib import reload
 
             import phasmid.config as cfg
+
             reload(cfg)
             self.assertEqual(cfg.standby_hotkey(), "f12")
 
@@ -121,6 +132,7 @@ class TestStandbyHotkeyConfig(unittest.TestCase):
             from importlib import reload
 
             import phasmid.config as cfg
+
             reload(cfg)
             self.assertEqual(cfg.standby_hotkey(), "ctrl+s")
 
@@ -132,6 +144,7 @@ class TestContextProfileConfig(unittest.TestCase):
             from importlib import reload
 
             import phasmid.config as cfg
+
             reload(cfg)
             self.assertEqual(cfg.context_profile_name(), "travel")
 
@@ -140,6 +153,7 @@ class TestContextProfileConfig(unittest.TestCase):
             from importlib import reload
 
             import phasmid.config as cfg
+
             reload(cfg)
             self.assertEqual(cfg.context_profile_name(), "researcher")
 
@@ -147,11 +161,16 @@ class TestContextProfileConfig(unittest.TestCase):
 class TestRecognitionRouting(unittest.TestCase):
     """Unit tests for recognition confidence routing logic (without camera)."""
 
-    def _make_routing_result(self, mode, confidence, true_threshold, fallback_threshold):
+    def _make_routing_result(
+        self, mode, confidence, true_threshold, fallback_threshold
+    ):
         """Simulate the routing logic from AIGate.get_auth_sequence."""
         MATCH_NONE = "none"
         MODES = ("dummy", "secret")
-        AUTH_TOKENS = {"dummy": "reference_dummy_matched", "secret": "reference_secret_matched"}
+        AUTH_TOKENS = {
+            "dummy": "reference_dummy_matched",
+            "secret": "reference_secret_matched",
+        }
 
         last_match_mode = "dummy" if confidence >= true_threshold else MATCH_NONE
 
@@ -180,13 +199,19 @@ class TestRecognitionRouting(unittest.TestCase):
 
     def test_coercion_safe_low_confidence_routes_to_dummy(self):
         result = self._make_routing_result(
-            mode="coercion_safe", confidence=0.10, true_threshold=0.85, fallback_threshold=0.40
+            mode="coercion_safe",
+            confidence=0.10,
+            true_threshold=0.85,
+            fallback_threshold=0.40,
         )
         self.assertEqual(result, "reference_dummy_matched")
 
     def test_coercion_safe_zero_confidence_routes_to_dummy(self):
         result = self._make_routing_result(
-            mode="coercion_safe", confidence=0.0, true_threshold=0.85, fallback_threshold=0.40
+            mode="coercion_safe",
+            confidence=0.0,
+            true_threshold=0.85,
+            fallback_threshold=0.40,
         )
         self.assertEqual(result, "reference_dummy_matched")
 
@@ -205,7 +230,10 @@ class TestRecognitionRouting(unittest.TestCase):
     def test_coercion_safe_does_not_produce_access_denied_string(self):
         """Coercion-safe mode must never return an obvious refusal string."""
         result = self._make_routing_result(
-            mode="coercion_safe", confidence=0.0, true_threshold=0.85, fallback_threshold=0.40
+            mode="coercion_safe",
+            confidence=0.0,
+            true_threshold=0.85,
+            fallback_threshold=0.40,
         )
         self.assertNotIn("denied", result.lower())
         self.assertNotIn("refused", result.lower())
@@ -215,7 +243,10 @@ class TestRecognitionRouting(unittest.TestCase):
         """Repeated low-confidence in coercion_safe must still route to dummy, not produce a loop."""
         for _ in range(10):
             result = self._make_routing_result(
-                mode="coercion_safe", confidence=0.0, true_threshold=0.85, fallback_threshold=0.40
+                mode="coercion_safe",
+                confidence=0.0,
+                true_threshold=0.85,
+                fallback_threshold=0.40,
             )
             self.assertEqual(result, "reference_dummy_matched")
 

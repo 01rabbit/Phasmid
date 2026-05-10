@@ -26,7 +26,9 @@ class LuksEvalTests(unittest.TestCase):
             luks_eval.classify_device_tier("Raspberry Pi Zero 2 W Rev 1.0", "aarch64"),
             "Tier-C",
         )
-        self.assertEqual(luks_eval.classify_device_tier("x86 workstation", "x86_64"), "Tier-A")
+        self.assertEqual(
+            luks_eval.classify_device_tier("x86 workstation", "x86_64"), "Tier-A"
+        )
 
     def test_aes_capability_classification_inferred(self):
         status = luks_eval.classify_aes_acceleration(False, True, 29.0, 29.0)

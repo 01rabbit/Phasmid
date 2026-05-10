@@ -27,9 +27,9 @@ Use this file to keep AI-assisted changes small, scoped, and consistent with the
 
 ## Project Status & Roadmap
 
-### Current Focus: JES Operator Interface — Post-Unification Stabilization and Pi Zero 2 W Validation Planning
+### Current Focus: Unified JES Operator Surface Hardening and Documentation Consistency
 
-The JES Operator Interface unification work is now merged into **`main`**. The current focus is stabilizing the unified operator experience, preserving WebUI/TUI terminology parity, continuing follow-on work without reintroducing branch-specific assumptions, and preparing the Raspberry Pi Zero 2 W target-hardware validation track. Design concept: *政府機関・軍 × DEFCONハッカー* — institutional structure with terminal-hacker aesthetic.
+The JES Operator Interface unification work is merged into **`main`** and the Raspberry Pi Zero 2 W validation issue track (`#89` through `#94`) is completed. The current focus is stability maintenance of the unified operator experience, preserving WebUI/TUI terminology parity, and keeping implementation and documentation synchronized without reintroducing branch-specific assumptions. Design concept: *政府機関・軍 × DEFCONハッカー* — institutional structure with terminal-hacker aesthetic.
 
 ### Active Branch
 
@@ -39,18 +39,12 @@ The JES Operator Interface unification work is now merged into **`main`**. The c
 
 Target: maintain and harden the unified JES operator surface on `main`.
 
-### Other Open Priority Issues
+### Priority Tracking Status
 
-- `#89`: Tracking issue for the Raspberry Pi Zero 2 W remote field-test harness and validation workflow.
-- `#90`: Phase 1 — remote harness skeleton and safe execution contract.
-- `#91`: Phase 2 — repository synchronization and remote Python environment preparation.
-- `#92`: Phase 3 — system inventory, import baseline, and CLI baseline measurements.
-- `#93`: Phase 4 — vault, KDF, object-cue, WebUI, and TUI viability probes.
-- `#94`: Phase 5 — structured result artifacts and operator documentation.
+- Pi Zero 2 W remote field-test harness and validation workflow issues (`#89` through `#94`) are completed and retained as traceability references.
+- New implementation priorities should be tracked as separate issues and reflected here only while actively in progress.
 
-These issues define the current target-hardware validation implementation track. They do not mean Raspberry Pi Zero 2 W validation has already been completed.
-
-Historical roadmap detail, completed milestone history, and the WebUI redesign sequence are maintained in `docs/ROADMAP_HISTORY.md`. Keep this file focused on active context, not long-form project history.
+Historical roadmap detail, completed milestone history, and the WebUI redesign sequence are maintained in `docs/ROADMAP_HISTORY.md`. Keep this file focused on active context and operating constraints, not long-form project history.
 
 ---
 

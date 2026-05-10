@@ -59,10 +59,12 @@ class TestHardeningStatus(unittest.TestCase):
 class TestApplyProcessHardening(unittest.TestCase):
     def setUp(self):
         import phasmid.process_hardening as mod
+
         mod._cached_status = None
 
     def tearDown(self):
         import phasmid.process_hardening as mod
+
         mod._cached_status = None
 
     def test_returns_hardening_status(self):
@@ -91,6 +93,7 @@ class TestApplyProcessHardening(unittest.TestCase):
 
     def test_non_linux_skips_dumpable_and_mlock(self):
         import phasmid.process_hardening as mod
+
         with mock.patch.object(mod.sys, "platform", "darwin"):
             mod._cached_status = None
             result = apply_process_hardening()
@@ -111,6 +114,7 @@ class TestApplyProcessHardening(unittest.TestCase):
 
     def test_resource_import_failure_does_not_raise(self):
         import phasmid.process_hardening as mod
+
         with mock.patch.dict("sys.modules", {"resource": None}):
             mod._cached_status = None
             result = apply_process_hardening()

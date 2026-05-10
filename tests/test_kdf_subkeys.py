@@ -16,23 +16,21 @@ from phasmid.kdf_subkeys import (
 )
 
 _FIXED_IKM = bytes.fromhex(
-    "0102030405060708090a0b0c0d0e0f10"
-    "1112131415161718191a1b1c1d1e1f20"
+    "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20"
 )
 
 # Deterministic test vectors generated from the above IKM.
 # These anchor the derivation to prevent accidental regressions.
 _VECTORS: dict[bytes, str] = {
     LABEL_VAULT_OPEN: "c5e1c3a7e1a7db694b51e9a5d0cf0c6a"
-                      "3aada8ed9a9a3c3d3e02c21e5f21e3c5",
+    "3aada8ed9a9a3c3d3e02c21e5f21e3c5",
     LABEL_VAULT_PURGE: "6a7b2d1e9c4f8a3b5e0d2c7f1a6e4b9d"
-                       "2c8f3a7b1e5d9c4f0a6b2e7d3c1f8a5e",
+    "2c8f3a7b1e5d9c4f0a6b2e7d3c1f8a5e",
     LABEL_LOCAL_STATE: "8b3c5f2e7a1d4c9b6e0f2a8d5c3b7e1a"
-                       "4f9c2b6e0d8a5c3f1b7e4a2d9c6b0e5f",
-    LABEL_FACE_LOCK:   "1e7f3a5c9b2d6e8f0a4c7b1e5d9f3a2c"
-                       "6b8e0d4f2a7c5b1e9d3f7a0c4b6e2d8f",
-    LABEL_AUDIT_HMAC:  "3c9f1b5e7a2d8c0f4b6e3a1d9c5f7b2e"
-                       "0a4c8b6d2e5f1a3c7b9e4d0f6a2c8b5e",
+    "4f9c2b6e0d8a5c3f1b7e4a2d9c6b0e5f",
+    LABEL_FACE_LOCK: "1e7f3a5c9b2d6e8f0a4c7b1e5d9f3a2c6b8e0d4f2a7c5b1e9d3f7a0c4b6e2d8f",
+    LABEL_AUDIT_HMAC: "3c9f1b5e7a2d8c0f4b6e3a1d9c5f7b2e"
+    "0a4c8b6d2e5f1a3c7b9e4d0f6a2c8b5e",
 }
 
 
@@ -120,7 +118,13 @@ class TestSubkeyBundle(unittest.TestCase):
 
     def test_bundle_exposes_all_five_subkeys(self):
         b = self._bundle()
-        for attr in ("vault_open", "vault_purge", "local_state", "face_lock", "audit_hmac"):
+        for attr in (
+            "vault_open",
+            "vault_purge",
+            "local_state",
+            "face_lock",
+            "audit_hmac",
+        ):
             self.assertIsInstance(getattr(b, attr), bytes)
             self.assertEqual(len(getattr(b, attr)), 32)
 

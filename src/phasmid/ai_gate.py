@@ -544,7 +544,9 @@ class AIGate:
                 }
                 if self.experimental_object_model_enabled:
                     gate_results = {
-                        mode: self.object_gate.evaluate_frame(frame=frame, orb_match=match)
+                        mode: self.object_gate.evaluate_frame(
+                            frame=frame, orb_match=match
+                        )
                         for mode, match in matches.items()
                     }
                     self._update_match_result_from_gate_results(gate_results)

@@ -311,7 +311,9 @@ class WebUIService:
             return None
 
     def _build_startup_failure_reason(self) -> str:
-        cmd = " ".join(self._last_start_command) if self._last_start_command else "<none>"
+        cmd = (
+            " ".join(self._last_start_command) if self._last_start_command else "<none>"
+        )
         return (
             "WebUI startup failed. "
             f"Command: {cmd}. "
@@ -371,9 +373,10 @@ class WebUIService:
             ip = m.group(1)
             if ip.startswith("127.") or ip == "0.0.0.0":
                 continue
-            if ip.startswith("10.") or ip.startswith("192.168.") or (
-                ip.startswith("172.")
-                and 16 <= int(ip.split(".")[1]) <= 31
+            if (
+                ip.startswith("10.")
+                or ip.startswith("192.168.")
+                or (ip.startswith("172.") and 16 <= int(ip.split(".")[1]) <= 31)
             ):
                 private_candidates.append(ip)
             else:

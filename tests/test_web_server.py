@@ -288,7 +288,9 @@ class WebServerBoundaryTests(unittest.TestCase):
                 mock.patch.object(
                     web_server.access_cue_service,
                     "generate_frames",
-                    return_value=iter([b"--frame\r\nContent-Type: image/jpeg\r\n\r\nx\r\n"]),
+                    return_value=iter(
+                        [b"--frame\r\nContent-Type: image/jpeg\r\n\r\nx\r\n"]
+                    ),
                 ),
                 mock.patch.object(
                     web_server.access_cue_service, "release_camera"
@@ -375,7 +377,9 @@ class WebServerBoundaryTests(unittest.TestCase):
             ):
                 response = await web_server.emergency_page(request)
             self.assertFalse(response.context["restricted_confirmed"])
-            self.assertEqual(response.context["restricted_session_seconds_remaining"], 0)
+            self.assertEqual(
+                response.context["restricted_session_seconds_remaining"], 0
+            )
 
         asyncio.run(run())
 
@@ -398,7 +402,9 @@ class WebServerBoundaryTests(unittest.TestCase):
             ):
                 response = await web_server.emergency_page(request)
             self.assertTrue(response.context["restricted_confirmed"])
-            self.assertEqual(response.context["restricted_session_seconds_remaining"], 74)
+            self.assertEqual(
+                response.context["restricted_session_seconds_remaining"], 74
+            )
 
         asyncio.run(run())
 
@@ -692,7 +698,9 @@ class WebServerBoundaryTests(unittest.TestCase):
                 ),
                 mock.patch.object(web_server.vault, "format_container") as init,
                 mock.patch.object(
-                    web_server.access_cue_service, "clear_references", return_value=(True, "ok")
+                    web_server.access_cue_service,
+                    "clear_references",
+                    return_value=(True, "ok"),
                 ) as clear,
             ):
                 response = await web_server.emergency_initialize(

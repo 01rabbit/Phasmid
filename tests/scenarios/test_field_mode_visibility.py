@@ -48,7 +48,9 @@ def _make_env() -> Environment:
     return env
 
 
-def _base_context(*, field_mode: bool, restricted_confirmed: bool, state_path: str = "") -> dict:
+def _base_context(
+    *, field_mode: bool, restricted_confirmed: bool, state_path: str = ""
+) -> dict:
     return {
         "request": SimpleNamespace(url=SimpleNamespace(path="/maintenance")),
         "active": "maintenance",
@@ -77,8 +79,9 @@ class FieldModeMaintenanceVisibility(unittest.TestCase):
     def setUp(self):
         self.env = _make_env()
 
-    def _render_maintenance(self, *, field_mode: bool, restricted_confirmed: bool,
-                            state_path: str = "") -> str:
+    def _render_maintenance(
+        self, *, field_mode: bool, restricted_confirmed: bool, state_path: str = ""
+    ) -> str:
         template = self.env.get_template("maintenance.html")
         return template.render(
             _base_context(

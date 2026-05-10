@@ -181,7 +181,6 @@ class PhasmidVaultV3Tests(unittest.TestCase):
                 handle.write(old_container)
             self.assertEqual(vault.retrieve("pw", seq, mode="dummy"), (None, None))
 
-
     # ------------------------------------------------------------------
     # Key-material invalidation sequence (Issue #4)
     # ------------------------------------------------------------------
@@ -271,7 +270,9 @@ class PhasmidVaultV3Tests(unittest.TestCase):
             )
             vault.store("pw", b"secret_data", s_seq, filename="s.bin", mode="secret")
 
-            _data, _fn, role = vault.retrieve_with_policy("purge-pw", d_seq, mode="dummy")
+            _data, _fn, role = vault.retrieve_with_policy(
+                "purge-pw", d_seq, mode="dummy"
+            )
             self.assertEqual(role, vault.PURGE_ROLE)
 
 

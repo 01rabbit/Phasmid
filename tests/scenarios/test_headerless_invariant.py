@@ -50,9 +50,7 @@ def _shannon_entropy(data: bytes) -> float:
         return 0.0
     counts = Counter(data)
     total = len(data)
-    return -sum(
-        (c / total) * math.log2(c / total) for c in counts.values() if c > 0
-    )
+    return -sum((c / total) * math.log2(c / total) for c in counts.values() if c > 0)
 
 
 class TestClaimCLM05HeaderlessInvariant(unittest.TestCase):
@@ -78,7 +76,8 @@ class TestClaimCLM05HeaderlessInvariant(unittest.TestCase):
                         violations.append(f"  offset={offset}: {name} ({sig!r})")
             self.assertFalse(
                 violations,
-                "Fresh vault.bin matches known magic signatures:\n" + "\n".join(violations),
+                "Fresh vault.bin matches known magic signatures:\n"
+                + "\n".join(violations),
             )
 
     def test_claim_CLM05_fresh_vault_contains_no_plaintext_format_marker(self):

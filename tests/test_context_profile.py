@@ -17,13 +17,25 @@ from phasmid.context_profile import (
 
 class TestBuiltInProfiles(unittest.TestCase):
     def test_all_required_profiles_exist(self):
-        for name in ("travel", "field_engineer", "researcher", "maintenance", "archive"):
+        for name in (
+            "travel",
+            "field_engineer",
+            "researcher",
+            "maintenance",
+            "archive",
+        ):
             self.assertIn(name, BUILT_IN_PROFILES, f"Missing built-in profile: {name}")
 
     def test_list_profiles_returns_sorted_names(self):
         names = list_profiles()
         self.assertEqual(names, sorted(names))
-        for name in ("travel", "field_engineer", "researcher", "maintenance", "archive"):
+        for name in (
+            "travel",
+            "field_engineer",
+            "researcher",
+            "maintenance",
+            "archive",
+        ):
             self.assertIn(name, names)
 
     def test_get_profile_returns_correct_object(self):
@@ -61,14 +73,18 @@ class TestBuiltInProfiles(unittest.TestCase):
     def test_all_profiles_have_positive_min_file_count(self):
         for name, profile in BUILT_IN_PROFILES.items():
             self.assertGreater(
-                profile.min_file_count, 0, f"Profile '{name}' min_file_count must be > 0"
+                profile.min_file_count,
+                0,
+                f"Profile '{name}' min_file_count must be > 0",
             )
 
     def test_all_profiles_validate_without_warnings(self):
         for name, profile in BUILT_IN_PROFILES.items():
             warnings = profile.validate()
             self.assertEqual(
-                warnings, [], f"Profile '{name}' has unexpected validation warnings: {warnings}"
+                warnings,
+                [],
+                f"Profile '{name}' has unexpected validation warnings: {warnings}",
             )
 
     def test_profile_description_is_non_empty(self):

@@ -33,6 +33,7 @@ All labels are ASCII byte strings prefixed with ``phasmid-v4:``.
 The format is ``phasmid-v4:<purpose>[:<version>]``.
 Increment the version suffix when the purpose changes semantically.
 """
+
 from __future__ import annotations
 
 from cryptography.hazmat.primitives import hashes

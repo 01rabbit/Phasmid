@@ -10,6 +10,7 @@ This module is an evaluation component.  It is not a direct replacement for
 :class:`~phasmid.object_cue_matcher.ObjectCueMatcher` and must never produce
 or influence cryptographic key material.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

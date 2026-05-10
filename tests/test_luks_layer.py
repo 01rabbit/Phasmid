@@ -159,9 +159,11 @@ class LuksKeyStoreTests(unittest.TestCase):
     @mock.patch("phasmid.luks_key_store.os.urandom", return_value=b"a" * 32)
     def test_generate_and_store(self, _urandom):
         m = mock.mock_open()
-        with mock.patch("phasmid.luks_key_store.open", m), mock.patch(
-            "phasmid.luks_key_store.os.makedirs"
-        ), mock.patch("phasmid.luks_key_store.os.chmod"):
+        with (
+            mock.patch("phasmid.luks_key_store.open", m),
+            mock.patch("phasmid.luks_key_store.os.makedirs"),
+            mock.patch("phasmid.luks_key_store.os.chmod"),
+        ):
             ks = LuksKeyStore("/run/phasmid")
             key = ks.generate_and_store()
         self.assertEqual(key, b"a" * 32)
@@ -169,11 +171,12 @@ class LuksKeyStoreTests(unittest.TestCase):
 
     @mock.patch("phasmid.luks_key_store.os.path.exists", return_value=True)
     def test_destroy(self, _exists):
-        with mock.patch("phasmid.luks_key_store.open", mock.mock_open()), mock.patch(
-            "phasmid.luks_key_store.os.path.getsize", return_value=16
-        ), mock.patch("phasmid.luks_key_store.os.urandom", return_value=b"b" * 32), mock.patch(
-            "phasmid.luks_key_store.os.remove"
-        ) as remove_mock:
+        with (
+            mock.patch("phasmid.luks_key_store.open", mock.mock_open()),
+            mock.patch("phasmid.luks_key_store.os.path.getsize", return_value=16),
+            mock.patch("phasmid.luks_key_store.os.urandom", return_value=b"b" * 32),
+            mock.patch("phasmid.luks_key_store.os.remove") as remove_mock,
+        ):
             ks = LuksKeyStore("/run/phasmid")
             self.assertTrue(ks.destroy())
         remove_mock.assert_called_once_with("/run/phasmid/luks.key")

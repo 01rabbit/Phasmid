@@ -21,8 +21,15 @@ def _fast_kdf(password: bytes, salt: bytes) -> bytes:
 
 
 class TestPathObservation(unittest.TestCase):
-    def _make(self, path_type, kdf_ms=10.0, total_ms=20.0, outcome="success",
-              bytes_written=0, exception_raised=False):
+    def _make(
+        self,
+        path_type,
+        kdf_ms=10.0,
+        total_ms=20.0,
+        outcome="success",
+        bytes_written=0,
+        exception_raised=False,
+    ):
         return PathObservation(
             path_type=path_type,
             kdf_wall_ms=kdf_ms,
@@ -39,7 +46,9 @@ class TestPathObservation(unittest.TestCase):
         self.assertFalse(obs.exception_raised)
 
     def test_failed_path_marks_exception(self):
-        obs = self._make(RecoveryPath.FAILED, exception_raised=True, outcome="auth_failure")
+        obs = self._make(
+            RecoveryPath.FAILED, exception_raised=True, outcome="auth_failure"
+        )
         self.assertTrue(obs.exception_raised)
         self.assertEqual(obs.outcome, "auth_failure")
 
@@ -49,8 +58,12 @@ class TestObservabilityReport(unittest.TestCase):
         return ObservabilityReport(
             observations=[
                 PathObservation(RecoveryPath.NORMAL, 50.0, 60.0, "success", 256, False),
-                PathObservation(RecoveryPath.FAILED, 50.0, 51.0, "auth_failure", 0, True),
-                PathObservation(RecoveryPath.RESTRICTED, 50.0, 80.0, "restricted_clear", 768, False),
+                PathObservation(
+                    RecoveryPath.FAILED, 50.0, 51.0, "auth_failure", 0, True
+                ),
+                PathObservation(
+                    RecoveryPath.RESTRICTED, 50.0, 80.0, "restricted_clear", 768, False
+                ),
             ]
         )
 

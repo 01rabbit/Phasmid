@@ -41,7 +41,9 @@ class AIGateTemplateTests(unittest.TestCase):
                 clear=False,
             ):
                 seq = gate.get_auth_sequence(length=2)
-            self.assertEqual(seq, ["reference_dummy_matched", "reference_dummy_matched"])
+            self.assertEqual(
+                seq, ["reference_dummy_matched", "reference_dummy_matched"]
+            )
 
     def test_strict_mode_rejects_low_confidence_match(self):
         with tempfile.TemporaryDirectory() as tmp:

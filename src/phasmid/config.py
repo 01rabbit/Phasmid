@@ -13,9 +13,7 @@ ROLE_STATE_NAME = "roles.bin"
 # LUKS layer configuration
 PHASMID_LUKS_MODE = os.getenv("PHASMID_LUKS_MODE", "disabled")
 PHASMID_LUKS_CONTAINER = os.getenv("PHASMID_LUKS_CONTAINER", "/opt/phasmid/luks.img")
-PHASMID_LUKS_MOUNT_POINT = os.getenv(
-    "PHASMID_LUKS_MOUNT_POINT", "/mnt/phasmid-vault"
-)
+PHASMID_LUKS_MOUNT_POINT = os.getenv("PHASMID_LUKS_MOUNT_POINT", "/mnt/phasmid-vault")
 PHASMID_LUKS_ITER_TIME_MS = int(os.getenv("PHASMID_LUKS_ITER_TIME_MS", "2000"))
 
 

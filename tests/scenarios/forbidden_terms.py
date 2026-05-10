@@ -34,7 +34,10 @@ FORBIDDEN_IN_FIELD_MODE_HTML: list[tuple[str, str]] = [
     ("LOCAL_CLEAR", "Action phrase fragment — reveals restricted action model"),
     # Format version / internal format markers
     ("jes-v3", "Internal format marker — reveals vault format details"),
-    ("phasmid-record-v3", "Internal AAD prefix — reveals cryptographic record structure"),
+    (
+        "phasmid-record-v3",
+        "Internal AAD prefix — reveals cryptographic record structure",
+    ),
 ]
 
 # ---------------------------------------------------------------------------

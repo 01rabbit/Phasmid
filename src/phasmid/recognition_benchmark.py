@@ -14,6 +14,7 @@ Intended workflow:
   3. Load frames on any machine and run the benchmark.
   4. Record BenchmarkSummary values in the review validation record.
 """
+
 from __future__ import annotations
 
 import time
@@ -59,7 +60,9 @@ class ComparisonReport:
     accept_rate_delta: float = field(init=False)
 
     def __post_init__(self) -> None:
-        self.latency_delta_ms = self.candidate.latency_ms_mean - self.baseline.latency_ms_mean
+        self.latency_delta_ms = (
+            self.candidate.latency_ms_mean - self.baseline.latency_ms_mean
+        )
         self.inliers_delta = self.candidate.inliers_mean - self.baseline.inliers_mean
         self.accept_rate_delta = self.candidate.accept_rate - self.baseline.accept_rate
 

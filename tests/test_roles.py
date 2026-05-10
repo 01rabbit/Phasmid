@@ -35,6 +35,7 @@ class TestRoleStore(unittest.TestCase):
             store = self.make_store(tmp)
             store.configure_supervisor("passphrase-abc-123")
             from phasmid.config import ROLE_STATE_NAME
+
             self.assertTrue(os.path.exists(os.path.join(tmp, ROLE_STATE_NAME)))
 
     def test_configure_empty_passphrase_returns_false(self):
@@ -157,14 +158,17 @@ class TestRoleStore(unittest.TestCase):
     def test_hmac_compare_digest_true_for_identical(self):
         # SH-07: _constant_time_equal replaced by hmac.compare_digest
         import hmac
+
         self.assertTrue(hmac.compare_digest(b"abc", b"abc"))
 
     def test_hmac_compare_digest_false_for_different(self):
         import hmac
+
         self.assertFalse(hmac.compare_digest(b"abc", b"xyz"))
 
     def test_hmac_compare_digest_false_for_different_lengths(self):
         import hmac
+
         self.assertFalse(hmac.compare_digest(b"ab", b"abc"))
 
 

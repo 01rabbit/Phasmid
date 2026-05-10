@@ -16,6 +16,7 @@ Design constraints (do not change without updating the Issue spec):
     script runs (run_remote_perf.sh strips it before SSHing).
   - Partial failures are recorded and do not abort remaining phases.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -39,6 +40,7 @@ _TEST_DIR = _REPO_ROOT / "_pi_field_test"
 
 
 # ── Utility helpers ────────────────────────────────────────────────────────────
+
 
 def _utc_now() -> str:
     return datetime.datetime.utcnow().isoformat() + "Z"
@@ -77,7 +79,9 @@ def _git_commit() -> str:
     try:
         r = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True, text=True, cwd=str(_REPO_ROOT),
+            capture_output=True,
+            text=True,
+            cwd=str(_REPO_ROOT),
         )
         return r.stdout.strip() or "unknown"
     except Exception:
@@ -100,15 +104,24 @@ def _target_info() -> dict[str, object]:
         "python_version": sys.version.split()[0],
     }
     try:
-        out["hostname"] = subprocess.run(
-            ["hostname"], capture_output=True, text=True, check=False
-        ).stdout.strip() or None
-        out["kernel"] = subprocess.run(
-            ["uname", "-r"], capture_output=True, text=True, check=False
-        ).stdout.strip() or None
-        out["arch"] = subprocess.run(
-            ["uname", "-m"], capture_output=True, text=True, check=False
-        ).stdout.strip() or None
+        out["hostname"] = (
+            subprocess.run(
+                ["hostname"], capture_output=True, text=True, check=False
+            ).stdout.strip()
+            or None
+        )
+        out["kernel"] = (
+            subprocess.run(
+                ["uname", "-r"], capture_output=True, text=True, check=False
+            ).stdout.strip()
+            or None
+        )
+        out["arch"] = (
+            subprocess.run(
+                ["uname", "-m"], capture_output=True, text=True, check=False
+            ).stdout.strip()
+            or None
+        )
     except Exception:
         pass
     try:
@@ -122,6 +135,7 @@ def _target_info() -> dict[str, object]:
 
 
 # ── Phase D: Import-time baseline ─────────────────────────────────────────────
+
 
 def measure_imports() -> dict:
     modules = [
@@ -142,15 +156,24 @@ def measure_imports() -> dict:
         try:
             __import__(name)
             elapsed = time.perf_counter() - t0
-            results.append({"module": name, "status": "ok", "elapsed_s": round(elapsed, 4)})
+            results.append(
+                {"module": name, "status": "ok", "elapsed_s": round(elapsed, 4)}
+            )
         except Exception as exc:
             elapsed = time.perf_counter() - t0
-            results.append({"module": name, "status": "failed",
-                             "elapsed_s": round(elapsed, 4), "error": str(exc)})
+            results.append(
+                {
+                    "module": name,
+                    "status": "failed",
+                    "elapsed_s": round(elapsed, 4),
+                    "error": str(exc),
+                }
+            )
     return {"imports": results}
 
 
 # ── Phase E: CLI baseline ──────────────────────────────────────────────────────
+
 
 def measure_cli_baseline(state_dir: str) -> dict:
     env = {
@@ -163,8 +186,8 @@ def measure_cli_baseline(state_dir: str) -> dict:
     env.pop("PHASMID_TMPFS_STATE", None)
 
     commands = {
-        "help":         [_VENV_PHASMID, "--help"],
-        "doctor":       [_VENV_PHASMID, "doctor", "--no-tui"],
+        "help": [_VENV_PHASMID, "--help"],
+        "doctor": [_VENV_PHASMID, "doctor", "--no-tui"],
         "verify_state": [_VENV_PHASMID, "verify-state"],
     }
     results = {}
@@ -196,6 +219,7 @@ def measure_cli_baseline(state_dir: str) -> dict:
 # phasmid store / phasmid retrieve require a camera and CANNOT be used here.
 # PhasmidVault with mode="dummy" is the only supported headless path.
 
+
 def measure_vault_operations() -> dict:
     from phasmid.vault_core import PhasmidVault
 
@@ -213,8 +237,9 @@ def measure_vault_operations() -> dict:
         format_s = time.perf_counter() - t0
 
         t0 = time.perf_counter()
-        vault.store("bench-passphrase", payload, sequence,
-                    filename="bench.bin", mode="dummy")
+        vault.store(
+            "bench-passphrase", payload, sequence, filename="bench.bin", mode="dummy"
+        )
         store_s = time.perf_counter() - t0
 
         t0 = time.perf_counter()
@@ -223,9 +248,9 @@ def measure_vault_operations() -> dict:
 
         return {
             "vault_operations": {
-                "format_s":     round(format_s, 4),
-                "store_s":      round(store_s, 4),
-                "retrieve_s":   round(retrieve_s, 4),
+                "format_s": round(format_s, 4),
+                "store_s": round(store_s, 4),
+                "retrieve_s": round(retrieve_s, 4),
                 "roundtrip_ok": result == payload,
                 "payload_bytes": len(payload),
             }
@@ -233,6 +258,7 @@ def measure_vault_operations() -> dict:
 
 
 # ── Phase G: KDF timing ───────────────────────────────────────────────────────
+
 
 def measure_kdf(rounds: int = 3) -> dict:
     from phasmid.vault_core import PhasmidVault
@@ -249,25 +275,31 @@ def measure_kdf(rounds: int = 3) -> dict:
 
         for _ in range(rounds):
             t0 = time.perf_counter()
-            vault.store("bench-passphrase", b"x" * 256, sequence,
-                        filename="bench.bin", mode="dummy")
+            vault.store(
+                "bench-passphrase",
+                b"x" * 256,
+                sequence,
+                filename="bench.bin",
+                mode="dummy",
+            )
             vault.retrieve("bench-passphrase", sequence, mode="dummy")
             timings.append(time.perf_counter() - t0)
 
         return {
             "kdf_timing": {
-                "rounds":       rounds,
-                "min_s":        round(min(timings), 4),
-                "median_s":     round(statistics.median(timings), 4),
-                "max_s":        round(max(timings), 4),
+                "rounds": rounds,
+                "min_s": round(min(timings), 4),
+                "median_s": round(statistics.median(timings), 4),
+                "max_s": round(max(timings), 4),
                 "memory_cost_kib": vault.ARGON2_MEMORY_COST,
-                "iterations":   vault.ARGON2_ITERATIONS,
-                "lanes":        vault.ARGON2_LANES,
+                "iterations": vault.ARGON2_ITERATIONS,
+                "lanes": vault.ARGON2_LANES,
             }
         }
 
 
 # ── Phase H: Object-gate / ORB (synthetic frames) ─────────────────────────────
+
 
 def measure_object_gate() -> dict:
     try:
@@ -278,7 +310,7 @@ def measure_object_gate() -> dict:
         rng = np.random.default_rng(42)
         h, w = 240, 320
         reference = rng.integers(0, 256, (h, w, 3), dtype=np.uint8)
-        probes    = [rng.integers(0, 256, (h, w, 3), dtype=np.uint8) for _ in range(5)]
+        probes = [rng.integers(0, 256, (h, w, 3), dtype=np.uint8) for _ in range(5)]
 
         bench = RecognitionBenchmark()
         t0 = time.perf_counter()
@@ -291,17 +323,19 @@ def measure_object_gate() -> dict:
 
         return {
             "object_gate": {
-                "status":        "ok",
-                "method":        "orb",
-                "resolution":    f"{w}x{h}",
-                "frames":        len(probes),
-                "elapsed_s":     round(elapsed_s, 4),
-                "avg_frame_ms":  round(summary.latency_ms_mean, 2),
-                "p50_ms":        round(summary.latency_ms_p50, 2),
-                "p95_ms":        round(summary.latency_ms_p95, 2),
-                "accept_count":  summary.accept_count,
-                "note": ("Synthetic frames — compute cost only, "
-                         "no real recognition accuracy implied"),
+                "status": "ok",
+                "method": "orb",
+                "resolution": f"{w}x{h}",
+                "frames": len(probes),
+                "elapsed_s": round(elapsed_s, 4),
+                "avg_frame_ms": round(summary.latency_ms_mean, 2),
+                "p50_ms": round(summary.latency_ms_p50, 2),
+                "p95_ms": round(summary.latency_ms_p95, 2),
+                "accept_count": summary.accept_count,
+                "note": (
+                    "Synthetic frames — compute cost only, "
+                    "no real recognition accuracy implied"
+                ),
             }
         }
     except Exception as exc:
@@ -316,6 +350,7 @@ def measure_object_gate() -> dict:
 # Acceptance gate: max_timing_delta_ms < 5% of kdf_wall_time_ms.
 # If the gate fails, overall_status becomes "fail" regardless of other phases.
 
+
 def measure_coercion_path_timing(n: int = 5) -> dict:
     try:
         import argon2
@@ -324,7 +359,8 @@ def measure_coercion_path_timing(n: int = 5) -> dict:
 
         def _real_kdf(password: bytes, salt: bytes) -> bytes:
             return argon2.low_level.hash_secret_raw(
-                password, salt,
+                password,
+                salt,
                 time_cost=3,
                 memory_cost=65536,
                 parallelism=1,
@@ -337,34 +373,35 @@ def measure_coercion_path_timing(n: int = 5) -> dict:
         report = probe.measure_all(n=n)
         total_wall_s = time.perf_counter() - t0
 
-        max_delta_ms    = report.max_timing_delta_ms()
-        kdf_wall_ms     = (total_wall_s * 1000) / (n * 3)  # 3 paths measured
-        threshold_ms    = kdf_wall_ms * 0.05
-        gate_passed     = max_delta_ms < threshold_ms
+        max_delta_ms = report.max_timing_delta_ms()
+        kdf_wall_ms = (total_wall_s * 1000) / (n * 3)  # 3 paths measured
+        threshold_ms = kdf_wall_ms * 0.05
+        gate_passed = max_delta_ms < threshold_ms
 
         return {
             "coercion_path_timing": {
-                "status":                  "ok",
-                "max_timing_delta_ms":     round(max_delta_ms, 4),
-                "kdf_wall_time_ms":        round(kdf_wall_ms, 2),
-                "gate_threshold_ms":       round(threshold_ms, 4),
-                "gate_passed":             gate_passed,
-                "n_rounds":                n,
-                "paths_with_fs_writes":    report.paths_with_filesystem_writes(),
-                "summary":                 report.summary(),
+                "status": "ok",
+                "max_timing_delta_ms": round(max_delta_ms, 4),
+                "kdf_wall_time_ms": round(kdf_wall_ms, 2),
+                "gate_threshold_ms": round(threshold_ms, 4),
+                "gate_passed": gate_passed,
+                "n_rounds": n,
+                "paths_with_fs_writes": report.paths_with_filesystem_writes(),
+                "summary": report.summary(),
             }
         }
     except Exception as exc:
         return {
             "coercion_path_timing": {
-                "status":      "failed",
-                "error":       str(exc),
+                "status": "failed",
+                "error": str(exc),
                 "gate_passed": False,
             }
         }
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -375,7 +412,7 @@ def main() -> None:
         default=str(_TEST_DIR / "results"),
         help="Directory to write perf-results.json",
     )
-    parser.add_argument("--kdf-rounds",   type=int, default=3)
+    parser.add_argument("--kdf-rounds", type=int, default=3)
     parser.add_argument("--probe-rounds", type=int, default=5)
     args = parser.parse_args()
 
@@ -386,20 +423,20 @@ def main() -> None:
     Path(state_dir).mkdir(parents=True, exist_ok=True)
 
     output: dict = {
-        "timestamp":               _utc_now(),
-        "host_info":               _host_info(),
-        "target_info":             _target_info(),
-        "git_commit":              _git_commit(),
-        "timings":                 {},
-        "memory":                  {},
-        "temperature":             {},
-        "swap_enabled":            _swap_enabled(),
-        "temperature_before_c":    _temp_c(),
+        "timestamp": _utc_now(),
+        "host_info": _host_info(),
+        "target_info": _target_info(),
+        "git_commit": _git_commit(),
+        "timings": {},
+        "memory": {},
+        "temperature": {},
+        "swap_enabled": _swap_enabled(),
+        "temperature_before_c": _temp_c(),
         "mem_available_before_kb": _mem_available_kb(),
-        "test_phase_results":      {},
-        "failures":                [],
-        "warnings":                [],
-        "overall_status":          "unknown",
+        "test_phase_results": {},
+        "failures": [],
+        "warnings": [],
+        "overall_status": "unknown",
     }
 
     if output["swap_enabled"]:
@@ -409,12 +446,15 @@ def main() -> None:
         )
 
     phases = [
-        ("imports",              measure_imports),
-        ("cli_baseline",         lambda: measure_cli_baseline(state_dir)),
-        ("vault_operations",     measure_vault_operations),
-        ("kdf_timing",           lambda: measure_kdf(args.kdf_rounds)),
-        ("object_gate",          measure_object_gate),
-        ("coercion_path_timing", lambda: measure_coercion_path_timing(args.probe_rounds)),
+        ("imports", measure_imports),
+        ("cli_baseline", lambda: measure_cli_baseline(state_dir)),
+        ("vault_operations", measure_vault_operations),
+        ("kdf_timing", lambda: measure_kdf(args.kdf_rounds)),
+        ("object_gate", measure_object_gate),
+        (
+            "coercion_path_timing",
+            lambda: measure_coercion_path_timing(args.probe_rounds),
+        ),
     ]
 
     for phase_name, fn in phases:
@@ -444,10 +484,14 @@ def main() -> None:
             output["timings"][phase_name] = round(time.perf_counter() - phase_t0, 4)
             output["memory"][f"{phase_name}_before_kb"] = mem_before
             output["temperature"][f"{phase_name}_before_c"] = temp_before
-            print(f"[run_local_perf] phase={phase_name} FAILED: {exc}", file=sys.stderr, flush=True)
+            print(
+                f"[run_local_perf] phase={phase_name} FAILED: {exc}",
+                file=sys.stderr,
+                flush=True,
+            )
             traceback.print_exc(file=sys.stderr)
 
-    output["temperature_after_c"]    = _temp_c()
+    output["temperature_after_c"] = _temp_c()
     output["mem_available_after_kb"] = _mem_available_kb()
 
     # Coercion-path gate failure forces overall_status to fail.
@@ -455,13 +499,15 @@ def main() -> None:
     if cpt.get("gate_passed") is False:
         delta = cpt.get("max_timing_delta_ms", "?")
         threshold = cpt.get("gate_threshold_ms", "?")
-        output["failures"].append({
-            "phase": "coercion_path_timing",
-            "error": (
-                f"TIMING GATE FAILED: delta={delta}ms exceeds threshold={threshold}ms. "
-                "FAILED/RESTRICTED paths may be timing-distinguishable on this hardware."
-            ),
-        })
+        output["failures"].append(
+            {
+                "phase": "coercion_path_timing",
+                "error": (
+                    f"TIMING GATE FAILED: delta={delta}ms exceeds threshold={threshold}ms. "
+                    "FAILED/RESTRICTED paths may be timing-distinguishable on this hardware."
+                ),
+            }
+        )
 
     any_fail = any(v == "fail" for v in output["test_phase_results"].values())
     output["overall_status"] = "fail" if any_fail else "pass"

@@ -23,8 +23,7 @@ class DoctorCheck:
 class DoctorResult:
     checks: list[DoctorCheck] = field(default_factory=list)
     disclaimer: str = (
-        "This check reduces obvious mistakes. "
-        "It does not certify the host as secure."
+        "This check reduces obvious mistakes. It does not certify the host as secure."
     )
 
     @property

@@ -100,9 +100,7 @@ class TestVolatileStateSummary(unittest.TestCase):
         self.assertIn("message", s)
 
     def test_configured_and_missing_summary(self):
-        with mock.patch.dict(
-            os.environ, {"PHASMID_TMPFS_STATE": "/nonexistent/abc"}
-        ):
+        with mock.patch.dict(os.environ, {"PHASMID_TMPFS_STATE": "/nonexistent/abc"}):
             s = volatile_state_summary()
         self.assertTrue(s["configured"])
         self.assertFalse(s["path_accessible"])
@@ -114,7 +112,10 @@ class TestStateDirIntegration(unittest.TestCase):
 
         with mock.patch.dict(
             os.environ,
-            {"PHASMID_TMPFS_STATE": "/run/phasmid-keys", "PHASMID_STATE_DIR": "/var/lib/phasmid"},
+            {
+                "PHASMID_TMPFS_STATE": "/run/phasmid-keys",
+                "PHASMID_STATE_DIR": "/var/lib/phasmid",
+            },
         ):
             self.assertEqual(state_dir(), "/run/phasmid-keys")
 

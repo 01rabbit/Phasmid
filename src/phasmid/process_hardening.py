@@ -12,6 +12,7 @@ This module does NOT protect against:
 
 These limits apply regardless of whether every hardening step succeeds.
 """
+
 from __future__ import annotations
 
 import os

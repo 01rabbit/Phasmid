@@ -63,14 +63,12 @@ def evaluate_dummy_profile(
 
     warnings: list[str] = []
     if file_count < max(0, min_file_count):
-        warnings.append(
-            "dummy profile file count is below configured minimum"
-        )
+        warnings.append("dummy profile file count is below configured minimum")
     if dummy_size_bytes < min_size_bytes:
-        warnings.append(
-            "dummy profile size is below configured minimum"
-        )
-    if container_size_bytes > 0 and occupancy_ratio < max(0.0, occupancy_warn_threshold):
+        warnings.append("dummy profile size is below configured minimum")
+    if container_size_bytes > 0 and occupancy_ratio < max(
+        0.0, occupancy_warn_threshold
+    ):
         warnings.append(
             "dummy profile size is disproportionately small relative to the local container"
         )

@@ -29,7 +29,7 @@ class PiScriptTests(unittest.TestCase):
         self.assertIn("Stage E: MJPEG validation", text)
         self.assertIn("Stage F: cleanup and camera release", text)
         self.assertIn("python -m uvicorn phasmid.web_server:app", text)
-        self.assertIn("curl -fsS \"$FEED_URL\" --max-time 5", text)
+        self.assertIn('curl -fsS "$FEED_URL" --max-time 5', text)
 
     def test_luks_probe_script_exists_and_has_required_checks(self):
         script = ROOT / "scripts" / "pi_zero2w" / "run_luks_probe.sh"
@@ -47,7 +47,7 @@ class PiScriptTests(unittest.TestCase):
         text = script.read_text(encoding="utf-8")
         self.assertIn("Phase J: LUKS calibration probe", text)
         self.assertIn("run_luks_probe.sh", text)
-        self.assertIn("phase_ok \"luks\"", text)
+        self.assertIn('phase_ok "luks"', text)
 
     def test_luks_eval_module_and_profile_exist(self):
         eval_script = ROOT / "scripts" / "pi_zero2w" / "luks_eval.py"

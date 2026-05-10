@@ -4,7 +4,8 @@ Add Raspberry Pi Zero 2 W Remote Field Test Harness
 
 > **Tracking**: This issue is the parent specification for the implementation track
 > documented in `AGENTS.md` as issues #89–#94. The phased implementation issues
-> (`#90` through `#94`) each correspond to one Phase defined in this document.
+> (`#90` through `#94`) correspond to the five implementation phases defined in
+> this document.
 
 ## Background
 
@@ -171,7 +172,7 @@ The harness must:
 - document that this variable must remain unset during field test runs unless the operator has provisioned the tmpfs mount;
 - include a pre-flight check that warns if `PHASMID_TMPFS_STATE` is set and the path does not exist on the Pi before any test starts.
 
-### Blocker 4: `phasmid doctor` behavior in non-interactive SSH sessions
+### Blocker 6: `phasmid doctor` behavior in non-interactive SSH sessions
 
 The `doctor` command routes to non-TUI mode automatically when `sys.stdout.isatty()` returns `False`. This is correct behavior in SSH contexts and means `phasmid doctor` should print to stdout without a TUI when called non-interactively. However, to guarantee non-TUI output regardless of how the session is set up, use the explicit flag:
 
@@ -250,9 +251,11 @@ Required outcomes:
 - WebUI startup and shutdown are probed locally on the Pi;
 - TUI viability is checked conservatively without requiring full automation.
 
-### Phase 5: Field Workflow Smoke Tests, Observable Surface Review, and Monitoring
+### Phase 5: Field Workflow Smoke Tests, Observable Surface Review, Monitoring, and Reporting
 
-Deliver bounded workflow testing, observable information surface checks, and thermal/resource capture around major phases.
+Deliver bounded workflow testing, observable information surface checks,
+thermal/resource capture around major phases, and final structured reporting
+outputs.
 
 Required outcomes:
 
@@ -261,13 +264,6 @@ Required outcomes:
 - temperature, memory, disk, and load measurements are captured before and after major phases;
 - orphan process detection is included for WebUI-related phases;
 - swap and storage configuration state is recorded.
-
-### Phase 6: Reports, Documentation, and Reviewability
-
-Deliver final structured artifacts and operator documentation.
-
-Required outcomes:
-
 - `perf-results.json` is written with complete schema coverage where possible;
 - `perf-report.md` summarizes viability, bottlenecks, warnings, and next actions;
 - timing-delta acceptance gate outcome is prominently reported;

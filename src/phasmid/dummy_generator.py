@@ -149,7 +149,9 @@ def _generate_csv_content(target_bytes: int) -> bytes:
     while total < target_bytes:
         row_id = str(_urandom_int(1, 9999)).encode()
         name = b"item_" + _random_alnum_bytes(6)
-        status = b"active" if (int.from_bytes(os.urandom(1), "little") > 76) else b"inactive"
+        status = (
+            b"active" if (int.from_bytes(os.urandom(1), "little") > 76) else b"inactive"
+        )
         value = f"{_urandom_int(0, 100000) / 100:.2f}".encode()
         row = row_id + b"," + name + b"," + status + b"," + value + b"\n"
         rows.append(row)
@@ -239,7 +241,9 @@ def _write_local_evaluation_report(
         "file_count": file_count,
         "size_distribution": size_distribution,
     }
-    report_path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+    report_path.write_text(
+        json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8"
+    )
     return report_path
 
 

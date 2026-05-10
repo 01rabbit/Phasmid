@@ -105,7 +105,7 @@ class ContextProfileSelectorScreen(OperatorScreen):
             return
         item_id = event.item.id or ""
         if item_id.startswith("profile-"):
-            name = item_id[len("profile-"):]
+            name = item_id[len("profile-") :]
             self._selected_profile = name
             self._update_detail(name)
 

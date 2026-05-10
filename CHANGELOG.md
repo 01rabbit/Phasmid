@@ -9,6 +9,18 @@ and this project follows SemVer-style release intent for documented interfaces.
 
 No unreleased entries.
 
+## [0.1.4] - 2026-05-10
+
+### Changed
+
+- Project guidance documents synchronized after issue-track completion, including AGENTS status updates and readiness-plan consistency fixes.
+- Repository-wide Python formatting refactor applied across `src/`, `tests/`, and `scripts/` using Ruff formatter.
+- README and Pi Zero 2 W workflow documentation cleaned up for duplicate or stale status wording.
+
+### Security
+
+- Existing local-only boundary, restricted-action constraints, and neutral capture-visible language policies were preserved during refactor and documentation consolidation.
+
 ## [0.1.3] - 2026-05-10
 
 ### Added

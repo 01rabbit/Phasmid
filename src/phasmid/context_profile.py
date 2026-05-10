@@ -35,7 +35,9 @@ class ContextProfile:
         if max_bytes < min_bytes:
             warnings.append("expected_size_range maximum is less than minimum")
         if max_bytes < 1024 * 1024:
-            warnings.append("expected_size_range maximum is below 1 MiB — unusually small")
+            warnings.append(
+                "expected_size_range maximum is below 1 MiB — unusually small"
+            )
         if self.min_file_count < 1:
             warnings.append("min_file_count is zero — container will appear empty")
         if self.occupancy_ratio_warn < 0.05:
@@ -43,7 +45,9 @@ class ContextProfile:
                 "occupancy_ratio_warn is below 5% — extremely low occupancy may appear suspicious"
             )
         if not self.dummy_content_types:
-            warnings.append("no dummy_content_types defined — container will have no file guidance")
+            warnings.append(
+                "no dummy_content_types defined — container will have no file guidance"
+            )
         return warnings
 
 
@@ -196,7 +200,9 @@ def validate_against_profile(
             )
 
     if dummy_size_bytes == 0:
-        warnings.append("dummy dataset is empty — disclosure will appear trivially empty")
+        warnings.append(
+            "dummy dataset is empty — disclosure will appear trivially empty"
+        )
 
     return ProfileValidationResult(
         profile_name=profile.profile_name,

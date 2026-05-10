@@ -32,11 +32,17 @@ class ObjectCuePolicyGate:
 
     VALID_STATES = {"none", "detected", "matched", "ambiguous"}
 
-    def __init__(self, *, required_stable_frames: int = 3, sequence_timeout_frames: int = 8):
+    def __init__(
+        self, *, required_stable_frames: int = 3, sequence_timeout_frames: int = 8
+    ):
         self.required_stable_frames = max(1, int(required_stable_frames))
-        self.sequence_timeout_frames = max(self.required_stable_frames, int(sequence_timeout_frames))
+        self.sequence_timeout_frames = max(
+            self.required_stable_frames, int(sequence_timeout_frames)
+        )
 
-    def evaluate(self, frames: list[CueFrameSignal], expected_sequence: list[str] | None = None) -> CuePolicyResult:
+    def evaluate(
+        self, frames: list[CueFrameSignal], expected_sequence: list[str] | None = None
+    ) -> CuePolicyResult:
         if not frames:
             return CuePolicyResult(
                 sequence_state="idle",
@@ -81,7 +87,9 @@ class ObjectCuePolicyGate:
             reason="insufficient_stability",
         )
 
-    def _evaluate_sequence(self, frames: list[CueFrameSignal], expected_sequence: list[str]) -> CuePolicyResult:
+    def _evaluate_sequence(
+        self, frames: list[CueFrameSignal], expected_sequence: list[str]
+    ) -> CuePolicyResult:
         if not expected_sequence:
             return CuePolicyResult(
                 sequence_state="idle",
@@ -130,6 +138,10 @@ class ObjectCuePolicyGate:
         return count
 
     def _normalize(self, frame: CueFrameSignal) -> CueFrameSignal:
-        state = frame.object_state if frame.object_state in self.VALID_STATES else "none"
+        state = (
+            frame.object_state if frame.object_state in self.VALID_STATES else "none"
+        )
         token = frame.token.strip()
-        return CueFrameSignal(object_state=state, relation_ok=bool(frame.relation_ok), token=token)
+        return CueFrameSignal(
+            object_state=state, relation_ok=bool(frame.relation_ok), token=token
+        )

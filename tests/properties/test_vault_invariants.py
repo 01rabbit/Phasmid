@@ -68,6 +68,7 @@ small_payload = st.binary(min_size=1, max_size=512)
 # Roundtrip encryption invariant
 # ---------------------------------------------------------------------------
 
+
 class TestInvariantRoundtrip(unittest.TestCase):
     """Encrypt → decrypt must return the original plaintext for any key/nonce."""
 
@@ -76,8 +77,12 @@ class TestInvariantRoundtrip(unittest.TestCase):
         payload=small_payload,
         aad=st.binary(min_size=0, max_size=64),
     )
-    @settings(max_examples=200, deadline=5000, suppress_health_check=[HealthCheck.too_slow])
-    def test_invariant_encrypt_decrypt_roundtrip(self, key: bytes, payload: bytes, aad: bytes):
+    @settings(
+        max_examples=200, deadline=5000, suppress_health_check=[HealthCheck.too_slow]
+    )
+    def test_invariant_encrypt_decrypt_roundtrip(
+        self, key: bytes, payload: bytes, aad: bytes
+    ):
         """AES-GCM roundtrip must recover original plaintext for any valid key."""
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
@@ -91,8 +96,12 @@ class TestInvariantRoundtrip(unittest.TestCase):
         key=st.binary(min_size=AESGCM_KEY_SIZE, max_size=AESGCM_KEY_SIZE),
         payload=small_payload,
     )
-    @settings(max_examples=100, deadline=5000, suppress_health_check=[HealthCheck.too_slow])
-    def test_invariant_wrong_nonce_fails_authentication(self, key: bytes, payload: bytes):
+    @settings(
+        max_examples=100, deadline=5000, suppress_health_check=[HealthCheck.too_slow]
+    )
+    def test_invariant_wrong_nonce_fails_authentication(
+        self, key: bytes, payload: bytes
+    ):
         """Decryption with a different nonce must raise InvalidTag."""
         from cryptography.exceptions import InvalidTag
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -109,6 +118,7 @@ class TestInvariantRoundtrip(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Monotonic failure counter invariant
 # ---------------------------------------------------------------------------
+
 
 class TestInvariantFailureCounter(unittest.TestCase):
     """AttemptLimiter failure count must be monotonically non-decreasing."""
@@ -146,6 +156,7 @@ class TestInvariantFailureCounter(unittest.TestCase):
 # Container size invariant
 # ---------------------------------------------------------------------------
 
+
 class TestInvariantContainerSize(unittest.TestCase):
     """vault.bin file size must not change after store, retrieve, or brick."""
 
@@ -153,13 +164,18 @@ class TestInvariantContainerSize(unittest.TestCase):
     @settings(
         max_examples=10,
         deadline=30000,
-        suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture],
+        suppress_health_check=[
+            HealthCheck.too_slow,
+            HealthCheck.function_scoped_fixture,
+        ],
     )
     def test_invariant_container_size_unchanged_after_store(self, payload: bytes):
         with tempfile.TemporaryDirectory() as tmp:
             vault = _make_vault(tmp)
             size_before = os.path.getsize(vault.path)
-            vault.store("pw-12345678", payload, ["ref_matched"], filename="f.bin", mode="dummy")
+            vault.store(
+                "pw-12345678", payload, ["ref_matched"], filename="f.bin", mode="dummy"
+            )
             size_after = os.path.getsize(vault.path)
             self.assertEqual(size_before, size_after)
 
@@ -167,12 +183,17 @@ class TestInvariantContainerSize(unittest.TestCase):
     @settings(
         max_examples=10,
         deadline=30000,
-        suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture],
+        suppress_health_check=[
+            HealthCheck.too_slow,
+            HealthCheck.function_scoped_fixture,
+        ],
     )
     def test_invariant_container_size_unchanged_after_brick(self, payload: bytes):
         with tempfile.TemporaryDirectory() as tmp:
             vault = _make_vault(tmp)
-            vault.store("pw-12345678", payload, ["ref_matched"], filename="f.bin", mode="dummy")
+            vault.store(
+                "pw-12345678", payload, ["ref_matched"], filename="f.bin", mode="dummy"
+            )
             size_before = os.path.getsize(vault.path)
             vault.silent_brick()
             size_after = os.path.getsize(vault.path)
@@ -182,6 +203,7 @@ class TestInvariantContainerSize(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Wrong-password invariant
 # ---------------------------------------------------------------------------
+
 
 class TestInvariantWrongPassword(unittest.TestCase):
     """Any wrong password must return (None, None) — no partial plaintext leak."""
@@ -193,7 +215,10 @@ class TestInvariantWrongPassword(unittest.TestCase):
     @settings(
         max_examples=10,
         deadline=30000,
-        suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture],
+        suppress_health_check=[
+            HealthCheck.too_slow,
+            HealthCheck.function_scoped_fixture,
+        ],
     )
     def test_invariant_wrong_password_returns_none(
         self, correct_pw: str, wrong_pw: str

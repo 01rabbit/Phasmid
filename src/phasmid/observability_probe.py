@@ -28,6 +28,7 @@ Usage
     for r in results:
         print(r.path_type, r.kdf_wall_ms, r.total_wall_ms, r.outcome)
 """
+
 from __future__ import annotations
 
 import os
@@ -91,7 +92,9 @@ class ObservabilityReport:
         return max(times) - min(times) if len(times) > 1 else 0.0
 
     def paths_with_filesystem_writes(self) -> list[str]:
-        return [obs.path_type.value for obs in self.observations if obs.bytes_written > 0]
+        return [
+            obs.path_type.value for obs in self.observations if obs.bytes_written > 0
+        ]
 
 
 class ObservabilityProbe:

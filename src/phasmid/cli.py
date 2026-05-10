@@ -213,7 +213,9 @@ def _print_operation_report(report):
     status_style = (
         "green"
         if report["status"] in ok_statuses
-        else "yellow" if report["status"] == "attention" else "red"
+        else "yellow"
+        if report["status"] == "attention"
+        else "red"
     )
     console.print(
         Panel(

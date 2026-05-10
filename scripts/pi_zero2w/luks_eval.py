@@ -20,14 +20,18 @@ class Measurement:
     luks_format_ok: bool
     luks_open_ok: bool
 
-    def to_dict(self, format_min_ms: int, format_max_ms: int, open_max_ms: int) -> dict[str, object]:
+    def to_dict(
+        self, format_min_ms: int, format_max_ms: int, open_max_ms: int
+    ) -> dict[str, object]:
         d: dict[str, object] = {
             "iter_time_ms": self.iter_time_ms,
             "luks_format_ms": self.luks_format_ms,
             "luks_open_ms": self.luks_open_ms,
             "luks_format_ok": self.luks_format_ok,
             "luks_open_ok": self.luks_open_ok,
-            "luks_format_in_range": format_min_ms <= self.luks_format_ms <= format_max_ms,
+            "luks_format_in_range": format_min_ms
+            <= self.luks_format_ms
+            <= format_max_ms,
             "luks_open_in_range": self.luks_open_ms < open_max_ms,
         }
         d["acceptable"] = (
@@ -54,7 +58,9 @@ def classify_device_tier(cpu_model: str, arch: str) -> str:
     return "Tier-B"
 
 
-def parse_aes_xts_throughput(benchmark_output: str) -> tuple[float | None, float | None]:
+def parse_aes_xts_throughput(
+    benchmark_output: str,
+) -> tuple[float | None, float | None]:
     pat = re.compile(
         r"aes-xts\s+256b\s+([0-9]+(?:\.[0-9]+)?)\s+MiB/s\s+([0-9]+(?:\.[0-9]+)?)\s+MiB/s"
     )
@@ -133,7 +139,9 @@ def recommend_iter(
     if not open_ok:
         return None, "no candidate achieved successful open"
     closest = min(open_ok, key=lambda m: abs(float(m["luks_format_ms"]) - 4000.0))
-    return int(closest["iter_time_ms"]), "closest format time to upper acceptance bound with successful open"
+    return int(
+        closest["iter_time_ms"]
+    ), "closest format time to upper acceptance bound with successful open"
 
 
 def evaluate_status(
@@ -170,7 +178,9 @@ def main() -> int:
     ap.add_argument("--kernel", required=True)
     ap.add_argument("--arch", required=True)
     ap.add_argument("--hostname", required=True)
-    ap.add_argument("--aes-instruction-present", choices=["true", "false"], required=True)
+    ap.add_argument(
+        "--aes-instruction-present", choices=["true", "false"], required=True
+    )
     ap.add_argument("--dm-crypt-loadable", choices=["true", "false"], required=True)
     ap.add_argument("--cryptsetup-available", choices=["true", "false"], required=True)
     ap.add_argument("--benchmark-ok", choices=["true", "false"], required=True)
@@ -201,8 +211,14 @@ def main() -> int:
     ordered = sorted(raw, key=lambda m: m.iter_time_ms, reverse=True)
     ms = [m.to_dict(format_min_ms, format_max_ms, open_max_ms) for m in ordered]
 
-    requested = next((m for m in ms if int(m["iter_time_ms"]) == args.requested_iter), None)
-    bench = Path(args.benchmark_output).read_text(encoding="utf-8") if Path(args.benchmark_output).exists() else ""
+    requested = next(
+        (m for m in ms if int(m["iter_time_ms"]) == args.requested_iter), None
+    )
+    bench = (
+        Path(args.benchmark_output).read_text(encoding="utf-8")
+        if Path(args.benchmark_output).exists()
+        else ""
+    )
     enc_mibs, dec_mibs = parse_aes_xts_throughput(bench)
 
     tier = classify_device_tier(args.cpu_model, args.arch)
@@ -213,7 +229,9 @@ def main() -> int:
         dec_mibs,
     )
 
-    plateau_detected, format_improvement_ratio, open_improvement_ratio = compute_plateau(ms)
+    plateau_detected, format_improvement_ratio, open_improvement_ratio = (
+        compute_plateau(ms)
+    )
     recommended_iter, basis = recommend_iter(ms, profile, tier)
     selected = (
         next((m for m in ms if int(m["iter_time_ms"]) == int(recommended_iter)), None)
@@ -236,7 +254,9 @@ def main() -> int:
         "device_tier": tier,
         "iter_time_ms_requested": args.requested_iter,
         "recommended_iter_time_ms": recommended_iter,
-        "selected_iter_for_evaluation_ms": int(recommended_iter) if recommended_iter is not None else None,
+        "selected_iter_for_evaluation_ms": int(recommended_iter)
+        if recommended_iter is not None
+        else None,
         "recommendation_basis": basis,
         "cipher": args.cipher,
         "key_size": args.key_size,
@@ -259,33 +279,49 @@ def main() -> int:
         "open_improvement_ratio": open_improvement_ratio,
         "operational_unlock_status": (
             "acceptable"
-            if selected and bool(selected["luks_open_ok"]) and bool(selected["luks_open_in_range"])
+            if selected
+            and bool(selected["luks_open_ok"])
+            and bool(selected["luks_open_in_range"])
             else "attention"
         ),
         "acceptance": {
             "luks_format_range_ms": [format_min_ms, format_max_ms],
             "luks_open_max_ms": open_max_ms,
             "evaluation_based_on": (
-                "recommended_iter"
-                if selected is not None
-                else "requested_iter"
+                "recommended_iter" if selected is not None else "requested_iter"
             ),
             "requested_iter": {
                 "iter_time_ms": int(requested["iter_time_ms"]) if requested else None,
-                "luks_format_in_range": bool(requested["luks_format_in_range"]) if requested else False,
-                "luks_open_in_range": bool(requested["luks_open_in_range"]) if requested else False,
-                "luks_format_ok": bool(requested["luks_format_ok"]) if requested else False,
+                "luks_format_in_range": bool(requested["luks_format_in_range"])
+                if requested
+                else False,
+                "luks_open_in_range": bool(requested["luks_open_in_range"])
+                if requested
+                else False,
+                "luks_format_ok": bool(requested["luks_format_ok"])
+                if requested
+                else False,
                 "luks_open_ok": bool(requested["luks_open_ok"]) if requested else False,
             },
             "selected_iter": {
                 "iter_time_ms": int(selected["iter_time_ms"]) if selected else None,
-                "luks_format_in_range": bool(selected["luks_format_in_range"]) if selected else False,
-                "luks_open_in_range": bool(selected["luks_open_in_range"]) if selected else False,
-                "luks_format_ok": bool(selected["luks_format_ok"]) if selected else False,
+                "luks_format_in_range": bool(selected["luks_format_in_range"])
+                if selected
+                else False,
+                "luks_open_in_range": bool(selected["luks_open_in_range"])
+                if selected
+                else False,
+                "luks_format_ok": bool(selected["luks_format_ok"])
+                if selected
+                else False,
                 "luks_open_ok": bool(selected["luks_open_ok"]) if selected else False,
             },
-            "luks_format_in_range": bool(requested["luks_format_in_range"]) if requested else False,
-            "luks_open_in_range": bool(requested["luks_open_in_range"]) if requested else False,
+            "luks_format_in_range": bool(requested["luks_format_in_range"])
+            if requested
+            else False,
+            "luks_open_in_range": bool(requested["luks_open_in_range"])
+            if requested
+            else False,
             "aes_required_met": aes_status in {"confirmed", "inferred"},
             "dm_crypt_required_met": args.dm_crypt_loadable == "true",
         },

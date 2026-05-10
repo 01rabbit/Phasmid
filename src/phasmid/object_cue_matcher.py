@@ -116,13 +116,9 @@ class ObjectCueMatcher:
             return None
 
         src_points: Any = [ref_kp[m.queryIdx].pt for m in good_matches]
-        src_pts = cast(Any, np.float32(src_points)).reshape(
-            -1, 1, 2
-        )
+        src_pts = cast(Any, np.float32(src_points)).reshape(-1, 1, 2)
         dst_points: Any = [kp[m.trainIdx].pt for m in good_matches]
-        dst_pts = cast(Any, np.float32(dst_points)).reshape(
-            -1, 1, 2
-        )
+        dst_pts = cast(Any, np.float32(dst_points)).reshape(-1, 1, 2)
         homography, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
         if homography is None or mask is None:
             return None

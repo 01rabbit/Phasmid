@@ -27,7 +27,11 @@ class AccessCueService:
 
     def latest_frame_copy(self):
         with self.gate.lock:
-            return None if self.gate.latest_frame is None else self.gate.latest_frame.copy()
+            return (
+                None
+                if self.gate.latest_frame is None
+                else self.gate.latest_frame.copy()
+            )
 
     def camera_ready(self):
         return bool(self.gate.get_status().get("camera_ready"))

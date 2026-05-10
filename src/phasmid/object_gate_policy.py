@@ -117,9 +117,7 @@ class ObjectGatePolicy:
             attempted_frames=attempted_frames,
             elapsed_ms=elapsed_ms,
             reason_code=(
-                "model_reject"
-                if model_result.state == "rejected"
-                else "unstable_match"
+                "model_reject" if model_result.state == "rejected" else "unstable_match"
             ),
         )
 
