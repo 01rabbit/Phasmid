@@ -1,5 +1,5 @@
-import os
 import json
+import os
 import sys
 import tempfile
 import time
@@ -10,6 +10,7 @@ from unittest import mock
 ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
+from phasmid import config
 from phasmid.approval_flow import (
     DUAL_APPROVAL_ACTIONS,
     ApprovalFlowResult,
@@ -17,7 +18,6 @@ from phasmid.approval_flow import (
     ApprovalRequest,
     DualApprovalGate,
 )
-from phasmid import config
 from phasmid.roles import RoleStore
 from phasmid.state_store import LocalStateStore, StateRecord, StateStoreError
 
