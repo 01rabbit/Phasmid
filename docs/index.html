@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Phasmid is a local-only coercion-aware storage research prototype and the reference implementation of the Janus Eidolon System.">
+  <meta property="og:title" content="Phasmid — Janus Eidolon System">
+  <meta property="og:description" content="A local-only coercion-aware storage research prototype for controlled disclosure experiments.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="../images/Phasmid_banner.jpg">
+  <title>Phasmid — Janus Eidolon System</title>
+  <style>
+    :root {
+      --bg: #080a0f;
+      --panel: #101522;
+      --panel-2: #151d2c;
+      --text: #eef3ff;
+      --muted: #aab6cc;
+      --line: rgba(255,255,255,.12);
+      --accent: #91d6c3;
+      --accent-2: #c7a5ff;
+      --warn: #ffcf7a;
+      --shadow: 0 24px 80px rgba(0,0,0,.45);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 20% 0%, rgba(145,214,195,.14), transparent 32%),
+                  radial-gradient(circle at 85% 10%, rgba(199,165,255,.13), transparent 30%),
+                  var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { width: min(1120px, calc(100% - 40px)); margin: 0 auto; }
+    header { padding: 22px 0; border-bottom: 1px solid var(--line); position: sticky; top: 0; backdrop-filter: blur(16px); background: rgba(8,10,15,.74); z-index: 10; }
+    nav { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .brand { font-weight: 800; letter-spacing: .04em; }
+    .links { display: flex; gap: 18px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+    .hero { padding: 88px 0 48px; }
+    .hero-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 40px; align-items: center; }
+    .eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: .16em; font-size: 13px; font-weight: 700; }
+    h1 { font-size: clamp(44px, 7vw, 82px); line-height: .95; margin: 18px 0; letter-spacing: -.06em; }
+    .lead { font-size: clamp(18px, 2.3vw, 24px); color: var(--muted); max-width: 760px; }
+    .actions { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 30px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 18px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,.04); color: var(--text); font-weight: 700; }
+    .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #08100e; border: none; }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03)); border: 1px solid var(--line); border-radius: 28px; padding: 26px; box-shadow: var(--shadow); }
+    .hero-card img { width: 100%; border-radius: 20px; border: 1px solid var(--line); display: block; }
+    .tagrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+    .tag { border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; color: var(--muted); font-size: 13px; }
+    section { padding: 48px 0; }
+    h2 { font-size: clamp(28px, 4vw, 44px); line-height: 1.1; letter-spacing: -.04em; margin: 0 0 16px; }
+    .section-lead { color: var(--muted); max-width: 780px; margin-bottom: 24px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    .mini h3 { margin: 0 0 8px; font-size: 20px; }
+    .mini p { margin: 0; color: var(--muted); }
+    .terminal { background: #05070b; border: 1px solid var(--line); border-radius: 18px; padding: 18px; overflow-x: auto; color: #d9fce9; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .warning { border-color: rgba(255,207,122,.34); background: rgba(255,207,122,.08); }
+    .warning strong { color: var(--warn); }
+    footer { padding: 42px 0 64px; color: var(--muted); border-top: 1px solid var(--line); margin-top: 32px; }
+    @media (max-width: 860px) {
+      .hero-grid, .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      header { position: static; }
+      .links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="wrap">
+      <div class="brand">Phasmid</div>
+      <div class="links">
+        <a href="#overview">Overview</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#quickstart">Quick Start</a>
+        <a href="https://github.com/01rabbit/Phasmid">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="eyebrow">Janus Eidolon System</div>
+          <h1>Local-only coercion-aware storage.</h1>
+          <p class="lead">Phasmid is a field-evaluation research prototype for controlled disclosure experiments under practical risks such as device seizure, compelled access, and over-disclosure.</p>
+          <div class="actions">
+            <a class="btn primary" href="https://github.com/01rabbit/Phasmid">View on GitHub</a>
+            <a class="btn" href="https://github.com/01rabbit/Phasmid/blob/main/docs/THREAT_MODEL.md">Threat Model</a>
+            <a class="btn" href="https://github.com/01rabbit/Phasmid/blob/main/docs/PHASMID_ARCHITECTURE.md">Architecture</a>
+          </div>
+          <div class="tagrow">
+            <span class="tag">Research prototype</span>
+            <span class="tag">Local-only by default</span>
+            <span class="tag">Raspberry Pi Zero 2 W target</span>
+            <span class="tag">Apache-2.0</span>
+          </div>
+        </div>
+        <div class="card hero-card">
+          <img src="../images/Phasmid_banner.jpg" alt="Phasmid project banner">
+        </div>
+      </div>
+    </section>
+
+    <section id="overview">
+      <div class="wrap">
+        <h2>Designed for disclosure control, not casual file encryption.</h2>
+        <p class="section-lead">Phasmid creates and operates encrypted local containers while keeping the operating boundary explicit. It is intended for security researchers, field-risk evaluators, and local-only disclosure-control experiments.</p>
+        <div class="grid-3">
+          <div class="card mini"><h3>Encrypted local vessel</h3><p>Stores payloads in a local container and uses authenticated encryption with password-derived keys.</p></div>
+          <div class="card mini"><h3>Object-cue operation</h3><p>Uses camera/object matching as an operational access cue, not as cryptographic key material.</p></div>
+          <div class="card mini"><h3>Controlled disclosure</h3><p>Supports workflows that separate visible disclosure from protected local state under documented assumptions.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="architecture">
+      <div class="wrap">
+        <h2>Architecture boundary</h2>
+        <p class="section-lead">The Janus Eidolon System is organized around a two-slot local storage model, local access-key mixing, explicit restricted-action policy checks, and capture-visible UI discipline.</p>
+        <div class="grid-2">
+          <div class="card mini"><h3>Local-first security boundary</h3><p><code>vault.bin</code> alone is not intended to be sufficient for normal recovery when required local state is absent.</p></div>
+          <div class="card mini"><h3>Capture-visible restraint</h3><p>Normal UI and CLI flows avoid exposing internal disclosure structure, restricted recovery behavior, or trial order.</p></div>
+          <div class="card mini"><h3>Best-effort metadata reduction</h3><p>Metadata review and reduction are provided as operational support, not as guaranteed sanitization.</p></div>
+          <div class="card mini"><h3>Explicit non-claims</h3><p>Phasmid does not claim perfect deniability, forensic immunity, secure deletion on flash media, or protection from compromised hosts.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="quickstart">
+      <div class="wrap">
+        <h2>Quick start</h2>
+        <p class="section-lead">Repository-local use is intentionally simple. The first run creates a virtual environment if needed, installs dependencies, and opens the TUI Operator Console.</p>
+        <pre class="terminal"><code>git clone https://github.com/01rabbit/Phasmid.git
+cd Phasmid
+./phasmid</code></pre>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="card warning">
+          <strong>Security boundary notice.</strong>
+          Phasmid is research software. It is not a replacement for audited full-disk encryption, hardware-backed key storage, classified-data handling procedures, or a complete answer to compelled disclosure.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p>Phasmid — reference implementation of the Janus Eidolon System. Licensed under Apache License 2.0.</p>
+    </div>
+  </footer>
+</body>
+</html>
