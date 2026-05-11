@@ -20,9 +20,11 @@
       --accent: #91d6c3;
       --accent-2: #c7a5ff;
       --warn: #ffcf7a;
+      --danger: #ff8a9a;
       --shadow: 0 24px 80px rgba(0,0,0,.45);
     }
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       margin: 0;
       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -48,7 +50,7 @@
     .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 18px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,.04); color: var(--text); font-weight: 700; }
     .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #08100e; border: none; }
     .card { background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03)); border: 1px solid var(--line); border-radius: 28px; padding: 26px; box-shadow: var(--shadow); }
-    .hero-card img { width: 100%; border-radius: 20px; border: 1px solid var(--line); display: block; }
+    .hero-card img, .image-card img { width: 100%; border-radius: 20px; border: 1px solid var(--line); display: block; }
     .tagrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
     .tag { border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; color: var(--muted); font-size: 13px; }
     section { padding: 48px 0; }
@@ -62,9 +64,27 @@
     code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
     .warning { border-color: rgba(255,207,122,.34); background: rgba(255,207,122,.08); }
     .warning strong { color: var(--warn); }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 28px; }
+    .stat { padding: 18px; border: 1px solid var(--line); border-radius: 22px; background: rgba(255,255,255,.04); }
+    .stat b { display: block; font-size: 24px; color: var(--text); }
+    .stat span { color: var(--muted); font-size: 13px; }
+    .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; counter-reset: step; }
+    .flow .card { position: relative; min-height: 170px; }
+    .flow .card::before { counter-increment: step; content: "0" counter(step); color: var(--accent); font-weight: 900; letter-spacing: .12em; font-size: 13px; }
+    .screen { background: #05070b; border-radius: 24px; border: 1px solid var(--line); overflow: hidden; }
+    .screenbar { display: flex; gap: 8px; padding: 14px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.04); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); opacity: .7; }
+    .screenbody { padding: 22px; }
+    .console-line { display: flex; justify-content: space-between; gap: 20px; border-bottom: 1px solid rgba(255,255,255,.08); padding: 10px 0; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; }
+    .console-line strong { color: var(--text); }
+    .pill-ok { color: var(--accent); }
+    .pill-warn { color: var(--warn); }
+    .pill-danger { color: var(--danger); }
+    .callout { display: grid; grid-template-columns: .8fr 1.2fr; gap: 20px; align-items: center; }
+    .quote { font-size: clamp(24px, 4vw, 40px); line-height: 1.18; letter-spacing: -.04em; margin: 0; }
     footer { padding: 42px 0 64px; color: var(--muted); border-top: 1px solid var(--line); margin-top: 32px; }
     @media (max-width: 860px) {
-      .hero-grid, .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .hero-grid, .grid-2, .grid-3, .stats, .flow, .callout { grid-template-columns: 1fr; }
       header { position: static; }
       .links { display: none; }
     }
@@ -77,6 +97,8 @@
       <div class="links">
         <a href="#overview">Overview</a>
         <a href="#architecture">Architecture</a>
+        <a href="#flow">Flow</a>
+        <a href="#demo">Demo</a>
         <a href="#quickstart">Quick Start</a>
         <a href="https://github.com/01rabbit/Phasmid">GitHub</a>
       </div>
@@ -100,6 +122,12 @@
             <span class="tag">Local-only by default</span>
             <span class="tag">Raspberry Pi Zero 2 W target</span>
             <span class="tag">Apache-2.0</span>
+          </div>
+          <div class="stats">
+            <div class="stat"><b>2-slot</b><span>controlled disclosure model</span></div>
+            <div class="stat"><b>127.0.0.1</b><span>default WebUI boundary</span></div>
+            <div class="stat"><b>AES-GCM</b><span>authenticated encryption</span></div>
+            <div class="stat"><b>Argon2id</b><span>password-based key derivation</span></div>
           </div>
         </div>
         <div class="card hero-card">
@@ -125,10 +153,55 @@
         <h2>Architecture boundary</h2>
         <p class="section-lead">The Janus Eidolon System is organized around a two-slot local storage model, local access-key mixing, explicit restricted-action policy checks, and capture-visible UI discipline.</p>
         <div class="grid-2">
-          <div class="card mini"><h3>Local-first security boundary</h3><p><code>vault.bin</code> alone is not intended to be sufficient for normal recovery when required local state is absent.</p></div>
-          <div class="card mini"><h3>Capture-visible restraint</h3><p>Normal UI and CLI flows avoid exposing internal disclosure structure, restricted recovery behavior, or trial order.</p></div>
-          <div class="card mini"><h3>Best-effort metadata reduction</h3><p>Metadata review and reduction are provided as operational support, not as guaranteed sanitization.</p></div>
-          <div class="card mini"><h3>Explicit non-claims</h3><p>Phasmid does not claim perfect deniability, forensic immunity, secure deletion on flash media, or protection from compromised hosts.</p></div>
+          <div class="card image-card"><img src="../images/architecture_overview.png" alt="Phasmid architecture overview"></div>
+          <div class="grid-2">
+            <div class="card mini"><h3>Local-first security boundary</h3><p><code>vault.bin</code> alone is not intended to be sufficient for normal recovery when required local state is absent.</p></div>
+            <div class="card mini"><h3>Capture-visible restraint</h3><p>Normal UI and CLI flows avoid exposing internal disclosure structure, restricted recovery behavior, or trial order.</p></div>
+            <div class="card mini"><h3>Best-effort metadata reduction</h3><p>Metadata review and reduction are provided as operational support, not as guaranteed sanitization.</p></div>
+            <div class="card mini"><h3>Explicit non-claims</h3><p>Phasmid does not claim perfect deniability, forensic immunity, secure deletion on flash media, or protection from compromised hosts.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="flow">
+      <div class="wrap">
+        <h2>Controlled disclosure flow</h2>
+        <p class="section-lead">The page intentionally presents the operating concept without exposing sensitive internal mechanics. Good public pages attract attention; reckless public pages attract incident reports. This chooses the former.</p>
+        <div class="flow">
+          <div class="card mini"><h3>Prepare</h3><p>Create a local vessel and define the operational context before field use.</p></div>
+          <div class="card mini"><h3>Bind</h3><p>Combine passphrase-derived recovery with local state and an object-cue operating gate.</p></div>
+          <div class="card mini"><h3>Operate</h3><p>Use CLI, TUI, or local WebUI while keeping normal capture-visible surfaces restrained.</p></div>
+          <div class="card mini"><h3>Disclose</h3><p>Support controlled disclosure behavior under documented assumptions and residual risks.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="demo">
+      <div class="wrap callout">
+        <div>
+          <h2>Operator-facing, field-aware, local-only.</h2>
+          <p class="section-lead">A future screenshot or GIF can replace this mock console. Until then, the section gives visitors an immediate sense of the tool's operational posture without inventing unimplemented features.</p>
+        </div>
+        <div class="screen">
+          <div class="screenbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+          <div class="screenbody">
+            <div class="console-line"><strong>PHASMID MODE</strong><span class="pill-ok">LOCAL ONLY</span></div>
+            <div class="console-line"><strong>WEBUI BIND</strong><span>127.0.0.1</span></div>
+            <div class="console-line"><strong>VESSEL</strong><span>vault.bin</span></div>
+            <div class="console-line"><strong>OBJECT CUE</strong><span class="pill-warn">OPERATIONAL GATE</span></div>
+            <div class="console-line"><strong>DISCLOSURE</strong><span>CONTROLLED</span></div>
+            <div class="console-line"><strong>CLAIM BOUNDARY</strong><span class="pill-danger">NO PERFECT DENIABILITY</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="card callout">
+          <p class="quote">What Phasmid protects is not only data. It protects decision space under pressure.</p>
+          <p class="section-lead">The system is framed around coercion-aware storage and delaying architecture: increasing uncertainty, reducing over-disclosure, and preserving local operator control within clear technical limits.</p>
         </div>
       </div>
     </section>
