@@ -34,6 +34,11 @@ Raspberry Pi Zero 2 W requires a 22-pin to 15-pin Raspberry Pi Zero camera cable
 
 The camera is used as an operational object-cue capture device. It is not treated as cryptographic key material, biometric identity proof, or a tamper-resistant sensor.
 
+## Hardware Reference Photos
+
+![Phasmid hardware main tripod](./images/phasmid-hardware-main-tripod.jpg)
+![Phasmid hardware RPi Zero 2 W](./images/phasmid-hardware-rpi-zero2w.jpg)
+
 ## Physical Signature Reduction (Stealth)
 
 To prevent the device from drawing attention via LEDs or serial console activity:

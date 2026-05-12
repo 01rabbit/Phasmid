@@ -32,6 +32,11 @@ Phasmid is research software. It is not a replacement for full-disk encryption, 
 
 For Raspberry Pi deployment, `python3-picamera2` and `python3-libcamera` must be installed via apt before running the bootstrap script.
 
+## Hardware Snapshot
+
+![Phasmid hardware main tripod](./images/phasmid-hardware-main-tripod.jpg)
+![Phasmid hardware RPi Zero 2 W](./images/phasmid-hardware-rpi-zero2w.jpg)
+
 ## Quick Start in 60 seconds
 
 ```bash

@@ -88,6 +88,45 @@
       header { position: static; }
       .links { display: none; }
     }
+    .hardware-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+    .hardware-main,
+    .hardware-side {
+      display: flex;
+      flex-direction: column;
+    }
+    .hardware-main {
+      justify-content: center;
+    }
+    .hardware-main img,
+    .hardware-side img {
+      width: 100%;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      display: block;
+    }
+    .hardware-main img {
+      max-height: 76vh;
+      object-fit: contain;
+      background: #05070b;
+    }
+    .hardware-side img {
+      height: 100%;
+      min-height: 320px;
+      object-fit: cover;
+    }
+    .hardware-caption {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    @media (max-width: 860px) {
+      .hardware-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -178,20 +217,18 @@
     </section>
 
     <section id="demo">
-      <div class="wrap callout">
-        <div>
-          <h2>Operator-facing, field-aware, local-only.</h2>
-          <p class="section-lead">A future screenshot or GIF can replace this mock console. Until then, the section gives visitors an immediate sense of the tool's operational posture without inventing unimplemented features.</p>
-        </div>
-        <div class="screen">
-          <div class="screenbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-          <div class="screenbody">
-            <div class="console-line"><strong>PHASMID MODE</strong><span class="pill-ok">LOCAL ONLY</span></div>
-            <div class="console-line"><strong>WEBUI BIND</strong><span>127.0.0.1</span></div>
-            <div class="console-line"><strong>VESSEL</strong><span>vault.bin</span></div>
-            <div class="console-line"><strong>OBJECT CUE</strong><span class="pill-warn">OPERATIONAL GATE</span></div>
-            <div class="console-line"><strong>DISCLOSURE</strong><span>CONTROLLED</span></div>
-            <div class="console-line"><strong>CLAIM BOUNDARY</strong><span class="pill-danger">NO PERFECT DENIABILITY</span></div>
+      <div class="wrap">
+        <h2>Hardware reference</h2>
+        <p class="section-lead">Prototype hardware photos for Raspberry Pi Zero 2 W field-evaluation context.</p>
+
+        <div class="hardware-grid">
+          <div class="card image-card hardware-main">
+            <img src="./images/phasmid-hardware-main-tripod.jpg" alt="Phasmid prototype main unit with tripod attachment">
+            <p class="hardware-caption">Main unit with tripod attachment.</p>
+          </div>
+          <div class="card image-card hardware-side">
+            <img src="./images/phasmid-hardware-rpi-zero2w.jpg" alt="Raspberry Pi Zero 2 W hardware view">
+            <p class="hardware-caption">Raspberry Pi Zero 2 W detail view.</p>
           </div>
         </div>
       </div>
